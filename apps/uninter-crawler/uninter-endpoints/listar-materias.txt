@@ -1,7 +1,7 @@
 curl 'https://univirtus.uninter.com/ava/ava/SalaVirtual/6079/CursoUsuarioPermissao/true/?emCurso=true&idUsuarioCurso=7882818&cache=1787962471162' \
   -H 'accept: application/json, text/javascript, */*; q=0.01' \
   -H 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
-  -b '639235484383498388=$UNINTER_TOKEN' \
+  -b '$UNINTER_TIME=$UNINTER_TOKEN' \
   -H 'macaddress;' \
   -H 'pc: undefined' \
   -H 'priority: u=1, i' \
@@ -15,4 +15,4 @@ curl 'https://univirtus.uninter.com/ava/ava/SalaVirtual/6079/CursoUsuarioPermiss
   -H 'sec-gpc: 1' \
   -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36' \
   -H 'x-requested-with: XMLHttpRequest' \
-  -H 'x-time: 639235484383498388'
+  -H 'x-time: $UNINTER_TIME'

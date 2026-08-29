@@ -17,7 +17,7 @@ curl --request POST \
   --header 'sec-gpc: 1' \
   --header 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36' \
   --header 'x-requested-with: XMLHttpRequest' \
-  --cookie 639235479214878433=$UNINTER_TOKEN \
+  --cookie $UNINTER_TIME=$UNINTER_TOKEN \
   --data login=$UNINTER_RU \
   --data senha=$UNINTER_SENHA \
   --data recaptcha=
