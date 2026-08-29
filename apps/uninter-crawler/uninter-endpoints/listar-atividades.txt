@@ -1,0 +1,20 @@
+curl --request GET \
+  --url 'https://univirtus.uninter.com/ava/bqs/AvaliacaoUsuario/1/paginacao/true?filtro=&ordenacao=&idSalaVirtual=65922&idSalaVirtualOferta=971307' \
+  --header 'Cookie: 639235484383498388=$UNINTER_TOKEN' \
+  --header 'accept: */*' \
+  --header 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
+  --header 'macaddress: ' \
+  --header 'pc: undefined' \
+  --header 'priority: u=0, i' \
+  --header 'referer: https://univirtus.uninter.com/ava/web/' \
+  --header 'sec-ch-ua: "Not;A=Brand";v="8", "Chromium";v="150", "Brave";v="150"' \
+  --header 'sec-ch-ua-mobile: ?0' \
+  --header 'sec-ch-ua-platform: "Linux"' \
+  --header 'sec-fetch-dest: empty' \
+  --header 'sec-fetch-mode: cors' \
+  --header 'sec-fetch-site: same-origin' \
+  --header 'sec-gpc: 1' \
+  --header 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36' \
+  --header 'x-requested-with: XMLHttpRequest' \
+  --header 'x-time: 639235484383498388' \
+  --cookie '639235479214878433=$UNINTER_TOKEN; 639235481672281283=$UNINTER_TOKEN; 639235481682751773=$UNINTER_TOKEN; 639235481802761419=$UNINTER_TOKEN; 639235484383498388=$UNINTER_TOKEN'
