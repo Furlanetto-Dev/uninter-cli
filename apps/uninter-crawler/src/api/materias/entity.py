@@ -11,6 +11,7 @@ class Materia(SQLModel, table=True):
     oferta_atual: int
     oferta_aproveitamento: int | None = None
     atividades_sincronizadas_em: datetime | None = None
+    trabalhos_sincronizados_em: datetime | None = None
 
     @property
     def oferta(self) -> int:

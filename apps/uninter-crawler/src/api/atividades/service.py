@@ -24,6 +24,6 @@ class AtividadeSyncService:
     async def sync(self, materia: Materia) -> list[Atividade]:
         atividades = await self._request.fetch(materia)
         await self._repository.replace(materia, atividades)
-        await self._materias.mark_synced(materia)
+        await self._materias.mark_atividades_synced(materia)
         await self._sessao.commit()
         return atividades

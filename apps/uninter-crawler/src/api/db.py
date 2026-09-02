@@ -8,10 +8,17 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.atividades.entity import Atividade
 from api.materias.entity import Materia
+from api.trabalhos.entity import Trabalho, TrabalhoEntrega, TrabalhoEtiqueta
 from settings import APP_ROOT
 
 DATABASE_PATH: Path = APP_ROOT / "uninter.db"
-MAPPED_TABLES: tuple[type[SQLModel], ...] = (Materia, Atividade)
+MAPPED_TABLES: tuple[type[SQLModel], ...] = (
+    Materia,
+    Atividade,
+    Trabalho,
+    TrabalhoEntrega,
+    TrabalhoEtiqueta,
+)
 
 
 @asynccontextmanager

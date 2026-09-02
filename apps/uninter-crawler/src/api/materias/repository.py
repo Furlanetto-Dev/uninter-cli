@@ -17,14 +17,23 @@ class MateriaRepository:
         return list((await self._sessao.exec(statement)).all())
 
     async def save(self, materias: list[Materia]) -> None:
-        sincronizadas_em = {
-            stored.id: stored.atividades_sincronizadas_em
+        carimbos = {
+            stored.id: (
+                stored.atividades_sincronizadas_em,
+                stored.trabalhos_sincronizados_em,
+            )
             for stored in await self.list_all()
         }
         for materia in materias:
-            materia.atividades_sincronizadas_em = sincronizadas_em.get(materia.id)
+            atividades, trabalhos = carimbos.get(materia.id, (None, None))
+            materia.atividades_sincronizadas_em = atividades
+            materia.trabalhos_sincronizados_em = trabalhos
             await self._sessao.merge(materia)
 
-    async def mark_synced(self, materia: Materia) -> None:
+    async def mark_atividades_synced(self, materia: Materia) -> None:
         materia.atividades_sincronizadas_em = datetime.now()
+        await self._sessao.merge(materia)
+
+    async def mark_trabalhos_synced(self, materia: Materia) -> None:
+        materia.trabalhos_sincronizados_em = datetime.now()
         await self._sessao.merge(materia)
