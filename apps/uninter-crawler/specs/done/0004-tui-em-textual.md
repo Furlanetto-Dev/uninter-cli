@@ -1,6 +1,7 @@
 ---
 name: tui-em-textual
 description: Troca questionary + rich por Textual numa tela master-detail e converte crawler e api para async de ponta a ponta (AsyncClient, AsyncSession, aiosqlite). Traz o guarda contra sync concorrente, o inventário de widgets e o que a mudança faz com a 0002. Ler antes de mexer em cli/, em qualquer assinatura de request/repository/service, ou nos testes.
+projects: [all]
 status: done
 created_at: 2026-09-02
 ---
@@ -11,7 +12,7 @@ Hoje a lista de matérias desaparece a cada consulta: `browse_materias` pergunta
 
 Trocar `questionary` + `rich` por Textual não é trocar de biblioteca: é inversão de controle. O `while True: pergunta → renderiza` de `cli/app.py` desaparece e vira widget mais handler. E como o Textual roda num event loop, todo I/O bloqueante tem que sair da frente — o que arrasta `crawler` e `api` para async. Quando esta spec for executada, a tela é uma só, a lista nunca sai dela, e nenhuma chamada síncrona sobra no caminho da rede ou do banco.
 
-O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-avaliacoes-do-ava.md), as camadas em [0003](0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
+O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md), as camadas em [0003](0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
 
 ## Comportamento observado
 
@@ -56,7 +57,7 @@ Nada disso é ganho de velocidade — o banco tem 24KB e `aiosqlite` é um wrapp
 
 ### A sessão desliga o `expire_on_commit`
 
-`AsyncSession(engine, expire_on_commit=False)`. O padrão do SQLAlchemy expira toda instância depois de um commit, e o próximo acesso a atributo dispara um refresh preguiçoso — que sob async não é lento, é `MissingGreenlet`. Encontrado na primeira execução do estágio 2: `avaliacoes_db.list_all(materia)` logo depois de `service.sync()` estourava ao ler `materia.id`.
+`AsyncSession(engine, expire_on_commit=False)`. O padrão do SQLAlchemy expira toda instância depois de um commit, e o próximo acesso a atributo dispara um refresh preguiçoso — que sob async não é lento, é `MissingGreenlet`. Encontrado na primeira execução do estágio 2: `atividades_db.list_all(materia)` logo depois de `service.sync()` estourava ao ler `materia.id`.
 
 Desligar é o que o app quer de todo jeito: as entities são snapshots entregues à tela, e nada aqui depende de o commit trazer valores novos do disco. É a única linha da migração que ganhou comentário, porque é uma quirk da biblioteca que ninguém deduz lendo este repositório.
 
@@ -72,16 +73,16 @@ O ganho concreto está no teste: `App.run_test()` recebe services falsos por con
 cli/
   app.py         UninterApp: layout, bindings, workers, guarda
   materias.py    MateriaList, MateriaHeader
-  avaliacoes.py  AvaliacaoTable, MediaBar
+  atividades.py  AtividadeTable, MediaBar
   format.py      format_number, short_periodo, humanize_age
   app.tcss
 ```
 
-`prompts.py` morre com o `questionary`; `render.py` deixa de ser um módulo de funções e vira widget. O nome `cli` fica menos exato depois desta mudança — não há mais linha de comando nenhuma —, mas renomear para `tui/` reapontaria import em todo lugar e mexeria na 0003 e na 0002 por um ganho de vocabulário. O recorte por domínio espelha `api/materias/` e `api/avaliacoes/`, que é o eixo que o repositório já usa.
+`prompts.py` morre com o `questionary`; `render.py` deixa de ser um módulo de funções e vira widget. O nome `cli` fica menos exato depois desta mudança — não há mais linha de comando nenhuma —, mas renomear para `tui/` reapontaria import em todo lugar e mexeria na 0003 e na 0002 por um ganho de vocabulário. O recorte por domínio espelha `api/materias/` e `api/atividades/`, que é o eixo que o repositório já usa.
 
 ### Um `OptionList` e um `Static` — um focável só
 
-`MateriaList` estende `OptionList`, que é o análogo direto do `questionary.select`: tem separador para os grupos EM CURSO e FINALIZADAS e emite as duas mensagens que a decisão do cursor precisa. `AvaliacaoTable` é um `Static` que recebe o `rich.Table` de `build_table`, então esse código sobrevive quase inteiro e o golden do render continua sendo um arquivo de texto conferível no diff.
+`MateriaList` estende `OptionList`, que é o análogo direto do `questionary.select`: tem separador para os grupos EM CURSO e FINALIZADAS e emite as duas mensagens que a decisão do cursor precisa. `AtividadeTable` é um `Static` que recebe o `rich.Table` de `build_table`, então esse código sobrevive quase inteiro e o golden do render continua sendo um arquivo de texto conferível no diff.
 
 O `DataTable` seria o caminho idiomático, mas entra na ordem de foco e disputa `↑↓` com a lista — num master-detail, a seta precisa significar sempre a mesma coisa. Com um único widget focável isso é estrutural, não convenção.
 
@@ -107,21 +108,21 @@ Isso existe porque a tela não-bloqueante abre três caminhos reais para dois sy
 
 ### O selo de nunca sincronizada é a única coisa nova
 
-Um `●` na linha das matérias com `avaliacoes_sincronizadas_em is None`. Custa três linhas agora que a opção é um renderable, e é o que torna o estado descobrível antes de o usuário chegar nele — sem isso, só se sabe que uma matéria está vazia depois do `⏎`. Fora dele, o primeiro corte é paridade: nada de filtro, nada de ordenação, nada de detalhe por avaliação.
+Um `●` na linha das matérias com `atividades_sincronizadas_em is None`. Custa três linhas agora que a opção é um renderable, e é o que torna o estado descobrível antes de o usuário chegar nele — sem isso, só se sabe que uma matéria está vazia depois do `⏎`. Fora dele, o primeiro corte é paridade: nada de filtro, nada de ordenação, nada de detalhe por atividade.
 
 ### O menu de topo evapora
 
-`VIEW_AVALIACOES` some porque a lista já está na tela, `BACK` some porque não há para onde voltar, e `SYNC_MATERIAS`, `REFRESH` e `QUIT` viram bindings: `s`, `r` e `q`. `⏎` fica **fora** do `BINDINGS`: o `OptionList` já o consome para emitir `OptionSelected`, e declarar o mesmo atalho no app só o mostraria no rodapé sem ser ele quem dispara. O guarda do `⏎` mora no handler da mensagem; quem anuncia a tecla é o estado vazio da matéria nunca sincronizada, que já diz "⏎ para buscar no AVA". `render_goodbye` também sai — o Textual restaura o terminal na saída, e imprimir depois disso é ruído.
+`VIEW_ATIVIDADES` some porque a lista já está na tela, `BACK` some porque não há para onde voltar, e `SYNC_MATERIAS`, `REFRESH` e `QUIT` viram bindings: `s`, `r` e `q`. `⏎` fica **fora** do `BINDINGS`: o `OptionList` já o consome para emitir `OptionSelected`, e declarar o mesmo atalho no app só o mostraria no rodapé sem ser ele quem dispara. O guarda do `⏎` mora no handler da mensagem; quem anuncia a tecla é o estado vazio da matéria nunca sincronizada, que já diz "⏎ para buscar no AVA". `render_goodbye` também sai — o Textual restaura o terminal na saída, e imprimir depois disso é ruído.
 
 ### A 0002 é reescrita, não emendada
 
-Cinco seções dela deixam de valer: Ferramental (`pytest-asyncio` entra, contra o "pytest sozinho"), a árvore de `tests/` (`cli/test_render` vira `test_avaliacoes` mais `test_app`), a camada 5 inteira — os três mecanismos que ela nomeia, stub de `questionary.select`, `render.console` com largura fixa e o pty evitado, todos deixam de existir —, Determinismo, e o golden. As camadas 2, 3, 4 e 7 mantêm as asserções e só viram `async def`; as camadas 1 e 6 quase não mudam. O mapa de risco ganha uma entrada: o guarda de sync cedendo é risco novo, e é o único cujo teste mora na camada da interface.
+Cinco seções dela deixam de valer: Ferramental (`pytest-asyncio` entra, contra o "pytest sozinho"), a árvore de `tests/` (`cli/test_render` vira `test_atividades` mais `test_app`), a camada 5 inteira — os três mecanismos que ela nomeia, stub de `questionary.select`, `render.console` com largura fixa e o pty evitado, todos deixam de existir —, Determinismo, e o golden. As camadas 2, 3, 4 e 7 mantêm as asserções e só viram `async def`; as camadas 1 e 6 quase não mudam. O mapa de risco ganha uma entrada: o guarda de sync cedendo é risco novo, e é o único cujo teste mora na camada da interface.
 
 A reescrita também corrige uma afirmação falsa que a 0002 carrega desde que foi escrita: ela diz que o golden do render "já existe", gerado durante a refatoração da 0003. Não existe — nem no repositório, nem no histórico do git. Passa a ser um arquivo para gerar e conferir à mão, o que muda a razão pela qual a 0002 recusa `syrupy`.
 
 ### O banco não é tocado
 
-`Materia` e `Avaliacao` não mudam de nome nem de campo, e o dialeto `sqlite+aiosqlite` lê o mesmo arquivo. `uninter.db` segue válido; se um `select` quebrar, é `await` faltando, não schema.
+`Materia` e `Atividade` não mudam de nome nem de campo, e o dialeto `sqlite+aiosqlite` lê o mesmo arquivo. `uninter.db` segue válido; se um `select` quebrar, é `await` faltando, não schema.
 
 ### Os quatro defeitos conhecidos continuam de pé
 
@@ -133,7 +134,7 @@ Os defeitos listados na 0002 — 404 apagando o cache, `Materia.oferta` com `or`
 - **`@work(thread=True)` com uma sessão por operação.** Zero async no domínio, mas o composition root deixaria de entregar instâncias e passaria a entregar fábricas, com duas conexões SQLite vivas e entities de uma sessão morta chegando na UI.
 - **`@work(exclusive=True)` por grupo, sem guarda explícito.** Idiomático, mas grupos distintos (sync geral e sync de matéria) continuam concorrendo na mesma `AsyncSession`, e cancelar um worker no meio de `replace()` deixa a sessão suja precisando de rollback.
 - **Login eager no boot para matar a race do `_stamp`.** Resolve, e faz o app abrir sempre com uma requisição de rede — a 0001 decidiu o contrário ("a rede só entra quando o usuário pede"), e senha errada passaria a impedir até de ver o cache.
-- **`DataTable` no painel de avaliações.** Scroll e listras nativos, mas `build_table` reescrito, golden refeito, e um segundo focável que precisa de `can_focus = False` para não roubar `↑↓`. Nada se faz com uma linha selecionada.
+- **`DataTable` no painel de atividades.** Scroll e listras nativos, mas `build_table` reescrito, golden refeito, e um segundo focável que precisa de `can_focus = False` para não roubar `↑↓`. Nada se faz com uma linha selecionada.
 - **`ListView` com item composto na lista de matérias.** Daria estilo por elemento via TCSS, mas não tem separador — os grupos EM CURSO e FINALIZADAS viriam como itens desabilitados na mão — e é mais código que o `OptionList`.
 - **Renomear `cli/` para `tui/`.** O nome ficou impreciso, e essa foi exatamente a crítica que a 0003 fez ao `infra/`. Mas ali o nome escondia uma fronteira de camada; aqui esconde só o formato da interface, e o preço é reapontar import em todo o `src/` mais duas specs. Revisitar se aparecer uma segunda interface.
 - **Modal bloqueante durante o sync.** Mais fiel ao comportamento atual e sem nenhuma dúvida sobre estado inconsistente na tela, porque não há estado a inconsistir. Descartado porque 14 segundos de tela travada é o que a migração deveria eliminar.
@@ -151,7 +152,7 @@ Três estágios de código, cada um com o app rodando ao fim. Nos dois primeiros
 
 1. **`crawler/` async.** `+textual` e `+aiosqlite` no `pyproject`; `rich` continua explícito (`build_table` e as linhas da lista importam `rich.Table`). `ava_client` devolve `AsyncClient`, `AvaSession.get` e os dois `fetch` ganham `async`/`await`. `cli/app.py` e `main.py` acompanham com `await`.
 2. **`api/` async.** `db.py` com `create_async_engine`, `run_sync` no `create_all` e `expire_on_commit=False`; `AsyncSession` nos dois repositories, `await` nos dois services. Como os dois context managers agora são async, o `main.py` volta a ter um `async with` só.
-3. **`cli/` em Textual.** `app.py` com o layout, os bindings e o guarda; `materias.py` e `avaliacoes.py`; `app.tcss`; `truncate` e `NAME_WIDTH` fora de `format.py`; `prompts.py` e `render.py` apagados; `questionary` fora do `pyproject`.
+3. **`cli/` em Textual.** `app.py` com o layout, os bindings e o guarda; `materias.py` e `atividades.py`; `app.tcss`; `truncate` e `NAME_WIDTH` fora de `format.py`; `prompts.py` e `render.py` apagados; `questionary` fora do `pyproject`.
 4. **0002 reescrita**, no commit do estágio 3.
 
 Verificação, em vez de abrir a CLI a cada estágio: `pyright` em `strict` sobre `src/` — com tudo async, `await` faltando é o erro que passa em silêncio no runtime — mais um roteiro headless por estágio, com `MockTransport` no lugar do AVA e o banco em diretório temporário. O estágio 3 usa `App.run_test()` com Pilot, que é o mesmo ferramental que a camada 5 da [0002](../pending/0002-estrategia-de-testes.md) vai usar. Nada disso vira teste commitado aqui: os testes são trabalho da 0002, depois desta spec.

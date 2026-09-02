@@ -1,11 +1,12 @@
 ---
-name: crawler-de-avaliacoes-do-ava
-description: Decisões de desenho do crawler — comportamento observado do AVA (cookie x-time, regra aproveitamento-ou-atual, 404 indistinguível de vazio, pesoMedia como peso real), o escopo de Avaliação e as alternativas rejeitadas. Ler antes de mexer em request, DTO ou na resolução de oferta.
+name: crawler-de-atividades-do-ava
+description: Decisões de desenho do crawler — comportamento observado do AVA (cookie x-time, regra aproveitamento-ou-atual, 404 indistinguível de vazio, pesoMedia como peso real), o escopo de Atividade e as alternativas rejeitadas. Ler antes de mexer em request, DTO ou na resolução de oferta.
+projects: [all]
 status: done
 created_at: 2026-08-28
 ---
 
-# Crawler de avaliações do AVA
+# Crawler de atividades do AVA
 
 Consultar nota no AVA da Uninter exige navegar num SPA lento, matéria por matéria. Este projeto espelha essas informações num SQLite local e as expõe por uma CLI interativa. O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md); aqui ficam as decisões e o porquê delas.
 
@@ -14,16 +15,16 @@ Consultar nota no AVA da Uninter exige navegar num SPA lento, matéria por maté
 Restrições verificadas contra a API real, não deduzidas da documentação (que não existe). Elas explicam boa parte das decisões abaixo.
 
 - O login devolve `usuario.time`, um timestamp que é **o nome do cookie de sessão**. Toda requisição seguinte precisa mandar o cookie e repetir esse mesmo valor no header `x-time`. A sessão vale 4 horas.
-- Cada matéria carrega duas ofertas, e só uma delas devolve avaliações: a de aproveitamento quando existe, a atual caso contrário. Verificado nas 27 salas da conta, nos dois sentidos, sem contraexemplo.
-- Lista vazia e erro chegam iguais: **HTTP 404 com corpo em texto puro**, apesar do `content-type: application/json`. Não há como distinguir "matéria sem avaliação" de falha real, e 6 das 27 salas caem nesse caso legitimamente.
+- Cada matéria carrega duas ofertas, e só uma delas devolve atividades: a de aproveitamento quando existe, a atual caso contrário. Verificado nas 27 salas da conta, nos dois sentidos, sem contraexemplo.
+- Lista vazia e erro chegam iguais: **HTTP 404 com corpo em texto puro**, apesar do `content-type: application/json`. Não há como distinguir "matéria sem atividade" de falha real, e 6 das 27 salas caem nesse caso legitimamente.
 - O `idCurso` no path é ignorado sempre que `idUsuarioCurso` tem valor real, e vice-versa — mas pelo menos um dos dois precisa ser verdadeiro, e nenhum vem na resposta do login.
-- A resposta traz `peso` e `pesoMedia`. O primeiro vale 100 em toda avaliação e não tem relação com a média; o peso real é `pesoMedia`.
+- A resposta traz `peso` e `pesoMedia`. O primeiro vale 100 em toda atividade e não tem relação com a média; o peso real é `pesoMedia`.
 
 ## Decisões
 
-### Atividade é avaliação, e nada além disso
+### Atividade é APOL, prova e simulado, e nada além disso
 
-"Listar as atividades de uma matéria" quer dizer listar APOLs, provas e simulados — o que o endpoint `AvaliacaoUsuario` devolve. Aulas, fóruns, materiais e trabalhos ficam fora do escopo, porque exigiriam endpoints que não foram capturados.
+"Listar as atividades de uma matéria" quer dizer listar APOLs, provas e simulados — o que o endpoint `AvaliacaoUsuario` devolve. Aulas, fóruns e materiais ficam fora do escopo, porque exigiriam endpoints que não foram capturados. Os trabalhos são coleção à parte e têm spec própria na [0005](0005-trabalhos.md).
 
 ### A oferta nunca aparece para o usuário
 
@@ -31,15 +32,15 @@ Matéria é a unidade que o aluno escolhe; a oferta é detalhe de integração r
 
 ### O banco guarda só os campos que a tela usa
 
-Uma avaliação chega com cerca de 160 campos entre o objeto e seus aninhados, quase todos tripa interna do AVA. Persistimos doze; incluir um campo novo depois custa uma linha e um novo sync, porque a API responde em meio segundo e não é um arquivo morto.
+Uma atividade chega com cerca de 160 campos entre o objeto e seus aninhados, quase todos tripa interna do AVA. Persistimos doze; incluir um campo novo depois custa uma linha e um novo sync, porque a API responde em meio segundo e não é um arquivo morto.
 
 ### O SQLite é a fonte de leitura, não um subproduto
 
 A CLI lê do banco; a rede só entra quando o usuário pede. Isso mantém a navegação instantânea e faz o cookie de 4 horas importar apenas no momento do sync.
 
-### Matérias no sync, avaliações sob demanda
+### Matérias no sync, atividades sob demanda
 
-Sincronizar as 27 matérias de uma vez custaria uns 14 segundos a cada execução. As avaliações são buscadas quando a matéria é aberta pela primeira vez, e ficam cacheadas. A consequência aceita é que só funciona offline aquilo que já foi visitado.
+Sincronizar as 27 matérias de uma vez custaria uns 14 segundos a cada execução. As atividades são buscadas quando a matéria é aberta pela primeira vez, e ficam cacheadas. A consequência aceita é que só funciona offline aquilo que já foi visitado.
 
 ### Cache servido de imediato; atualizar é ato explícito
 
@@ -47,11 +48,11 @@ Abrir uma matéria já visitada mostra o que está no banco, com a idade do dado
 
 ### O seletor esconde o que não é matéria
 
-O AVA devolve 27 salas, e uma delas é o canal de comunicação com o coordenador — sem período, sem datas, sem avaliação. Pelo glossário isso não é Matéria, então não entra na lista. As vigentes vêm primeiro.
+O AVA devolve 27 salas, e uma delas é o canal de comunicação com o coordenador — sem período, sem datas, sem atividade. Pelo glossário isso não é Matéria, então não entra na lista. As vigentes vêm primeiro.
 
 ### A tela soma a média
 
-A contribuição de cada avaliação já vem calculada pelo AVA, e a soma é a média parcial da matéria. Exibimos também quanto do peso já foi lançado, porque em algumas matérias as avaliações realizadas não fecham 100% e uma média solta mentiria.
+A contribuição de cada atividade já vem calculada pelo AVA, e a soma é a média parcial da matéria. Exibimos também quanto do peso já foi lançado, porque em algumas matérias as atividades realizadas não fecham 100% e uma média solta mentiria.
 
 ### A CLI não tem argumentos
 

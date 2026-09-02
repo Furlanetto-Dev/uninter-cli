@@ -1,6 +1,7 @@
 ---
 name: estrategia-de-testes
 description: Como testar o crawler — mapa de risco, as oito camadas de teste, fixtures sintéticas e reais, determinismo de relógio e de render, e os quatro defeitos conhecidos a corrigir com teste vermelho primeiro. Ler antes de escrever qualquer teste neste app.
+projects: [all]
 status: pending
 created_at: 2026-09-02
 ---
@@ -9,19 +10,19 @@ created_at: 2026-09-02
 
 O projeto não tem nenhum teste. A refatoração para camadas criou as costuras que faltavam — transporte HTTP injetado, banco por caminho, relógio como parâmetro — e a [0004](../done/0004-tui-em-textual.md) acrescenta a que faltava na ponta: os services chegam à App por construtor, então a interface inteira pode ser exercitada com falsos. Este documento decide o que testar, com o quê, e em que ordem.
 
-O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-avaliacoes-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e a interface em [0004](../done/0004-tui-em-textual.md). **Nada aqui é escrito antes da 0004 ser executada**: ela muda toda assinatura de `fetch`, `sync` e repository para `async`, e testes escritos antes nasceriam para reescrever.
+O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-atividades-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e a interface em [0004](../done/0004-tui-em-textual.md). **Nada aqui é escrito antes da 0004 ser executada**: ela muda toda assinatura de `fetch`, `sync` e repository para `async`, e testes escritos antes nasceriam para reescrever.
 
 ## O mapa de risco
 
 A lista de testes não sai de cobertura, sai daqui. Ordenado por dano × probabilidade:
 
 1. **Drift de alias no DTO.** O AVA renomeia um campo e o dado vira `None` sem erro nenhum: os DTOs usam `extra="ignore"` e quase todo campo interessante é opcional. Sintoma é nota faltando na tela, meses depois. É o único risco que nenhum teste sintético pega.
-2. **404 transitório destrói o cache.** `AvaliacaoRequest.fetch` devolve `[]` em 404, `replace` apaga o que havia, `mark_synced` marca como fresco. Falha de rede vira "matéria sem avaliação, sincronizada agora".
+2. **404 transitório destrói o cache.** `AtividadeRequest.fetch` devolve `[]` em 404, `replace` apaga o que havia, `mark_synced` marca como fresco. Falha de rede vira "matéria sem atividade, sincronizada agora".
 3. **Regra da oferta errada.** `aproveitamento ?? atual` decide se vem dado ou 404. Errar aqui esvazia matérias silenciosamente.
 4. **Carimbo perdido num resync.** Se o dicionário em `MateriaRepository.save` quebrar, todo "Sincronizar matérias" zera a idade das 26 e força refetch.
 5. **O guarda de sync cede e duas corrotinas tocam a mesma `AsyncSession`.** Novo com a 0004. A tela não-bloqueante abre três caminhos para dois syncs simultâneos, e a `AsyncSession` não aceita operação concorrente: o sintoma é exceção na cara do usuário, e no primeiro acesso da sessão também um POST de login duplicado. É o único risco cujo teste mora na camada da interface.
 6. **Média e peso lançado errados.** É a única aritmética do projeto, e vai direto para a cara do usuário.
-7. **Ordem das avaliações trocada.** `posicao` é a única ordenação existente; o AVA não garante nenhuma.
+7. **Ordem das atividades trocada.** `posicao` é a única ordenação existente; o AVA não garante nenhuma.
 
 ## Ferramental
 
@@ -52,34 +53,34 @@ Espelhando os pacotes de `src/`, para que o arquivo de teste seja óbvio a parti
 
 ```
 tests/
-  conftest.py             sessao em tmp_path, ava falso, fabricas de Materia/Avaliacao
+  conftest.py             sessao em tmp_path, ava falso, fabricas de Materia/Atividade
   crawler/                test_session
     materias/             test_dto  test_request
-    avaliacoes/           test_dto  test_request
+    atividades/           test_dto  test_request
   api/
     materias/             test_entity  test_repository  test_service
-    avaliacoes/           test_entity  test_media  test_repository  test_service
-  cli/                    test_format  test_avaliacoes  test_app
+    atividades/           test_entity  test_media  test_repository  test_service
+  cli/                    test_format  test_atividades  test_app
   e2e/                    test_fluxo
   contract/               test_dtos_reais  test_smoke (marker rede)
-  fixtures/               login.json  materias.json  avaliacoes-*.json
+  fixtures/               login.json  materias.json  atividades-*.json
   golden/                 materia-renderizada.txt
 ```
 
-`cli/test_avaliacoes` cobre `build_table`, que continua devolvendo um `rich.Table`; `cli/test_app` é o Pilot com services falsos. `test_render` desapareceu junto com o módulo.
+`cli/test_atividades` cobre `build_table`, que continua devolvendo um `rich.Table`; `cli/test_app` é o Pilot com services falsos. `test_render` desapareceu junto com o módulo.
 
 ## As camadas, e o que cada uma prova
 
 ### 1. Funções puras — sem fixture, sem mock
 
-`cli/format.py` não importa nada e `api/avaliacoes/media.py` importa só a entity. São os testes mais baratos do projeto e cobrem o risco 6.
+`cli/format.py` não importa nada e `api/atividades/media.py` importa só a entity. São os testes mais baratos do projeto e cobrem o risco 6.
 
 - `format_number`: `None → "—"`, `0.0 → "0"`, `8.0 → "8"`, `7.5 → "7,5"`, `33.33 → "33,3"`, negativo
 - `short_periodo`: `None → ""`, e que o corte no primeiro `" - "` descarta a UTA
 - `humanize_age`: `None`, agora, 59s, 1h, 23h, 1d, 45d — relógio vem por parâmetro
-- `Media.from_avaliacoes`: lista vazia → `(0, 0)`; parcialmente lançada → soma só as realizadas; `nota = 0.0` conta como realizada e não é confundida com ausência; `parcial` liga e desliga em 100
+- `Media.from_atividades`: lista vazia → `(0, 0)`; parcialmente lançada → soma só as realizadas; `nota = 0.0` conta como realizada e não é confundida com ausência; `parcial` liga e desliga em 100
 - `Materia.oferta`: com aproveitamento usa ele; sem, usa o atual
-- `Avaliacao.realizada`: `contribuicao = 0.0` é realizada, `None` não é
+- `Atividade.realizada`: `contribuicao = 0.0` é realizada, `None` não é
 
 `truncate` saiu de `format.py` com a 0004 — a largura da linha virou `overflow="ellipsis"` no renderable —, então os casos dele saíram desta lista.
 
@@ -91,19 +92,19 @@ Cobre os riscos 1 e 3. Tudo `async def`, com um `AsyncClient` construído sobre 
 - `LoginRejected` quando `usuario` é `null`, com a mensagem do AVA
 - 404 → `[]` nos dois requests; 500 levanta
 - `MateriaRequest`: descarta sala sem `modulo` (o canal do coordenador); monta a URL com o `id_curso` recebido
-- `AvaliacaoRequest`: a querystring leva `materia.oferta`, não `oferta_atual`; `posicao` segue a ordem da resposta
-- **Os aliases-armadilha, um teste cada**: `peso` vem de `pesoMedia` e não do `peso` que vale 100; `contribuicao` vem de `notaMedia`; `periodo` vem de `modulo`; `prova` vem de `avaliacao`
+- `AtividadeRequest`: a querystring leva `materia.oferta`, não `oferta_atual`; `posicao` segue a ordem da resposta
+- **Os aliases-armadilha, um teste cada**: `peso` vem de `pesoMedia` e não do `peso` que vale 100; `contribuicao` vem de `notaMedia`; `periodo` vem de `modulo`; `prova` vem de `atividade`
 - Campo obrigatório ausente levanta `ValidationError` em vez de virar `None`
 
 ### 3. Repositórios — SQLite real em `tmp_path`
 
 `db_session(path)` aceita caminho, então nada de mock aqui. Cobre os riscos 4 e 7.
 
-- Round-trip de `Materia` e `Avaliacao`, com `datetime`, `float | None` e `nota = 0.0` sobrevivendo
+- Round-trip de `Materia` e `Atividade`, com `datetime`, `float | None` e `nota = 0.0` sobrevivendo
 - `MateriaRepository.list_all`: vigentes primeiro, depois por nome
 - `MateriaRepository.save` **preserva o carimbo** de quem já estava gravado — o teste que protege o risco 4
-- `AvaliacaoRepository.list_all` ordena por `posicao`
-- `AvaliacaoRepository.replace` substitui em vez de duplicar; avaliação que saiu do AVA desaparece
+- `AtividadeRepository.list_all` ordena por `posicao`
+- `AtividadeRepository.replace` substitui em vez de duplicar; atividade que saiu do AVA desaparece
 - Nenhum repositório commita: depois de chamar `save`, uma segunda `AsyncSession` no mesmo arquivo ainda não vê o dado
 
 Duas `AsyncSession` sobre o mesmo arquivo é o motivo de o banco ser um arquivo em `tmp_path` e não `:memory:`, agora como antes.
@@ -113,7 +114,7 @@ Duas `AsyncSession` sobre o mesmo arquivo é o motivo de o banco ser um arquivo 
 Os falsos são corrotinas, e o pyright em `strict` sobre `tests/` é o que garante que continuam casando com o request real.
 
 - `MateriaSyncService.sync` busca, grava e commita; `aluno` reflete a sessão do AVA
-- `AvaliacaoSyncService.sync` grava as avaliações **e** carimba a matéria **no mesmo commit** — uma sessão paralela vê as duas escritas ou nenhuma
+- `AtividadeSyncService.sync` grava as atividades **e** carimba a matéria **no mesmo commit** — uma sessão paralela vê as duas escritas ou nenhuma
 - O carimbo é asseverado por faixa (`antes <= carimbo <= depois`), não por valor: evita `freezegun` para dois `datetime.now()`
 - Request que levanta deixa o banco intacto
 
@@ -126,7 +127,7 @@ Substitui a camada de prompts roteirizados que existia antes da 0004: `questiona
 - **Mover o cursor não toca a rede**: `pilot.press("down", "down")` e a lista de chamadas do service falso continua vazia
 - `⏎` numa matéria nunca sincronizada chama `sync` exatamente uma vez; numa matéria com cache, nenhuma
 - **O guarda**: com o service falso suspenso num `asyncio.Event`, `r` e `s` durante o sync em voo não produzem segunda chamada, e `check_action` recusa as três ações
-- O selo aparece só nas matérias com `avaliacoes_sincronizadas_em is None`
+- O selo aparece só nas matérias com `atividades_sincronizadas_em is None`
 - `LoginRejected` levantado pelo falso notifica e **o app continua rodando** — a mudança de comportamento mais visível da 0004
 - Banco vazio mostra o estado vazio, não uma lista de zero itens
 
@@ -149,15 +150,15 @@ O único teste que pega o risco 1. Valida os DTOs contra respostas de verdade e 
 
 ### 8. Smoke — `@pytest.mark.rede`, opt-in
 
-Desligado por padrão. Assevera invariantes **estruturais, nunca valores**: login devolve `time`, matérias > 0, toda matéria com período tem oferta, uma matéria conhecida devolve avaliações. Serve para saber que o AVA mudou antes do usuário ver nota faltando.
+Desligado por padrão. Assevera invariantes **estruturais, nunca valores**: login devolve `time`, matérias > 0, toda matéria com período tem oferta, uma matéria conhecida devolve atividades. Serve para saber que o AVA mudou antes do usuário ver nota faltando.
 
 ## Fixtures: dois níveis
 
 **Sintéticas**, escritas à mão e commitadas. Testam o código. É o que as camadas 2 a 6 usam.
 
-**Reais**, capturadas uma vez e anonimizadas. Testam o contrato. Captura: um login e dois GETs com os curls de `uninter-endpoints/`, salvando os corpos. Anonimização: trocar `nome` do usuário, RU e ids por valores fixos, e **conferir campo a campo** que não sobrou nada pessoal — o JSON de avaliação tem cerca de 160 campos entre o objeto e os aninhados.
+**Reais**, capturadas uma vez e anonimizadas. Testam o contrato. Captura: um login e dois GETs com os curls de `uninter-endpoints/`, salvando os corpos. Anonimização: trocar `nome` do usuário, RU e ids por valores fixos, e **conferir campo a campo** que não sobrou nada pessoal — o JSON de atividade tem cerca de 160 campos entre o objeto e os aninhados.
 
-Precisamos de quatro: login, matérias (com e sem `oferta_aproveitamento`, e a sala sem `modulo`), avaliações com nota lançada, avaliações sem nota nenhuma.
+Precisamos de quatro: login, matérias (com e sem `oferta_aproveitamento`, e a sala sem `modulo`), atividades com nota lançada, atividades sem nota nenhuma.
 
 ## Determinismo
 
