@@ -1,11 +1,17 @@
 [project]
 name = "uninter"
 version = "0.1.0"
-description = "Default template for PDM package"
+description = "CLI interativa para consultar avaliações do AVA da Uninter"
 authors = [
     {name = "furlanetto-dev",email = "dev@furlanetto.me"},
 ]
-dependencies = []
+dependencies = [
+    "httpx>=0.27",
+    "sqlmodel>=0.0.22",
+    "pydantic-settings>=2.4",
+    "questionary>=2.0",
+    "rich>=13.7",
+]
 requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "MIT"}
@@ -13,3 +19,14 @@ license = {text = "MIT"}
 
 [tool.pdm]
 distribution = false
+
+[tool.pdm.scripts]
+start = {cmd = "python src/main.py", help = "Abre a CLI interativa de avaliações"}
+
+
+[tool.pyright]
+include = ["src"]
+extraPaths = ["src"]
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
