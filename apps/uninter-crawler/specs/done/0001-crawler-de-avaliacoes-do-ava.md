@@ -1,8 +1,13 @@
+---
+name: crawler-de-avaliacoes-do-ava
+description: Decisões de desenho do crawler — comportamento observado do AVA (cookie x-time, regra aproveitamento-ou-atual, 404 indistinguível de vazio, pesoMedia como peso real), o escopo de Avaliação e as alternativas rejeitadas. Ler antes de mexer em request, DTO ou na resolução de oferta.
+status: done
+created_at: 2026-08-28
+---
+
 # Crawler de avaliações do AVA
 
-Status: aceito · 2026-08-28
-
-Consultar nota no AVA da Uninter exige navegar num SPA lento, matéria por matéria. Este projeto espelha essas informações num SQLite local e as expõe por uma CLI interativa. O vocabulário está em [CONTEXT.md](../CONTEXT.md); aqui ficam as decisões e o porquê delas.
+Consultar nota no AVA da Uninter exige navegar num SPA lento, matéria por matéria. Este projeto espelha essas informações num SQLite local e as expõe por uma CLI interativa. O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md); aqui ficam as decisões e o porquê delas.
 
 ## Comportamento observado do AVA
 

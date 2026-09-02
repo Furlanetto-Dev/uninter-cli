@@ -1,12 +1,12 @@
-from avaliacoes.gateway import AvaliacaoGateway
-from avaliacoes.repository import AvaliacaoRepository
-from avaliacoes.service import AvaliacaoSyncService
+from api.avaliacoes.repository import AvaliacaoRepository
+from api.avaliacoes.service import AvaliacaoSyncService
+from api.db import db_session
+from api.materias.repository import MateriaRepository
+from api.materias.service import MateriaSyncService
 from cli.app import run
-from infra.ava import AvaSession, ava_client
-from infra.db import db_session
-from materias.gateway import MateriaGateway
-from materias.repository import MateriaRepository
-from materias.service import MateriaSyncService
+from crawler.avaliacoes.request import AvaliacaoRequest
+from crawler.materias.request import MateriaRequest
+from crawler.session import AvaSession, ava_client
 from settings import Settings
 
 
@@ -19,12 +19,12 @@ def main() -> None:
         materias_service = MateriaSyncService(
             sessao=sessao,
             ava=ava,
-            gateway=MateriaGateway(ava, settings.id_curso),
+            request=MateriaRequest(ava, settings.id_curso),
             repository=materias_db,
         )
         avaliacoes_service = AvaliacaoSyncService(
             sessao=sessao,
-            gateway=AvaliacaoGateway(ava),
+            request=AvaliacaoRequest(ava),
             repository=avaliacoes_db,
             materias=materias_db,
         )

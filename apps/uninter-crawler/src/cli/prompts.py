@@ -1,6 +1,6 @@
 import questionary
 
-from materias.entity import Materia
+from api.materias.entity import Materia
 
 from .format import short_periodo, truncate
 

@@ -1,9 +1,9 @@
 from sqlmodel import Session
 
-from infra.ava import AvaSession
+from crawler.materias.request import MateriaRequest
+from crawler.session import AvaSession
 
 from .entity import Materia
-from .gateway import MateriaGateway
 from .repository import MateriaRepository
 
 
@@ -12,12 +12,12 @@ class MateriaSyncService:
         self,
         sessao: Session,
         ava: AvaSession,
-        gateway: MateriaGateway,
+        request: MateriaRequest,
         repository: MateriaRepository,
     ) -> None:
         self._sessao = sessao
         self._ava = ava
-        self._gateway = gateway
+        self._request = request
         self._repository = repository
 
     @property
@@ -25,7 +25,7 @@ class MateriaSyncService:
         return self._ava.aluno
 
     def sync(self) -> list[Materia]:
-        materias = self._gateway.fetch()
+        materias = self._request.fetch()
         self._repository.save(materias)
         self._sessao.commit()
         return materias

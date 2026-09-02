@@ -1,5 +1,6 @@
 import httpx
-from pydantic import BaseModel, ConfigDict
+
+from .dto import LoginDTO
 
 BASE_URL = "https://univirtus.uninter.com/ava"
 USER_AGENT = (
@@ -13,20 +14,6 @@ TIMEOUT_SECONDS = 30
 
 class LoginRejected(Exception):
     pass
-
-
-class AvaPayload(BaseModel):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
-
-
-class UsuarioPayload(AvaPayload):
-    nome: str
-    time: str
-
-
-class LoginPayload(AvaPayload):
-    usuario: UsuarioPayload | None = None
-    mensagem: str | None = None
 
 
 def ava_client() -> httpx.Client:
@@ -74,8 +61,8 @@ class AvaSession:
             headers={"content-type": FORM_CONTENT_TYPE},
         )
         response.raise_for_status()
-        payload = LoginPayload.model_validate(response.json())
-        if payload.usuario is None:
-            raise LoginRejected(payload.mensagem or "RU ou senha inválidos")
-        self._aluno = payload.usuario.nome
-        return payload.usuario.time
+        dto = LoginDTO.model_validate(response.json())
+        if dto.usuario is None:
+            raise LoginRejected(dto.mensagem or "RU ou senha inválidos")
+        self._aluno = dto.usuario.nome
+        return dto.usuario.time

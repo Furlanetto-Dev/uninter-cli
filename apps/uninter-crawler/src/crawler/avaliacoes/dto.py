@@ -2,13 +2,11 @@ from datetime import datetime
 
 from pydantic import Field
 
-from infra.ava import AvaPayload, AvaSession
-from materias.entity import Materia
-
-from .entity import Avaliacao
+from api.avaliacoes.entity import Avaliacao
+from crawler.dto import AvaDTO
 
 
-class _ProvaPayload(AvaPayload):
+class ProvaDTO(AvaDTO):
     id: int
     nome: str
     tipo: str = Field(alias="nomeAvaliacaoTipo")
@@ -16,8 +14,8 @@ class _ProvaPayload(AvaPayload):
     peso: int = Field(alias="pesoMedia")
 
 
-class _AvaliacaoPayload(AvaPayload):
-    prova: _ProvaPayload = Field(alias="avaliacao")
+class AvaliacaoDTO(AvaDTO):
+    prova: ProvaDTO = Field(alias="avaliacao")
     status: str
     nota: float | None = None
     contribuicao: float | None = Field(default=None, alias="notaMedia")
@@ -45,25 +43,7 @@ class _AvaliacaoPayload(AvaPayload):
         )
 
 
-class _AvaliacoesPayload(AvaPayload):
-    avaliacoes: list[_AvaliacaoPayload] = Field(
-        default_factory=list[_AvaliacaoPayload], alias="avaliacaoUsuarios"
+class AvaliacoesDTO(AvaDTO):
+    avaliacoes: list[AvaliacaoDTO] = Field(
+        default_factory=list[AvaliacaoDTO], alias="avaliacaoUsuarios"
     )
-
-
-class AvaliacaoGateway:
-    def __init__(self, ava: AvaSession) -> None:
-        self._ava = ava
-
-    def fetch(self, materia: Materia) -> list[Avaliacao]:
-        body = self._ava.get(
-            "/bqs/AvaliacaoUsuario/1/paginacao/true?filtro=&ordenacao="
-            f"&idSalaVirtual={materia.id}&idSalaVirtualOferta={materia.oferta}"
-        )
-        if body is None:
-            return []
-        payload = _AvaliacoesPayload.model_validate(body)
-        return [
-            avaliacao.to_avaliacao(materia.id, posicao)
-            for posicao, avaliacao in enumerate(payload.avaliacoes)
-        ]

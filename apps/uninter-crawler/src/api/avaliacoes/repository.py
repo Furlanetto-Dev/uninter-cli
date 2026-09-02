@@ -1,6 +1,6 @@
 from sqlmodel import Session, col, select
 
-from materias.entity import Materia
+from api.materias.entity import Materia
 
 from .entity import Avaliacao
 

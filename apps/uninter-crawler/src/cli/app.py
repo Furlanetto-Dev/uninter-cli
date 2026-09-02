@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from avaliacoes.media import Media
-from avaliacoes.repository import AvaliacaoRepository
-from avaliacoes.service import AvaliacaoSyncService
-from infra.ava import LoginRejected
-from materias.entity import Materia
-from materias.repository import MateriaRepository
-from materias.service import MateriaSyncService
+from api.avaliacoes.media import Media
+from api.avaliacoes.repository import AvaliacaoRepository
+from api.avaliacoes.service import AvaliacaoSyncService
+from api.materias.entity import Materia
+from api.materias.repository import MateriaRepository
+from api.materias.service import MateriaSyncService
+from crawler.session import LoginRejected
 
 from . import render
 from .prompts import BACK, ask_materia, ask_text_choice

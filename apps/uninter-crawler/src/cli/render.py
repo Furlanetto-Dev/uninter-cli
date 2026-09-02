@@ -4,9 +4,9 @@ from rich.console import Console
 from rich.status import Status
 from rich.table import Table
 
-from avaliacoes.entity import Avaliacao
-from avaliacoes.media import Media
-from materias.entity import Materia
+from api.avaliacoes.entity import Avaliacao
+from api.avaliacoes.media import Media
+from api.materias.entity import Materia
 
 from .format import format_number, humanize_age, short_periodo
 

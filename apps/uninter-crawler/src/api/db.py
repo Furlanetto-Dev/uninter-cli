@@ -4,8 +4,8 @@ from pathlib import Path
 
 from sqlmodel import Session, SQLModel, create_engine
 
-from avaliacoes.entity import Avaliacao
-from materias.entity import Materia
+from api.avaliacoes.entity import Avaliacao
+from api.materias.entity import Materia
 from settings import APP_ROOT
 
 DATABASE_PATH: Path = APP_ROOT / "uninter.db"
