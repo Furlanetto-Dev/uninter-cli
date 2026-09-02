@@ -1,13 +1,15 @@
 ---
 name: estrategia-de-testes
-description: Como testar o crawler — mapa de risco, as sete camadas de teste, fixtures sintéticas e reais, determinismo de relógio e console, e os quatro defeitos conhecidos a corrigir com teste vermelho primeiro. Ler antes de escrever qualquer teste neste app.
+description: Como testar o crawler — mapa de risco, as oito camadas de teste, fixtures sintéticas e reais, determinismo de relógio e de render, e os quatro defeitos conhecidos a corrigir com teste vermelho primeiro. Ler antes de escrever qualquer teste neste app.
 status: pending
 created_at: 2026-09-02
 ---
 
 # Estratégia de testes do crawler
 
-O projeto não tem nenhum teste. A refatoração para domínios modulares criou as costuras que faltavam — transporte HTTP injetado, banco por caminho, relógio como parâmetro, console substituível — então agora cada fronteira pode ser exercitada sozinha. Este documento decide o que testar, com o quê, e em que ordem. O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-avaliacoes-do-ava.md) e as camadas em [0003](../done/0003-camadas-crawler-api-cli.md).
+O projeto não tem nenhum teste. A refatoração para camadas criou as costuras que faltavam — transporte HTTP injetado, banco por caminho, relógio como parâmetro — e a [0004](../done/0004-tui-em-textual.md) acrescenta a que faltava na ponta: os services chegam à App por construtor, então a interface inteira pode ser exercitada com falsos. Este documento decide o que testar, com o quê, e em que ordem.
+
+O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-avaliacoes-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e a interface em [0004](../done/0004-tui-em-textual.md). **Nada aqui é escrito antes da 0004 ser executada**: ela muda toda assinatura de `fetch`, `sync` e repository para `async`, e testes escritos antes nasceriam para reescrever.
 
 ## O mapa de risco
 
@@ -17,17 +19,21 @@ A lista de testes não sai de cobertura, sai daqui. Ordenado por dano × probabi
 2. **404 transitório destrói o cache.** `AvaliacaoRequest.fetch` devolve `[]` em 404, `replace` apaga o que havia, `mark_synced` marca como fresco. Falha de rede vira "matéria sem avaliação, sincronizada agora".
 3. **Regra da oferta errada.** `aproveitamento ?? atual` decide se vem dado ou 404. Errar aqui esvazia matérias silenciosamente.
 4. **Carimbo perdido num resync.** Se o dicionário em `MateriaRepository.save` quebrar, todo "Sincronizar matérias" zera a idade das 26 e força refetch.
-5. **Média e peso lançado errados.** É a única aritmética do projeto, e vai direto para a cara do usuário.
-6. **Ordem das avaliações trocada.** `posicao` é a única ordenação existente; o AVA não garante nenhuma.
+5. **O guarda de sync cede e duas corrotinas tocam a mesma `AsyncSession`.** Novo com a 0004. A tela não-bloqueante abre três caminhos para dois syncs simultâneos, e a `AsyncSession` não aceita operação concorrente: o sintoma é exceção na cara do usuário, e no primeiro acesso da sessão também um POST de login duplicado. É o único risco cujo teste mora na camada da interface.
+6. **Média e peso lançado errados.** É a única aritmética do projeto, e vai direto para a cara do usuário.
+7. **Ordem das avaliações trocada.** `posicao` é a única ordenação existente; o AVA não garante nenhuma.
 
 ## Ferramental
 
-`pytest` sozinho. **Nada de `pytest-httpx` nem `respx`**: `AvaSession` recebe o `httpx.Client` por construtor, então o `httpx.MockTransport` que já vem no httpx basta — verificado. Antes da refatoração isso exigiria monkeypatch global.
+`pytest` mais `pytest-asyncio`, e nada além. O `asyncio` deixou de ser opcional quando a 0004 tornou o app inteiro async: `fetch`, `sync`, os repositories e o `run_test()` do Textual são todos corrotinas. Com `asyncio_mode = "auto"` isso não aparece em teste nenhum além do `async def`.
+
+**Nada de `pytest-httpx` nem `respx`**: `AvaSession` recebe o client por construtor, então o `httpx.MockTransport` que já vem no httpx basta. Verificado contra um `AsyncClient` de verdade, e o handler do transporte pode continuar **síncrono** — as fixtures não mudam de forma por causa do async.
 
 ```toml
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 markers = ["rede: exige credenciais e acesso ao AVA (desabilitado por padrão)"]
 addopts = "-m 'not rede'"
 
@@ -38,7 +44,7 @@ include = ["src", "tests"]
 test = {cmd = "pytest", help = "Roda a suíte, sem os testes de rede"}
 ```
 
-Testes entram no `include` do pyright: um fake que divergiu da interface real é um teste que mente.
+Testes entram no `include` do pyright: um falso que divergiu da interface real é um teste que mente — e com tudo async, o `await` faltando é justamente o erro que passa em silêncio no runtime.
 
 ## Onde os testes moram
 
@@ -53,30 +59,33 @@ tests/
   api/
     materias/             test_entity  test_repository  test_service
     avaliacoes/           test_entity  test_media  test_repository  test_service
-  cli/                    test_format  test_render
+  cli/                    test_format  test_avaliacoes  test_app
   e2e/                    test_fluxo
   contract/               test_dtos_reais  test_smoke (marker rede)
   fixtures/               login.json  materias.json  avaliacoes-*.json
   golden/                 materia-renderizada.txt
 ```
 
+`cli/test_avaliacoes` cobre `build_table`, que continua devolvendo um `rich.Table`; `cli/test_app` é o Pilot com services falsos. `test_render` desapareceu junto com o módulo.
+
 ## As camadas, e o que cada uma prova
 
 ### 1. Funções puras — sem fixture, sem mock
 
-`cli/format.py` não importa nada e `api/avaliacoes/media.py` importa só a entity. São os testes mais baratos do projeto e cobrem o risco 5.
+`cli/format.py` não importa nada e `api/avaliacoes/media.py` importa só a entity. São os testes mais baratos do projeto e cobrem o risco 6.
 
 - `format_number`: `None → "—"`, `0.0 → "0"`, `8.0 → "8"`, `7.5 → "7,5"`, `33.33 → "33,3"`, negativo
-- `truncate`: cabe, no limite exato, estoura com elipse, string vazia
 - `short_periodo`: `None → ""`, e que o corte no primeiro `" - "` descarta a UTA
 - `humanize_age`: `None`, agora, 59s, 1h, 23h, 1d, 45d — relógio vem por parâmetro
 - `Media.from_avaliacoes`: lista vazia → `(0, 0)`; parcialmente lançada → soma só as realizadas; `nota = 0.0` conta como realizada e não é confundida com ausência; `parcial` liga e desliga em 100
 - `Materia.oferta`: com aproveitamento usa ele; sem, usa o atual
 - `Avaliacao.realizada`: `contribuicao = 0.0` é realizada, `None` não é
 
+`truncate` saiu de `format.py` com a 0004 — a largura da linha virou `overflow="ellipsis"` no renderable —, então os casos dele saíram desta lista.
+
 ### 2. Requests — `MockTransport` + fixtures
 
-Cobre os riscos 1 e 3.
+Cobre os riscos 1 e 3. Tudo `async def`, com um `AsyncClient` construído sobre o `MockTransport` e um handler síncrono.
 
 - Login: um POST para N GETs no mesmo `AvaSession`; `x-time` repete o `usuario.time` em todo GET; o cookie de sessão volta ao servidor
 - `LoginRejected` quando `usuario` é `null`, com a mensagem do AVA
@@ -88,44 +97,63 @@ Cobre os riscos 1 e 3.
 
 ### 3. Repositórios — SQLite real em `tmp_path`
 
-`db_session(path)` já aceita caminho, então nada de mock aqui. Cobre os riscos 4 e 6.
+`db_session(path)` aceita caminho, então nada de mock aqui. Cobre os riscos 4 e 7.
 
 - Round-trip de `Materia` e `Avaliacao`, com `datetime`, `float | None` e `nota = 0.0` sobrevivendo
 - `MateriaRepository.list_all`: vigentes primeiro, depois por nome
 - `MateriaRepository.save` **preserva o carimbo** de quem já estava gravado — o teste que protege o risco 4
 - `AvaliacaoRepository.list_all` ordena por `posicao`
 - `AvaliacaoRepository.replace` substitui em vez de duplicar; avaliação que saiu do AVA desaparece
-- Nenhum repositório commita: depois de chamar `save`, uma segunda `Session` no mesmo arquivo ainda não vê o dado
+- Nenhum repositório commita: depois de chamar `save`, uma segunda `AsyncSession` no mesmo arquivo ainda não vê o dado
+
+Duas `AsyncSession` sobre o mesmo arquivo é o motivo de o banco ser um arquivo em `tmp_path` e não `:memory:`, agora como antes.
 
 ### 4. Services — requests falsos, repositórios reais
 
+Os falsos são corrotinas, e o pyright em `strict` sobre `tests/` é o que garante que continuam casando com o request real.
+
 - `MateriaSyncService.sync` busca, grava e commita; `aluno` reflete a sessão do AVA
-- `AvaliacaoSyncService.sync` grava as avaliações **e** carimba a matéria **no mesmo commit** — uma `Session` paralela vê as duas escritas ou nenhuma
+- `AvaliacaoSyncService.sync` grava as avaliações **e** carimba a matéria **no mesmo commit** — uma sessão paralela vê as duas escritas ou nenhuma
 - O carimbo é asseverado por faixa (`antes <= carimbo <= depois`), não por valor: evita `freezegun` para dois `datetime.now()`
 - Request que levanta deixa o banco intacto
 
-### 5. E2E — prompts roteirizados, AVA falso, banco temporário
+### 5. A interface — `run_test()` e Pilot, services falsos
 
-Um ou dois testes, cobrindo a fiação do `main.py` que nenhum teste unitário toca. Receita já verificada: substituir `questionary.select` por um stub com respostas em fila, `render.console` por um `Console(width=100, force_terminal=False)`, e apontar `db_session` para uma cópia do banco.
+Substitui a camada de prompts roteirizados que existia antes da 0004: `questionary.select`, o `render.console` global e o `EOFError` sem TTY todos deixaram de existir. O `App.run_test()` roda headless, sem pty, e recebe services falsos por construtor — que é o que a decisão de composition root da 0004 comprou. Os falsos registram as chamadas, e é sobre essa lista que a maioria das asserções cai.
+
+É a única camada que cobre o risco 5, e a única que prova as decisões de comportamento da 0004:
+
+- **Mover o cursor não toca a rede**: `pilot.press("down", "down")` e a lista de chamadas do service falso continua vazia
+- `⏎` numa matéria nunca sincronizada chama `sync` exatamente uma vez; numa matéria com cache, nenhuma
+- **O guarda**: com o service falso suspenso num `asyncio.Event`, `r` e `s` durante o sync em voo não produzem segunda chamada, e `check_action` recusa as três ações
+- O selo aparece só nas matérias com `avaliacoes_sincronizadas_em is None`
+- `LoginRejected` levantado pelo falso notifica e **o app continua rodando** — a mudança de comportamento mais visível da 0004
+- Banco vazio mostra o estado vazio, não uma lista de zero itens
+
+`run_test(size=(100, 30))` em todos: o tamanho do terminal entra no layout, e sem fixá-lo a asserção depende de quem rodou.
+
+### 6. E2E — services reais, AVA falso, banco temporário
+
+Um ou dois testes, cobrindo a fiação do `main.py` que nenhum teste unitário toca. Mesmo `run_test()` da camada 5, mas com os services de verdade montados sobre um `MockTransport` e um `db_session` em `tmp_path`.
 
 - Abrir matéria sem cache dispara o sync, persiste, carimba e renderiza
-- Abrir matéria com cache **não** faz requisição nenhuma
+- Abrir matéria com cache **não** faz requisição nenhuma — o handler do transporte conta as chamadas e a contagem é zero
 
-### 6. Contrato — fixtures reais
+### 7. Contrato — fixtures reais
 
-O único teste que pega o risco 1. Valida os DTOs contra respostas de verdade e falha quando o AVA muda de forma.
+O único teste que pega o risco 1. Valida os DTOs contra respostas de verdade e falha quando o AVA muda de forma. Não tem nada de async: são models Pydantic contra JSON em arquivo.
 
 - Cada fixture real parseia sem erro
 - **Nenhum campo opcional vem `None`** numa fixture que tem valor — é isto que detecta o alias renomeado
 - As chaves da fixture cobrem todos os aliases que os DTOs declaram
 
-### 7. Smoke — `@pytest.mark.rede`, opt-in
+### 8. Smoke — `@pytest.mark.rede`, opt-in
 
 Desligado por padrão. Assevera invariantes **estruturais, nunca valores**: login devolve `time`, matérias > 0, toda matéria com período tem oferta, uma matéria conhecida devolve avaliações. Serve para saber que o AVA mudou antes do usuário ver nota faltando.
 
 ## Fixtures: dois níveis
 
-**Sintéticas**, escritas à mão e commitadas. Testam o código. É o que as camadas 2 a 5 usam.
+**Sintéticas**, escritas à mão e commitadas. Testam o código. É o que as camadas 2 a 6 usam.
 
 **Reais**, capturadas uma vez e anonimizadas. Testam o contrato. Captura: um login e dois GETs com os curls de `uninter-endpoints/`, salvando os corpos. Anonimização: trocar `nome` do usuário, RU e ids por valores fixos, e **conferir campo a campo** que não sobrou nada pessoal — o JSON de avaliação tem cerca de 160 campos entre o objeto e os aninhados.
 
@@ -133,13 +161,14 @@ Precisamos de quatro: login, matérias (com e sem `oferta_aproveitamento`, e a s
 
 ## Determinismo
 
-- **Relógio**: `humanize_age` já recebe. Sobraram `mark_synced` e `cli/app.py`, resolvidos por faixa. Sem `freezegun`.
-- **Console**: `render.console` é global substituível; com largura fixa e `force_terminal=False` a saída é byte-estável — verificado.
-- **Golden**: já existe uma saída de referência de 151 linhas (4 matérias renderizadas, seletor e as funções puras tabeladas), gerada e conferida durante a refatoração. Vira `tests/golden/` sem precisar de `syrupy`.
+- **Relógio**: `humanize_age` já recebe. Sobraram `mark_synced` e o handler de sync da App, resolvidos por faixa. Sem `freezegun`.
+- **Render**: `build_table` devolve um `rich.Table`, e o `Console` deixou de ser um global do app — quem quiser texto o constrói no teste, com `Console(width=100, force_terminal=False)`. É melhor do que a costura anterior: a largura passa a ser parâmetro do teste, não estado que alguém precisa lembrar de substituir.
+- **Tela**: nada de asseverar a tela inteira. As asserções da camada 5 são sobre estado de widget e sobre a lista de chamadas dos falsos, com o tamanho fixado em `run_test(size=...)`.
+- **Golden**: um arquivo em `tests/golden/` com a matéria renderizada, gerado no primeiro teste da camada 5 e **conferido à mão antes de commitar**. Uma referência foi gerada durante a refatoração de 0003 e não sobreviveu — não está no repositório nem no histórico —, então ela é para refazer, não para reaproveitar.
 
 ## Os defeitos conhecidos entram como teste vermelho primeiro
 
-Preservados de propósito na refatoração, para serem corrigidos com teste antes:
+Preservados de propósito na refatoração e na 0004, para serem corrigidos com teste antes:
 
 1. **404 apaga o cache e marca como fresco.** O mais grave. Conserto candidato: `replace` não apagar quando a lista chega vazia, ou o request distinguir "vazio" de "falhou".
 2. **`Materia.oferta` usa `or`**, então `oferta_aproveitamento == 0` cairia no atual. Teórico — os ids reais vão de 511 mil a 1,2 milhão e a ausência vem como `None`.
@@ -150,24 +179,30 @@ Preservados de propósito na refatoração, para serem corrigidos com teste ante
 
 - A fiação do `main.py` isoladamente — o e2e já a exercita
 - `MAPPED_TABLES`, que existe só para registrar as tabelas no metadata
-- Comportamento interno de `rich` e `questionary`
-- Texto exato dos spinners e dos rótulos de menu, que mudam sem consequência
+- Comportamento interno de `rich`, de `textual` ou do `aiosqlite`
+- O layout: nada de snapshot da tela, nada de asseverar posição ou moldura
+- Texto exato dos toasts e dos rótulos de binding, que mudam sem consequência
 - Cobertura como meta numérica
 
 ## Rejeitados
 
-- **`pytest-httpx` ou `respx`.** Resolviam o monkeypatch global que a injeção do `httpx.Client` tornou desnecessário. Uma dependência a menos.
+- **`pytest-httpx` ou `respx`.** Resolviam o monkeypatch global que a injeção do client tornou desnecessário. Confirmado que o `MockTransport` do httpx serve também para o `AsyncClient`, então nem o async traz esse custo de volta.
+- **`anyio` em vez de `pytest-asyncio`.** Funcionaria, e traria o `anyio_backend` de brinde. Mas o Textual roda em asyncio e sua própria suíte usa `pytest-asyncio`; parametrizar backend para um app que só tem um é cerimônia.
 - **`freezegun` ou `time-machine`.** Só dois `datetime.now()` sobraram, e asseverar faixa cobre o que importa: que o carimbo foi escrito.
-- **`syrupy`.** Golden em arquivo de texto já resolve, e o arquivo de referência já existe.
+- **`syrupy` ou `pytest-textual-snapshot`.** Um golden em arquivo de texto se lê no diff; snapshot traz dependência, um fluxo de `--snapshot-update` e a tentação de aceitar a mudança sem olhar. O `pytest-textual-snapshot` ainda por cima gravaria SVG da tela inteira, que é exatamente o que "não vamos testar layout" recusa.
 - **SQLite em memória.** Mais rápido, mas o teste de "repositório não commita" precisa de duas conexões vendo o mesmo arquivo.
 - **`unittest`.** Perde `parametrize`, que é justamente o que os testes de formatação querem.
 - **CI agora.** O repositório não tem remote. Fica um `pdm run test` até existir para onde empurrar.
-- **Testar através da CLI real.** `questionary` exige TTY e o processo morre com `EOFError` sem terminal. Substituir `questionary.select` cobre o mesmo fluxo sem pty.
+- **Rodar a App num pty de verdade.** Era obrigatório enquanto o `questionary` exigia TTY, e a estratégia anterior contornava substituindo o prompt. Com o `run_test()` do Textual o app roda headless de fábrica, então o pty deixou de ser um problema a resolver — e mantê-lo só adicionaria flake de temporização.
+- **Escrever qualquer teste antes da 0004.** Toda assinatura de `fetch`, `sync` e repository vira async, e a camada 5 inteira depende de widgets que ainda não existem. Seriam testes escritos para reescrever.
 
 ## Ordem de execução
 
-1. **Arcabouço e funções puras** — pytest no `pyproject`, `conftest.py`, camada 1. Sem fixture nenhuma, entrega valor no mesmo dia.
+Depois da 0004, nunca antes.
+
+1. **Arcabouço e funções puras** — pytest e `pytest-asyncio` no `pyproject`, `conftest.py`, camada 1. Sem fixture nenhuma, entrega valor no mesmo dia.
 2. **Fronteiras** — requests com fixtures sintéticas (camada 2) e repositórios em `tmp_path` (camada 3). É onde mora a maior parte do risco por linha escrita.
-3. **Composição** — services (camada 4), e2e e o golden do render (camada 5).
-4. **Contrato** — captura e anonimização das fixtures reais, camada 6, e o smoke da camada 7.
-5. **Os quatro defeitos**, um a um, teste vermelho primeiro.
+3. **Composição** — services (camada 4).
+4. **Interface** — camada 5 com os falsos e o golden de `build_table`, depois o e2e da camada 6. O teste do guarda vem primeiro: é o risco novo e o mais fácil de regredir sem ninguém notar.
+5. **Contrato** — captura e anonimização das fixtures reais, camada 7, e o smoke da camada 8.
+6. **Os quatro defeitos**, um a um, teste vermelho primeiro.
