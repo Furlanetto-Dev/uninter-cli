@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
@@ -11,7 +11,7 @@ from .repository import AvaliacaoRepository
 class AvaliacaoSyncService:
     def __init__(
         self,
-        sessao: Session,
+        sessao: AsyncSession,
         request: AvaliacaoRequest,
         repository: AvaliacaoRepository,
         materias: MateriaRepository,
@@ -21,9 +21,9 @@ class AvaliacaoSyncService:
         self._repository = repository
         self._materias = materias
 
-    def sync(self, materia: Materia) -> list[Avaliacao]:
-        avaliacoes = self._request.fetch(materia)
-        self._repository.replace(materia, avaliacoes)
-        self._materias.mark_synced(materia)
-        self._sessao.commit()
+    async def sync(self, materia: Materia) -> list[Avaliacao]:
+        avaliacoes = await self._request.fetch(materia)
+        await self._repository.replace(materia, avaliacoes)
+        await self._materias.mark_synced(materia)
+        await self._sessao.commit()
         return avaliacoes

@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from crawler.materias.request import MateriaRequest
 from crawler.session import AvaSession
@@ -10,7 +10,7 @@ from .repository import MateriaRepository
 class MateriaSyncService:
     def __init__(
         self,
-        sessao: Session,
+        sessao: AsyncSession,
         ava: AvaSession,
         request: MateriaRequest,
         repository: MateriaRepository,
@@ -24,8 +24,8 @@ class MateriaSyncService:
     def aluno(self) -> str | None:
         return self._ava.aluno
 
-    def sync(self) -> list[Materia]:
-        materias = self._request.fetch()
-        self._repository.save(materias)
-        self._sessao.commit()
+    async def sync(self) -> list[Materia]:
+        materias = await self._request.fetch()
+        await self._repository.save(materias)
+        await self._sessao.commit()
         return materias
