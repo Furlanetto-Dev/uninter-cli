@@ -9,8 +9,8 @@ class MateriaRequest:
         self._ava = ava
         self._id_curso = id_curso
 
-    def fetch(self) -> list[Materia]:
-        body = self._ava.get(
+    async def fetch(self) -> list[Materia]:
+        body = await self._ava.get(
             f"/ava/SalaVirtual/{self._id_curso}/CursoUsuarioPermissao/true/"
             "?emCurso=true&idUsuarioCurso=0"
         )
