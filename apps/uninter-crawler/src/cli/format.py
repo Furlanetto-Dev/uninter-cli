@@ -11,10 +11,6 @@ def format_number(value: float | None) -> str:
     return f"{value:.1f}".replace(".", ",")
 
 
-def truncate(text: str, width: int) -> str:
-    return text if len(text) <= width else text[: width - 1] + "…"
-
-
 def short_periodo(periodo: str | None) -> str:
     if periodo is None:
         return ""
