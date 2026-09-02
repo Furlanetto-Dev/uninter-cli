@@ -1,37 +1,37 @@
 from rich.table import Table
 from textual.widgets import Static
 
-from api.avaliacoes.entity import Avaliacao
-from api.avaliacoes.media import Media
+from api.atividades.entity import Atividade
+from api.atividades.media import Media
 
 from .format import format_number
 
-SEM_AVALIACOES = "[yellow]Esta matéria não tem avaliações no AVA.[/yellow]"
+SEM_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
 NUNCA_SINCRONIZADA = "[dim]⏎ para buscar no AVA[/dim]"
 
 
-def build_table(avaliacoes: list[Avaliacao]) -> Table:
+def build_table(atividades: list[Atividade]) -> Table:
     table = Table(box=None, pad_edge=False, header_style="dim")
-    table.add_column("Avaliação", overflow="fold")
+    table.add_column("Atividade", overflow="fold")
     table.add_column("Situação")
     table.add_column("Nota", justify="right")
     table.add_column("Peso", justify="right")
     table.add_column("Contribuição", justify="right")
-    for avaliacao in avaliacoes:
-        colour = "green" if avaliacao.realizada else "dim"
+    for atividade in atividades:
+        colour = "green" if atividade.realizada else "dim"
         table.add_row(
-            avaliacao.nome,
-            f"[{colour}]{avaliacao.status}[/{colour}]",
-            format_number(avaliacao.nota),
-            f"{avaliacao.peso}%",
-            format_number(avaliacao.contribuicao),
+            atividade.nome,
+            f"[{colour}]{atividade.status}[/{colour}]",
+            format_number(atividade.nota),
+            f"{atividade.peso}%",
+            format_number(atividade.contribuicao),
         )
     return table
 
 
-class AvaliacaoTable(Static):
-    def show(self, avaliacoes: list[Avaliacao]) -> None:
-        self.update(build_table(avaliacoes) if avaliacoes else SEM_AVALIACOES)
+class AtividadeTable(Static):
+    def show(self, atividades: list[Atividade]) -> None:
+        self.update(build_table(atividades) if atividades else SEM_ATIVIDADES)
 
     def show_pendente(self) -> None:
         self.update(NUNCA_SINCRONIZADA)

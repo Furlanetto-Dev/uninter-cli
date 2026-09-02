@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel
 
 
-class Avaliacao(SQLModel, table=True):
+class Atividade(SQLModel, table=True):
     materia_id: int = Field(primary_key=True, foreign_key="materia.id")
     id: int = Field(primary_key=True)
     posicao: int

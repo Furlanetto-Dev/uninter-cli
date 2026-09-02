@@ -19,7 +19,7 @@ def _linha(materia: Materia) -> Table:
     grid.add_column(justify="right", no_wrap=True)
     grid.add_row(
         materia.nome,
-        "" if materia.avaliacoes_sincronizadas_em else f"[dim]{SELO_PENDENTE}[/dim]",
+        "" if materia.atividades_sincronizadas_em else f"[dim]{SELO_PENDENTE}[/dim]",
         f"[dim]{short_periodo(materia.periodo)}[/dim]",
     )
     return grid
@@ -77,5 +77,5 @@ class MateriaHeader(Static):
         self.update(
             f"[bold]{materia.nome}[/bold] [dim]·[/dim] "
             f"{short_periodo(materia.periodo)}\n"
-            f"[dim]{humanize_age(materia.avaliacoes_sincronizadas_em, now)}[/dim]"
+            f"[dim]{humanize_age(materia.atividades_sincronizadas_em, now)}[/dim]"
         )

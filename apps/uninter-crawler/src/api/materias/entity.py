@@ -10,9 +10,9 @@ class Materia(SQLModel, table=True):
     vigente: bool = False
     oferta_atual: int
     oferta_aproveitamento: int | None = None
-    avaliacoes_sincronizadas_em: datetime | None = None
+    atividades_sincronizadas_em: datetime | None = None
 
     @property
     def oferta(self) -> int:
-        # O AVA só devolve avaliações pela oferta de aproveitamento quando ela existe.
+        # O AVA só devolve atividades pela oferta de aproveitamento quando ela existe.
         return self.oferta_aproveitamento or self.oferta_atual

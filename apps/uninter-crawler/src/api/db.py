@@ -6,12 +6,12 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from api.avaliacoes.entity import Avaliacao
+from api.atividades.entity import Atividade
 from api.materias.entity import Materia
 from settings import APP_ROOT
 
 DATABASE_PATH: Path = APP_ROOT / "uninter.db"
-MAPPED_TABLES: tuple[type[SQLModel], ...] = (Materia, Avaliacao)
+MAPPED_TABLES: tuple[type[SQLModel], ...] = (Materia, Atividade)
 
 
 @asynccontextmanager

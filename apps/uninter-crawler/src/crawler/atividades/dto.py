@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import Field
 
-from api.avaliacoes.entity import Avaliacao
+from api.atividades.entity import Atividade
 from crawler.dto import AvaDTO
 
 
@@ -14,8 +14,8 @@ class ProvaDTO(AvaDTO):
     peso: int = Field(alias="pesoMedia")
 
 
-class AvaliacaoDTO(AvaDTO):
-    prova: ProvaDTO = Field(alias="avaliacao")
+class AtividadeDTO(AvaDTO):
+    prova: ProvaDTO = Field(alias="atividade")
     status: str
     nota: float | None = None
     contribuicao: float | None = Field(default=None, alias="notaMedia")
@@ -24,8 +24,8 @@ class AvaliacaoDTO(AvaDTO):
     inicio: datetime | None = Field(default=None, alias="dataInicio")
     fim: datetime | None = Field(default=None, alias="dataFim")
 
-    def to_avaliacao(self, materia_id: int, posicao: int) -> Avaliacao:
-        return Avaliacao(
+    def to_atividade(self, materia_id: int, posicao: int) -> Atividade:
+        return Atividade(
             materia_id=materia_id,
             id=self.prova.id,
             posicao=posicao,
@@ -43,7 +43,7 @@ class AvaliacaoDTO(AvaDTO):
         )
 
 
-class AvaliacoesDTO(AvaDTO):
-    avaliacoes: list[AvaliacaoDTO] = Field(
-        default_factory=list[AvaliacaoDTO], alias="avaliacaoUsuarios"
+class AtividadesDTO(AvaDTO):
+    atividades: list[AtividadeDTO] = Field(
+        default_factory=list[AtividadeDTO], alias="avaliacaoUsuarios"
     )
