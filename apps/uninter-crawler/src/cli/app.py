@@ -45,6 +45,18 @@ def open_materia(
         sync_avaliacoes(avaliacoes_service, materia)
 
 
+def browse_materias(
+    avaliacoes_service: AvaliacaoSyncService,
+    materias_db: MateriaRepository,
+    avaliacoes_db: AvaliacaoRepository,
+) -> None:
+    while True:
+        materia = ask_materia(materias_db.list_all())
+        if materia is None:
+            return
+        open_materia(avaliacoes_service, avaliacoes_db, materia)
+
+
 def run(
     materias_service: MateriaSyncService,
     avaliacoes_service: AvaliacaoSyncService,
@@ -64,9 +76,7 @@ def run(
             if choice == SYNC_MATERIAS:
                 sync_materias(materias_service)
                 continue
-            materia = ask_materia(materias_db.list_all())
-            if materia is not None:
-                open_materia(avaliacoes_service, avaliacoes_db, materia)
+            browse_materias(avaliacoes_service, materias_db, avaliacoes_db)
     except LoginRejected as rejection:
         render.render_login_rejected(str(rejection))
     except KeyboardInterrupt:
