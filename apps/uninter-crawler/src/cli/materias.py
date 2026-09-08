@@ -1,25 +1,27 @@
 from datetime import datetime
 
-from rich.table import Table
-from textual.widgets import OptionList, Static
-from textual.widgets.option_list import Option
-
 from api.materias.entity import Materia
+from rich.table import Table
+from textual.timer import Timer
+from textual.widgets import OptionList, Static
+from textual.widgets.option_list import Option, OptionDoesNotExist
 
 from .format import humanize_age, short_periodo
 
 SELO_PENDENTE = "●"
+QUADROS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+INTERVALO = 0.08
 GRUPOS = ((True, "EM CURSO"), (False, "FINALIZADAS"))
 
 
-def _linha(materia: Materia) -> Table:
+def _linha(materia: Materia, selo: str) -> Table:
     grid = Table.grid(expand=True, padding=(0, 1))
     grid.add_column(overflow="ellipsis", no_wrap=True, ratio=1)
     grid.add_column(width=1)
     grid.add_column(justify="right", no_wrap=True)
     grid.add_row(
         materia.nome,
-        "" if materia.atividades_sincronizadas_em else f"[dim]{SELO_PENDENTE}[/dim]",
+        selo,
         f"[dim]{short_periodo(materia.periodo)}[/dim]",
     )
     return grid
@@ -29,6 +31,9 @@ class MateriaList(OptionList):
     def __init__(self) -> None:
         super().__init__()
         self._materias: dict[str, Materia] = {}
+        self._sincronizando: int | None = None
+        self._quadro = 0
+        self._animacao: Timer | None = None
 
     def show(self, materias: list[Materia]) -> None:
         anterior = self.em_foco
@@ -44,7 +49,7 @@ class MateriaList(OptionList):
             for materia in grupo:
                 chave = str(materia.id)
                 self._materias[chave] = materia
-                self.add_option(Option(_linha(materia), id=chave))
+                self.add_option(Option(_linha(materia, self._selo(materia)), id=chave))
         self._focar(anterior)
 
     def _focar(self, materia: Materia | None) -> None:
@@ -61,6 +66,43 @@ class MateriaList(OptionList):
                 return
         if primeira is not None:
             self.highlighted = primeira
+
+    def _selo(self, materia: Materia) -> str:
+        if materia.id == self._sincronizando:
+            return f"[cyan]{QUADROS[self._quadro % len(QUADROS)]}[/cyan]"
+        if materia.atividades_sincronizadas_em is None:
+            return f"[dim]{SELO_PENDENTE}[/dim]"
+        return ""
+
+    def atualizar(self, materia_id: int | None) -> None:
+        if materia_id is None:
+            return
+        materia = self._materias.get(str(materia_id))
+        if materia is None:
+            return
+        try:
+            self.replace_option_prompt(
+                str(materia_id), _linha(materia, self._selo(materia))
+            )
+        except OptionDoesNotExist:
+            pass
+
+    def sincronizando(self, materia_id: int | None) -> None:
+        anterior = self._sincronizando
+        self._sincronizando = materia_id
+        if materia_id is None:
+            if self._animacao is not None:
+                self._animacao.stop()
+                self._animacao = None
+            self.atualizar(anterior)
+            return
+        self.atualizar(materia_id)
+        if self._animacao is None:
+            self._animacao = self.set_interval(INTERVALO, self._girar)
+
+    def _girar(self) -> None:
+        self._quadro += 1
+        self.atualizar(self._sincronizando)
 
     def materia(self, option_id: str | None) -> Materia | None:
         return self._materias.get(option_id) if option_id else None
