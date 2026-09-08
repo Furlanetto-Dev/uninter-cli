@@ -15,7 +15,8 @@ class ProvaDTO(AvaDTO):
 
 
 class AtividadeDTO(AvaDTO):
-    prova: ProvaDTO = Field(alias="atividade")
+    # O nome do campo no AVA e "avaliacao": o alias e o vocabulario deles, nao o nosso.
+    prova: ProvaDTO = Field(alias="avaliacao")
     status: str
     nota: float | None = None
     contribuicao: float | None = Field(default=None, alias="notaMedia")
