@@ -23,6 +23,16 @@ MediaBar {
     margin-top: 1;
 }
 
+AtividadeTable {
+    background: transparent;
+}
+
+AtividadeTable > .datatable--header {
+    text-style: none;
+    color: $text-muted;
+    background: transparent;
+}
+
 #grades {
     height: auto;
 }

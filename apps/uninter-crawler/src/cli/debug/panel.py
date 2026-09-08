@@ -74,25 +74,27 @@ def build_debug_table(
     materias_captura: Captura | None,
     atividades_captura: Captura | None,
     atividades: list[Atividade],
+    selected: Atividade | None,
 ) -> Table:
     table = Table(box=None, pad_edge=False, expand=True, header_style="dim")
     table.add_column("AVA", ratio=1, overflow="fold")
     table.add_column("SQLite", ratio=1, overflow="fold")
-
-    table.add_row(_meta(materias_captura), Text("Materia", style="dim"))
-    entry = _entry(materias_captura, materia.id)
-    table.add_row(
-        _raw(entry, NOT_IN_LIST if materias_captura else MISSING), _stored(materia)
-    )
-
-    table.add_row(
-        _meta(atividades_captura), Text(f"{len(atividades)} Atividade", style="dim")
-    )
+    if selected is None:
+        table.add_row(_meta(materias_captura), Text("Materia", style="dim"))
+        entry = _entry(materias_captura, materia.id)
+        table.add_row(
+            _raw(entry, NOT_IN_LIST if materias_captura else MISSING), _stored(materia)
+        )
+        table.add_row(
+            _meta(atividades_captura), Text(f"{len(atividades)} Atividade", style="dim")
+        )
+        return table
     items = _items(atividades_captura, ATIVIDADES_KEY)
-    by_posicao = {atividade.posicao: atividade for atividade in atividades}
-    for posicao in range(max(len(items), max(by_posicao, default=-1) + 1)):
-        item = items[posicao] if posicao < len(items) else None
-        table.add_row(_raw(item, MISSING), _stored(by_posicao.get(posicao)))
+    item = items[selected.posicao] if selected.posicao < len(items) else None
+    table.add_row(
+        _meta(atividades_captura), Text(f"Atividade {selected.posicao}", style="dim")
+    )
+    table.add_row(_raw(item, MISSING), _stored(selected))
     return table
 
 
@@ -108,7 +110,10 @@ class DebugPanel(VerticalScroll):
         materias_captura: Captura | None,
         atividades_captura: Captura | None,
         atividades: list[Atividade],
+        selected: Atividade | None,
     ) -> None:
         self.query_one(Static).update(
-            build_debug_table(materia, materias_captura, atividades_captura, atividades)
+            build_debug_table(
+                materia, materias_captura, atividades_captura, atividades, selected
+            )
         )

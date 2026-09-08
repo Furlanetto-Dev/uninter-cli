@@ -17,11 +17,16 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Footer, Header, OptionList
+from textual.widgets import DataTable, Footer, Header, OptionList
 
 from .animations.loading import Carregando
 from .atividades.media import MediaBar
-from .atividades.table import AtividadeTable
+from .atividades.table import (
+    NUNCA_SINCRONIZADA,
+    SEM_ATIVIDADES,
+    AtividadeHint,
+    AtividadeTable,
+)
 from .commands.palette import ComandosDoApp
 from .commands.reset import ConfirmarReset
 from .debug.panel import DebugPanel
@@ -42,16 +47,17 @@ class UninterApp(App[None]):
     CSS_PATH = "app.tcss"
     TITLE = "Uninter"
     BINDINGS = [
-        ("r", "refresh", "atualizar"),
-        ("s", "sync", "sincronizar"),
-        ("q", "quit", "sair"),
-        ("d", "debug", "debug"),
+        ("r", "refresh", "refresh"),
+        ("q", "quit", "quit"),
+        ("j", "debug", "debug"),
+        ("d", "home", "home"),
     ]
     COMMANDS = App.COMMANDS | {ComandosDoApp}
     VERTICAL_BREAKPOINTS = [(0, "-short"), (TALL_TERMINAL_ROWS, "-tall")]
 
     sincronizando: reactive[bool] = reactive(False)
     debug_mode: reactive[bool] = reactive(False, init=False)
+    selected_atividade: reactive[Atividade | None] = reactive(None, init=False)
     restantes: reactive[int] = reactive(0)
 
     def __init__(
@@ -83,6 +89,7 @@ class UninterApp(App[None]):
             with Vertical(id="detalhe"):
                 yield MateriaHeader()
                 with Vertical(id="grades"):
+                    yield AtividadeHint()
                     yield AtividadeTable()
                     yield MediaBar()
                 yield DebugPanel()
@@ -131,8 +138,10 @@ class UninterApp(App[None]):
         await self.show_debug(self.query_one(MateriaList).em_foco)
 
     def close_debug(self) -> None:
-        self.query_one(DebugPanel).screen.remove_class(DEBUG_OPEN)
-        self.action_focus_materias()
+        painel = self.query_one(DebugPanel)
+        painel.screen.remove_class(DEBUG_OPEN)
+        if self.focused is painel:
+            self.action_focus_materias()
 
     def action_focus_materias(self) -> None:
         self.query_one(MateriaList).focus()
@@ -145,6 +154,7 @@ class UninterApp(App[None]):
             await self._capturas_db.find(MATERIAS, None),
             await self._capturas_db.find(ATIVIDADES, materia.id),
             await self._atividades_db.list_all(materia),
+            self.selected_atividade,
         )
 
     async def reload_materias(self) -> None:
@@ -153,7 +163,8 @@ class UninterApp(App[None]):
         lista.show(materias)
         if not materias:
             self.query_one(MateriaHeader).update("")
-            self.query_one(AtividadeTable).update(SEM_MATERIAS)
+            self.query_one(AtividadeTable).display = False
+            self.query_one(AtividadeHint).show(SEM_MATERIAS)
             self.query_one(MediaBar).hide()
             return
         lista.focus()
@@ -164,20 +175,58 @@ class UninterApp(App[None]):
             return
         now = datetime.now()
         self.query_one(MateriaHeader).show(materia, now)
-        if self.debug_open:
-            await self.show_debug(materia)
         tabela = self.query_one(AtividadeTable)
-        if materia.atividades_sincronizadas_em is None:
-            tabela.show_pendente()
-            self.query_one(MediaBar).hide()
-            return
-        atividades = await self._atividades_db.list_all(materia)
-        tabela.show(atividades, now)
+        hint = self.query_one(AtividadeHint)
         media = self.query_one(MediaBar)
+        atividades: list[Atividade] = []
+        if materia.atividades_sincronizadas_em is None:
+            hint.show(NUNCA_SINCRONIZADA)
+        else:
+            atividades = await self._atividades_db.list_all(materia)
+            if atividades:
+                hint.hide()
+            else:
+                hint.show(SEM_ATIVIDADES)
+        tabela.show(atividades, now, self.selection_within(materia))
+        tabela.display = bool(atividades)
         if atividades:
             media.show(Media.from_atividades(atividades))
         else:
             media.hide()
+        self.set_reactive(UninterApp.selected_atividade, tabela.selected)
+        if self.debug_open:
+            await self.show_debug(materia)
+
+    def selection_within(self, materia: Materia) -> int | None:
+        selected = self.selected_atividade
+        if selected is None or selected.materia_id != materia.id:
+            return None
+        return selected.id
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        tabela = self.query_one(AtividadeTable)
+        if tabela.show_cursor:
+            self.selected_atividade = tabela.atividade(event.row_key)
+
+    async def watch_selected_atividade(self, selected: Atividade | None) -> None:
+        if self.debug_open:
+            await self.show_debug(self.query_one(MateriaList).em_foco)
+
+    def action_focus_atividades(self) -> None:
+        tabela = self.query_one(AtividadeTable)
+        if not tabela.display or tabela.row_count == 0:
+            return
+        selected = self.selected_atividade
+        tabela.select_or_first(selected.id if selected is not None else None)
+        self.selected_atividade = tabela.selected
+        tabela.focus()
+
+    def action_home(self) -> None:
+        self.query_one(AtividadeTable).select(None)
+        self.selected_atividade = None
+        lista = self.query_one(MateriaList)
+        lista.select_first()
+        lista.focus()
 
     async def on_option_list_option_highlighted(
         self, event: OptionList.OptionHighlighted
@@ -193,9 +242,6 @@ class UninterApp(App[None]):
         materia = self.query_one(MateriaList).em_foco
         if materia is not None:
             self.refresh_materia(materia)
-
-    def action_sync(self) -> None:
-        self.sync_materias()
 
     def action_reset(self) -> None:
         self.push_screen(ConfirmarReset(), self.reset_confirmado)

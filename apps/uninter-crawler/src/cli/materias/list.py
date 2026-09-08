@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from api.materias.aggregate import MateriaAggregate, Vigencia, aggregate_materias
 from api.materias.entity import Materia
 from rich.table import Table
+from textual.binding import Binding
 from textual.timer import Timer
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
@@ -53,6 +54,8 @@ def build_options(
 
 
 class MateriaList(OptionList):
+    BINDINGS = [Binding("right", "app.focus_atividades", "atividades", show=False)]
+
     def __init__(self) -> None:
         super().__init__()
         self._materias: dict[str, Materia] = {}
@@ -71,6 +74,9 @@ class MateriaList(OptionList):
         anterior = self.em_foco
         yield
         self._focar(anterior)
+
+    def select_first(self) -> None:
+        self._focar(None)
 
     def _focar(self, materia: Materia | None) -> None:
         alvo = str(materia.id) if materia is not None else None

@@ -6,6 +6,8 @@ from ..debug import command as debug
 
 RESET = "Invalidate cache"
 RESET_HELP = "Deletes all cache"
+RELOAD = "Reload matérias"
+RELOAD_HELP = "Fetches the list of matérias again"
 
 
 class ComandosDoApp(Provider):
@@ -17,6 +19,7 @@ class ComandosDoApp(Provider):
             return []
         return [
             (RESET, RESET_HELP, app.action_reset),
+            (RELOAD, RELOAD_HELP, app.sync_materias),
             (
                 debug.label(app.debug_mode),
                 debug.description(app.debug_mode),
