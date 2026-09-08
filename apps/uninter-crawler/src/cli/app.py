@@ -6,6 +6,8 @@ from api.atividades.entity import Atividade
 from api.atividades.media import Media
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
+from api.capturas.entity import ATIVIDADES, MATERIAS
+from api.capturas.repository import CapturaRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
@@ -22,10 +24,13 @@ from .atividades.media import MediaBar
 from .atividades.table import AtividadeTable
 from .commands.palette import ComandosDoApp
 from .commands.reset import ConfirmarReset
+from .debug.panel import DebugPanel
 from .materias.header import MateriaHeader
 from .materias.list import MateriaList
 
 PAUSA_ENTRE_MATERIAS = 1.0
+TALL_TERMINAL_ROWS = 40
+DEBUG_OPEN = "-debug"
 
 SEM_MATERIAS = (
     "[yellow]Nenhuma matéria no banco.[/yellow]\n\n"
@@ -40,10 +45,13 @@ class UninterApp(App[None]):
         ("r", "refresh", "atualizar"),
         ("s", "sync", "sincronizar"),
         ("q", "quit", "sair"),
+        ("d", "debug", "debug"),
     ]
     COMMANDS = App.COMMANDS | {ComandosDoApp}
+    VERTICAL_BREAKPOINTS = [(0, "-short"), (TALL_TERMINAL_ROWS, "-tall")]
 
     sincronizando: reactive[bool] = reactive(False)
+    debug_mode: reactive[bool] = reactive(False, init=False)
     restantes: reactive[int] = reactive(0)
 
     def __init__(
@@ -52,12 +60,14 @@ class UninterApp(App[None]):
         atividades_service: AtividadeSyncService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
+        capturas_db: CapturaRepository,
     ) -> None:
         super().__init__()
         self._materias_service = materias_service
         self._atividades_service = atividades_service
         self._materias_db = materias_db
         self._atividades_db = atividades_db
+        self._capturas_db = capturas_db
         self._fila: deque[int] = deque()
         self._em_voo: int | None = None
         self._materias_pedidas = False
@@ -72,8 +82,10 @@ class UninterApp(App[None]):
             yield MateriaList()
             with Vertical(id="detalhe"):
                 yield MateriaHeader()
-                yield AtividadeTable()
-                yield MediaBar()
+                with Vertical(id="grades"):
+                    yield AtividadeTable()
+                    yield MediaBar()
+                yield DebugPanel()
         yield Footer()
 
     async def on_mount(self) -> None:
@@ -90,6 +102,50 @@ class UninterApp(App[None]):
 
     def watch_restantes(self, restantes: int) -> None:
         self.sub_title = f"fila · {restantes} restantes" if restantes else ""
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "debug":
+            return self.debug_mode
+        return True
+
+    def watch_debug_mode(self, debug_mode: bool) -> None:
+        if not debug_mode:
+            self.close_debug()
+        self.refresh_bindings()
+
+    def toggle_debug(self) -> None:
+        self.debug_mode = not self.debug_mode
+
+    @property
+    def debug_open(self) -> bool:
+        return self.query_one(DebugPanel).screen.has_class(DEBUG_OPEN)
+
+    async def action_debug(self) -> None:
+        if self.debug_open:
+            self.close_debug()
+        else:
+            await self.open_debug()
+
+    async def open_debug(self) -> None:
+        self.query_one(DebugPanel).screen.add_class(DEBUG_OPEN)
+        await self.show_debug(self.query_one(MateriaList).em_foco)
+
+    def close_debug(self) -> None:
+        self.query_one(DebugPanel).screen.remove_class(DEBUG_OPEN)
+        self.action_focus_materias()
+
+    def action_focus_materias(self) -> None:
+        self.query_one(MateriaList).focus()
+
+    async def show_debug(self, materia: Materia | None) -> None:
+        if materia is None:
+            return
+        self.query_one(DebugPanel).show(
+            materia,
+            await self._capturas_db.find(MATERIAS, None),
+            await self._capturas_db.find(ATIVIDADES, materia.id),
+            await self._atividades_db.list_all(materia),
+        )
 
     async def reload_materias(self) -> None:
         materias = await self._materias_db.list_all()
@@ -108,6 +164,8 @@ class UninterApp(App[None]):
             return
         now = datetime.now()
         self.query_one(MateriaHeader).show(materia, now)
+        if self.debug_open:
+            await self.show_debug(materia)
         tabela = self.query_one(AtividadeTable)
         if materia.atividades_sincronizadas_em is None:
             tabela.show_pendente()

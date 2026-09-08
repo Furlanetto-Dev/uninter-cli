@@ -1,4 +1,9 @@
+from datetime import datetime
+from typing import NamedTuple
+
 import httpx
+
+from api.capturas.entity import Captura
 
 from .dto import LoginDTO
 
@@ -14,6 +19,23 @@ TIMEOUT_SECONDS = 30
 
 class LoginRejected(Exception):
     pass
+
+
+class AvaResponse(NamedTuple):
+    url: str
+    status: int
+    text: str
+    json: object | None
+
+    def to_captura(self, recurso: str, materia_id: int | None) -> Captura:
+        return Captura(
+            recurso=recurso,
+            materia_id=materia_id,
+            url=self.url,
+            status=self.status,
+            corpo=self.text,
+            recebida_em=datetime.now(),
+        )
 
 
 def ava_client() -> httpx.AsyncClient:
@@ -41,12 +63,16 @@ class AvaSession:
     def aluno(self) -> str | None:
         return self._aluno
 
-    async def get(self, url: str) -> object | None:
+    async def get(self, url: str) -> AvaResponse:
         response = await self._http.get(url, headers=await self._session_headers())
         if response.status_code == NO_RECORDS_STATUS:
-            return None
+            return AvaResponse(
+                str(response.url), response.status_code, response.text, None
+            )
         response.raise_for_status()
-        return response.json()
+        return AvaResponse(
+            str(response.url), response.status_code, response.text, response.json()
+        )
 
     async def _session_headers(self) -> dict[str, str]:
         if self._stamp is None:

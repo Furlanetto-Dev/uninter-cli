@@ -23,6 +23,24 @@ MediaBar {
     margin-top: 1;
 }
 
+#grades {
+    height: auto;
+}
+
+DebugPanel {
+    display: none;
+}
+
+Screen.-debug DebugPanel {
+    display: block;
+    height: 1fr;
+    margin-top: 1;
+}
+
+Screen.-debug.-short #grades {
+    display: none;
+}
+
 ConfirmarReset {
     align: center middle;
 }

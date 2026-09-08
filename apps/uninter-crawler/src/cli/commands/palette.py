@@ -2,8 +2,10 @@ from collections.abc import Callable
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 
-APAGAR = "Apagar o banco"
-APAGAR_AJUDA = "Descarta tudo o que está gravado e reinicia o app"
+from ..debug import command as debug
+
+RESET = "Invalidate cache"
+RESET_HELP = "Deletes all cache"
 
 
 class ComandosDoApp(Provider):
@@ -13,7 +15,14 @@ class ComandosDoApp(Provider):
         app = self.app
         if not isinstance(app, UninterApp):
             return []
-        return [(APAGAR, APAGAR_AJUDA, app.action_reset)]
+        return [
+            (RESET, RESET_HELP, app.action_reset),
+            (
+                debug.label(app.debug_mode),
+                debug.description(app.debug_mode),
+                app.toggle_debug,
+            ),
+        ]
 
     async def discover(self) -> Hits:
         for nome, ajuda, acao in self._acoes():

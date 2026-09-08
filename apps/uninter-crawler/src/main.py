@@ -2,6 +2,7 @@ import asyncio
 
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
+from api.capturas.repository import CapturaRepository
 from api.db import DATABASE_PATH, db_session
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
@@ -17,20 +18,27 @@ async def rodar(settings: Settings) -> bool:
         ava = AvaSession(http, settings.ru, settings.senha)
         materias_db = MateriaRepository(sessao)
         atividades_db = AtividadeRepository(sessao)
+        capturas_db = CapturaRepository(sessao)
         materias_service = MateriaSyncService(
             sessao=sessao,
             ava=ava,
             request=MateriaRequest(ava, settings.id_curso),
             repository=materias_db,
+            capturas=capturas_db,
         )
         atividades_service = AtividadeSyncService(
             sessao=sessao,
             request=AtividadeRequest(ava),
             repository=atividades_db,
             materias=materias_db,
+            capturas=capturas_db,
         )
         app = UninterApp(
-            materias_service, atividades_service, materias_db, atividades_db
+            materias_service,
+            atividades_service,
+            materias_db,
+            atividades_db,
+            capturas_db,
         )
         await app.run_async()
         return app.resetar
