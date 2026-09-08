@@ -1,15 +1,14 @@
 from collections.abc import Callable, Generator, Iterator
 from contextlib import contextmanager
-from datetime import datetime
 
 from api.materias.aggregate import MateriaAggregate, Vigencia, aggregate_materias
 from api.materias.entity import Materia
 from rich.table import Table
 from textual.timer import Timer
-from textual.widgets import OptionList, Static
+from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
-from .format import humanize_age, short_periodo
+from ..format import short_periodo
 
 SELO_PENDENTE = "●"
 QUADROS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -133,12 +132,3 @@ class MateriaList(OptionList):
         if self.highlighted is None:
             return None
         return self.materia(self.get_option_at_index(self.highlighted).id)
-
-
-class MateriaHeader(Static):
-    def show(self, materia: Materia, now: datetime) -> None:
-        self.update(
-            f"[bold]{materia.nome}[/bold] [dim]·[/dim] "
-            f"{short_periodo(materia.periodo)}\n"
-            f"[dim]{humanize_age(materia.atividades_sincronizadas_em, now)}[/dim]"
-        )

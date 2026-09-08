@@ -8,7 +8,7 @@ APAGAR_AJUDA = "Descarta tudo o que está gravado e reinicia o app"
 
 class ComandosDoApp(Provider):
     def _acoes(self) -> list[tuple[str, str, Callable[[], None]]]:
-        from .app import UninterApp
+        from ..app import UninterApp
 
         app = self.app
         if not isinstance(app, UninterApp):

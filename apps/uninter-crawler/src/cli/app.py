@@ -17,11 +17,13 @@ from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Footer, Header, OptionList
 
-from .atividades import AtividadeTable, MediaBar
-from .carregando import Carregando
-from .comandos import ComandosDoApp
-from .confirmacao import ConfirmarReset
-from .materias import MateriaHeader, MateriaList
+from .animations.loading import Carregando
+from .atividades.media import MediaBar
+from .atividades.table import AtividadeTable
+from .commands.palette import ComandosDoApp
+from .commands.reset import ConfirmarReset
+from .materias.header import MateriaHeader
+from .materias.list import MateriaList
 
 PAUSA_ENTRE_MATERIAS = 1.0
 
