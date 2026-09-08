@@ -2,7 +2,7 @@ import asyncio
 
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
-from api.db import db_session
+from api.db import DATABASE_PATH, db_session
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
 from cli.app import UninterApp
@@ -12,8 +12,7 @@ from crawler.session import AvaSession, ava_client
 from settings import Settings
 
 
-async def main() -> None:
-    settings = Settings.model_validate({})
+async def rodar(settings: Settings) -> bool:
     async with ava_client() as http, db_session() as sessao:
         ava = AvaSession(http, settings.ru, settings.senha)
         materias_db = MateriaRepository(sessao)
@@ -30,9 +29,19 @@ async def main() -> None:
             repository=atividades_db,
             materias=materias_db,
         )
-        await UninterApp(
+        app = UninterApp(
             materias_service, atividades_service, materias_db, atividades_db
-        ).run_async()
+        )
+        await app.run_async()
+        return app.resetar
+
+
+async def main() -> None:
+    settings = Settings.model_validate({})
+    # O arquivo só pode sumir depois que o engine foi descartado: apagá-lo com a
+    # sessão viva deixa o SQLite lendo de um inode órfão e recusando escrita.
+    while await rodar(settings):
+        DATABASE_PATH.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

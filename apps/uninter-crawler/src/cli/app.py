@@ -19,6 +19,8 @@ from textual.widgets import Footer, Header, OptionList
 
 from .atividades import AtividadeTable, MediaBar
 from .carregando import Carregando
+from .comandos import ComandosDoApp
+from .confirmacao import ConfirmarReset
 from .materias import MateriaHeader, MateriaList
 
 PAUSA_ENTRE_MATERIAS = 1.0
@@ -37,6 +39,7 @@ class UninterApp(App[None]):
         ("s", "sync", "sincronizar"),
         ("q", "quit", "sair"),
     ]
+    COMMANDS = App.COMMANDS | {ComandosDoApp}
 
     sincronizando: reactive[bool] = reactive(False)
     restantes: reactive[int] = reactive(0)
@@ -59,6 +62,7 @@ class UninterApp(App[None]):
         self._consumindo = False
         self._pedido_do_usuario = asyncio.Event()
         self._tarefa: asyncio.Task[list[Atividade]] | None = None
+        self.resetar = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -132,6 +136,14 @@ class UninterApp(App[None]):
 
     def action_sync(self) -> None:
         self.sync_materias()
+
+    def action_reset(self) -> None:
+        self.push_screen(ConfirmarReset(), self.reset_confirmado)
+
+    def reset_confirmado(self, confirmou: bool | None) -> None:
+        if confirmou:
+            self.resetar = True
+            self.exit()
 
     def refresh_materia(self, materia: Materia) -> None:
         self.enfileirar(materia, na_frente=True)
