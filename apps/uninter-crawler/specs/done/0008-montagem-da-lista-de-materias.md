@@ -2,7 +2,7 @@
 name: montagem-da-lista-de-materias
 description: MateriaList.show deixa de ser um laço aninhado sobre ((True, "EM CURSO"), (False, "FINALIZADAS")) e vira três frases — um MateriaAggregate por vigência em api/materias, montado por filtros nomeados, build_options que gera as opções, e um context manager que preserva o destaque. Ler antes de mexer em como a lista de matérias é montada, em como o destaque sobrevive a um resync, ou de propor um terceiro grupo.
 projects: [api, frontend]
-status: pending
+status: done
 created_at: 2026-09-07
 ---
 
@@ -33,7 +33,7 @@ Guarda o destaque, zera o widget, particiona as matérias, desenha três tipos d
 
 Depois desta spec o método só exibe matérias já agrupadas. Agrupar é de um `MateriaAggregate` que mora em `api/materias/`, montado por funções de filtro com nome; desenhar é uma função pura da TUI; e nenhuma comprehension fica solta no corpo de um método.
 
-A interface está descrita em [0004](../done/0004-tui-em-textual.md), que fixou os dois grupos, o título `disabled` como separador e a restauração do destaque por id; o que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md).
+A interface está descrita em [0004](0004-tui-em-textual.md), que fixou os dois grupos, o título `disabled` como separador e a restauração do destaque por id; o que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md).
 
 ## Decisões
 
@@ -85,9 +85,9 @@ def aggregate_materias(materias: list[Materia]) -> list[MateriaAggregate]:
     return [agregado for agregado in agregados if not agregado.vazio]
 ```
 
-Quais matérias andam juntas, e em que ordem, é decisão de domínio, não de tela — por isso o agregado mora em `api/materias/aggregate.py`, ao lado de `Media` em `api/atividades/media.py`, que é o mesmo tipo de objeto: um valor congelado derivado de uma lista de entidades, sem identidade nem mutação. A [0003](../done/0003-camadas-crawler-api-cli.md) põe em `api` "o que persiste e o que decide"; agrupar decide.
+Quais matérias andam juntas, e em que ordem, é decisão de domínio, não de tela — por isso o agregado mora em `api/materias/aggregate.py`, ao lado de `Media` em `api/atividades/media.py`, que é o mesmo tipo de objeto: um valor congelado derivado de uma lista de entidades, sem identidade nem mutação. A [0003](0003-camadas-crawler-api-cli.md) põe em `api` "o que persiste e o que decide"; agrupar decide.
 
-A chave de cada agregado é `Vigencia`, não um booleano nem um texto. `VIGENTE` vem do campo que o AVA manda com esse nome no payload de matérias; `FINALIZADA` é a palavra que a [0004](../done/0004-tui-em-textual.md) já usava para o outro grupo. `Materia.vigente` continua sendo `bool` — o enum nomeia os dois lados da partição, não substitui o campo.
+A chave de cada agregado é `Vigencia`, não um booleano nem um texto. `VIGENTE` vem do campo que o AVA manda com esse nome no payload de matérias; `FINALIZADA` é a palavra que a [0004](0004-tui-em-textual.md) já usava para o outro grupo. `Materia.vigente` continua sendo `bool` — o enum nomeia os dois lados da partição, não substitui o campo.
 
 Os dois critérios de partição viram `filter_vigentes` e `filter_finalizadas`. É o que tira do corpo de qualquer função a comprehension que compara `vigente`: a fábrica lê "vigentes de um lado, finalizadas do outro" e nada mais. "Vigentes primeiro" é a ordem em que as duas linhas aparecem, e grupo vazio some na fábrica — não em quem desenha. `vazio` existe para que quem consome o agregado não precise saber que "vazio" significa lista sem elementos.
 
@@ -123,11 +123,11 @@ def build_options(
             yield _opcao(materia, selo(materia))
 ```
 
-O separador é "entre agregados", decidido pelo `enumerate`, e não "se o widget já tem linhas". Título e linha têm construtores próprios, então o laço lê como a tela: separador, título, uma opção por matéria. O selo entra como função porque depende de estado do widget — `_sincronizando` e `_quadro`, da [0007](../done/0007-fila-em-background-e-reset.md) — e é o único ponto em que o desenho toca esse estado.
+O separador é "entre agregados", decidido pelo `enumerate`, e não "se o widget já tem linhas". Título e linha têm construtores próprios, então o laço lê como a tela: separador, título, uma opção por matéria. O selo entra como função porque depende de estado do widget — `_sincronizando` e `_quadro`, da [0007](0007-fila-em-background-e-reset.md) — e é o único ponto em que o desenho toca esse estado.
 
 `OptionList.add_options` aceita qualquer iterável de opções e separadores; verificado na assinatura do Textual 8.2.8 instalado, `Iterable[OptionListContent]`. O gerador entra direto, sem virar lista.
 
-`build_options` segue `build_table` de `atividades.py`: função de módulo, entrada é dado, saída é o que o widget recebe. É o mesmo desenho que a [0004](../done/0004-tui-em-textual.md) escolheu para o painel de detalhe, agora aplicado à lista.
+`build_options` segue `build_table` de `atividades.py`: função de módulo, entrada é dado, saída é o que o widget recebe. É o mesmo desenho que a [0004](0004-tui-em-textual.md) escolheu para o painel de detalhe, agora aplicado à lista.
 
 ### O índice é uma função, fora do desenho
 
@@ -145,7 +145,7 @@ def _keeping_focus(self) -> Generator[None]:
 
 Guardar antes e restaurar depois são duas linhas que só fazem sentido juntas, e o `with` é a construção da linguagem para exatamente isso: quem lê `show` vê que o bloco inteiro roda "mantendo o foco", sem precisar achar o par no fim do método.
 
-O custo é esconder controle de fluxo atrás de um idioma. Vale a pena porque o par tem que continuar pareado em qualquer mudança futura de `show`, e porque tira do método as duas únicas linhas que não são sobre montar a lista. `_focar` e `em_foco` não mudam; a restauração continua por id, com a primeira matéria como fallback, como a [0004](../done/0004-tui-em-textual.md) fixou.
+O custo é esconder controle de fluxo atrás de um idioma. Vale a pena porque o par tem que continuar pareado em qualquer mudança futura de `show`, e porque tira do método as duas únicas linhas que não são sobre montar a lista. `_focar` e `em_foco` não mudam; a restauração continua por id, com a primeira matéria como fallback, como a [0004](0004-tui-em-textual.md) fixou.
 
 ### A verificação é o pyright, a tela e um harness sem tela
 
@@ -153,12 +153,12 @@ Não há arquivo de teste no app hoje, e nenhum cobre `MateriaList`. A mudança 
 
 A equivalência com o código anterior foi medida fora da tela, com `run_test()` do Textual: as duas versões de `MateriaList` produziram a mesma sequência de opções, o mesmo destaque e o mesmo fallback em sete cenários — lista com os dois grupos, só um grupo, vazia, resync com a matéria em foco mantida, resync com ela removida, e resync durante um sync em voo.
 
-`aggregate_materias`, `filter_vigentes` e `filter_finalizadas` em `api`, `index_by_id` e `build_options` na TUI, são puras. Quando a estratégia da [0002](0002-estrategia-de-testes.md) chegar à TUI, são elas que se testam sem subir widget.
+`aggregate_materias`, `filter_vigentes` e `filter_finalizadas` em `api`, `index_by_id` e `build_options` na TUI, são puras. Quando a estratégia da [0002](../pending/0002-estrategia-de-testes.md) chegar à TUI, são elas que se testam sem subir widget.
 
 ## Rejeitados
 
 - **`Grupo` como `NamedTuple` de título e matérias, com as comprehensions inline na fábrica.** Foi a primeira versão desta spec. Um par anônimo não diz o que é, e a comprehension dentro da fábrica só mudava de lugar o `if materia.vigente` que se queria nomear. O agregado ganha nome próprio, `vazio`, e é montado por funções de filtro.
-- **`MateriaAggregate` na TUI, com o título dentro.** Foi a segunda versão. Junta numa classe só o que é domínio — quais matérias andam juntas — e o que é tela — como o grupo se chama —, e deixa em `cli/` uma decisão que a [0003](../done/0003-camadas-crawler-api-cli.md) manda para `api/`.
+- **`MateriaAggregate` na TUI, com o título dentro.** Foi a segunda versão. Junta numa classe só o que é domínio — quais matérias andam juntas — e o que é tela — como o grupo se chama —, e deixa em `cli/` uma decisão que a [0003](0003-camadas-crawler-api-cli.md) manda para `api/`.
 - **Um agregado único com `vigentes` e `finalizadas` como campos, no molde exato de `Media`.** Dispensa o enum, mas a tela precisaria remontar os pares título-lista e tratar o separador entre grupos vazios com helpers a mais. Um agregado por grupo mantém `build_options` num laço só.
 - **Manter o laço e só extrair `_add_grupo(titulo, grupo)`.** Some a tupla, mas o separador continua dependendo de `option_count`, o desenho continua dentro do widget, e `show` continua sendo quem sabe que um grupo é título mais linhas. É um remendo na mesma forma.
 - **Funções puras sem o context manager, com `anterior = self.em_foco` e `self._focar(anterior)` inline.** Deixa `show` com cinco linhas em vez de três, duas delas sobre foco e três sobre lista, e depende de quem editar o método manter o par nas pontas. O `with` faz o pareamento estrutural.
@@ -166,4 +166,4 @@ A equivalência com o código anterior foi medida fora da tela, com `run_test()`
 - **`MateriaAggregate` com predicado em vez de lista.** Lambdas em constante de módulo para uma partição que só tem dois lados. Se um dia houver um terceiro grupo, `vigente` deixa de ser `bool` e a mudança é de domínio, não de lista.
 - **`itertools.groupby` sobre a ordem que o repository já devolve.** `MateriaRepository.list_all` ordena por `vigente desc, nome`, então a lista chega agrupada. Apoiar a tela nisso acopla o widget ao `ORDER BY` de outra camada: trocar a ordenação lá duplicaria títulos aqui, sem erro para avisar.
 - **Promover `vigente` a um enum na entity.** Toca DTO, entity, repository e schema para consertar um método da TUI. `Vigencia` é a chave do agregado, não um campo da matéria: DTO, entity e banco não mudam.
-- **Uma property `Materia.situacao` devolvendo o título.** Põe texto de tela dentro da entity, que a [0003](../done/0003-camadas-crawler-api-cli.md) mantém sem saber que existe interface.
+- **Uma property `Materia.situacao` devolvendo o título.** Põe texto de tela dentro da entity, que a [0003](0003-camadas-crawler-api-cli.md) mantém sem saber que existe interface.

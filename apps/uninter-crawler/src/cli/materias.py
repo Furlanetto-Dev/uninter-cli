@@ -1,5 +1,8 @@
+from collections.abc import Callable, Generator, Iterator
+from contextlib import contextmanager
 from datetime import datetime
 
+from api.materias.aggregate import MateriaAggregate, Vigencia, aggregate_materias
 from api.materias.entity import Materia
 from rich.table import Table
 from textual.timer import Timer
@@ -11,7 +14,11 @@ from .format import humanize_age, short_periodo
 SELO_PENDENTE = "●"
 QUADROS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 INTERVALO = 0.08
-GRUPOS = ((True, "EM CURSO"), (False, "FINALIZADAS"))
+TITULOS = {Vigencia.VIGENTE: "EM CURSO", Vigencia.FINALIZADA: "FINALIZADAS"}
+
+
+def index_by_id(materias: list[Materia]) -> dict[str, Materia]:
+    return {str(materia.id): materia for materia in materias}
 
 
 def _linha(materia: Materia, selo: str) -> Table:
@@ -27,6 +34,25 @@ def _linha(materia: Materia, selo: str) -> Table:
     return grid
 
 
+def _titulo(agregado: MateriaAggregate) -> Option:
+    return Option(f"[dim]{TITULOS[agregado.vigencia]}[/dim]", disabled=True)
+
+
+def _opcao(materia: Materia, selo: str) -> Option:
+    return Option(_linha(materia, selo), id=str(materia.id))
+
+
+def build_options(
+    agregados: list[MateriaAggregate], selo: Callable[[Materia], str]
+) -> Iterator[Option | None]:
+    for indice, agregado in enumerate(agregados):
+        if indice:
+            yield None
+        yield _titulo(agregado)
+        for materia in agregado.materias:
+            yield _opcao(materia, selo(materia))
+
+
 class MateriaList(OptionList):
     def __init__(self) -> None:
         super().__init__()
@@ -36,20 +62,15 @@ class MateriaList(OptionList):
         self._animacao: Timer | None = None
 
     def show(self, materias: list[Materia]) -> None:
+        with self._keeping_focus():
+            self._materias = index_by_id(materias)
+            self.clear_options()
+            self.add_options(build_options(aggregate_materias(materias), self._selo))
+
+    @contextmanager
+    def _keeping_focus(self) -> Generator[None]:
         anterior = self.em_foco
-        self.clear_options()
-        self._materias = {}
-        for vigente, titulo in GRUPOS:
-            grupo = [materia for materia in materias if materia.vigente is vigente]
-            if not grupo:
-                continue
-            if self.option_count:
-                self.add_option(None)
-            self.add_option(Option(f"[dim]{titulo}[/dim]", disabled=True))
-            for materia in grupo:
-                chave = str(materia.id)
-                self._materias[chave] = materia
-                self.add_option(Option(_linha(materia, self._selo(materia)), id=chave))
+        yield
         self._focar(anterior)
 
     def _focar(self, materia: Materia | None) -> None:
