@@ -2,21 +2,21 @@
 name: prazo-e-cor-na-media
 description: Duas colunas de informação que já estavam no banco e não apareciam — o prazo de cada atividade e a situação da média pelas faixas do próprio AVA, com a régua escrita na tela. Traz a escala 0–100 da nota, a faixa 67–69 que o AVA não cobre e por que a média parcial fica sem cor. Ler antes de mexer em cli/atividades.py ou em qualquer coisa que pinte nota.
 projects: [frontend]
-status: pending
+status: done
 created_at: 2026-09-02
 ---
 
 # Prazo e cor na média
 
-A tabela da matéria mostra nome, situação, nota, peso e contribuição. Faltam as duas coisas que o aluno de fato quer saber ao abrir uma matéria: **até quando** cada atividade vale, e se a média **passa**. A primeira já está no banco desde o começo e nunca foi desenhada; a segunda depende de uma régua que a [0001](../done/0001-crawler-de-atividades-do-ava.md) deu por inexistente.
+A tabela da matéria mostra nome, situação, nota, peso e contribuição. Faltam as duas coisas que o aluno de fato quer saber ao abrir uma matéria: **até quando** cada atividade vale, e se a média **passa**. A primeira já está no banco desde o começo e nunca foi desenhada; a segunda precisa de uma régua, e o AVA publica a dele.
 
-Esta spec mexe só no que a tela desenha: nenhuma requisição nova, nenhuma coluna nova no banco, nenhuma assinatura alterada. O que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md), a interface em [0004](../done/0004-tui-em-textual.md) e os testes em [0002](0002-estrategia-de-testes.md).
+Esta spec mexe só no que a tela desenha: nenhuma requisição nova, nenhuma coluna nova no banco, nenhuma assinatura alterada. O que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md), a interface em [0004](0004-tui-em-textual.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
 
 ## Comportamento observado
 
 Medido em 2026-09-02 contra o `uninter.db` real da conta, com 26 matérias e 37 atividades:
 
-- **`inicio` e `fim` vêm preenchidos em 37 de 37.** São persistidos desde a [0001](../done/0001-crawler-de-atividades-do-ava.md) e nunca foram exibidos. O tipo continua opcional, mas na prática o dado sempre está lá.
+- **`inicio` e `fim` vêm preenchidos em 37 de 37.** São persistidos desde a [0001](0001-crawler-de-atividades-do-ava.md) e nunca foram exibidos. O tipo continua opcional, mas na prática o dado sempre está lá.
 - **A nota é 0–100, não 0–10.** Os valores da conta vão de 60 a 100, e `contribuicao = nota × peso / 100` — nota 100 com peso 15 dá contribuição 15,0; nota 70 com peso 40 dá 28,0. Como `Media.valor` é a soma das contribuições, **a média já está na mesma escala 0–100 dos critérios do AVA**, sem conversão nenhuma.
 - **Situação e prazo discordam.** 8 atividades com status `Aguardando início` têm `fim` no passado, e 7 `Finalizada` têm `fim` no futuro. A coluna de prazo não pode ser estilizada a partir do `status`: "vencida" só sai de comparar `fim` com o relógio.
 - **O AVA publica os próprios critérios de aprovação** na tela da sala virtual, em "Critérios de aprovação (período Regular)": `de 70 até 100` APR.MÉDIA, `de 30 até 66` EM EXAME, `de 0 até 29` REP.MÉDIA. A tela tem três abas — Regular, Exame e Recuperação —, cada uma com sua tabela.
@@ -37,9 +37,9 @@ Vencida e não realizada aparece em vermelho; vencida e realizada, apagada, porq
 
 `≥ 70` verde, `30–69` amarelo, `< 30` vermelho.
 
-A [0001](../done/0001-crawler-de-atividades-do-ava.md) rejeitou "projetar quanto falta para passar" porque "a nota de corte não existe em campo nenhum da API; seria um 70 chutado dentro do código". **A premissa estava errada e esta spec a reverte**: o 70 não é chute, é o que o AVA publica na tela da sala virtual, com nome próprio — APR.MÉDIA. O que a 0001 recusou era inventar um número; aqui ele é copiado de onde a instituição o escreveu.
+O 70 não é escolha nossa: é o que o AVA publica na tela da sala virtual, com nome próprio — APR.MÉDIA. A cor copia a classificação da instituição em vez de propor uma.
 
-O que continua rejeitado é o resto daquela decisão: nada de projetar quanto falta, nada de simular cenário. A cor classifica o que já existe.
+O que a cor **não** faz é projetar: nada de calcular quanto falta para passar, nada de simular cenário com as atividades que ainda não têm nota. Ela classifica o que já está lançado, e só isso.
 
 ### A faixa 67–69 fecha para baixo
 
@@ -70,7 +70,7 @@ As abas Exame e Recuperação têm critérios próprios que não foram capturado
 
 ### As faixas são constantes do módulo, não descoberta
 
-Os três limites moram em constantes nomeadas em `cli/atividades.py`. Não se sai atrás do endpoint que serve essa tabela: é a regra do projeto desde a [0001](../done/0001-crawler-de-atividades-do-ava.md), e o que falta vira configuração ou pergunta. Se as faixas mudarem, muda-se a constante — e a única forma de descobrir que mudaram é a mesma tela de onde elas vieram.
+Os três limites moram em constantes nomeadas em `cli/atividades.py`. Não se sai atrás do endpoint que serve essa tabela: é a regra do projeto, e o que falta vira configuração ou pergunta. Se as faixas mudarem, muda-se a constante — e a única forma de descobrir que mudaram é a mesma tela de onde elas vieram.
 
 ## Rejeitados
 
@@ -82,6 +82,11 @@ Os três limites moram em constantes nomeadas em `cli/atividades.py`. Não se sa
 - **Escrever a situação (`APR.MÉDIA`) ao lado do número, sem as faixas.** Usa o vocabulário do próprio AVA e responde direto à pergunta do aluno. Perdido para a legenda porque a cor continuaria sem régua visível — e porque a situação de uma média parcial seria uma afirmação que a decisão acima recusa fazer.
 - **Prazo relativo ("vence em 3d").** Mais legível para o que está perto, e `humanize_age` já faz o análogo para o passado. Mas a maior parte das atividades da conta está a meses de distância, onde "em 87d" informa menos que a data, e o relativo obriga a reformatar a tela conforme o relógio anda.
 - **Mostrar também `inicio`.** Está preenchido em 37 de 37 e caberia como "janela". Fora de escopo: o pedido é data de expiração, e uma segunda coluna de data numa tabela de cinco colunas custa largura que o nome da atividade usa melhor.
+
+## O que a execução corrigiu
+
+- **`Situação` passou a quebrar em duas linhas.** A sexta coluna apertou a tabela, e `Aguardando início` — que é o status de 27 das 37 atividades — virava linha dupla. A coluna ganhou `no_wrap`; o nome da atividade continua sendo o único que dobra.
+- **Abaixo de ~120 colunas a tabela degrada**, com o nome dobrando e o cabeçalho `Contribuição` truncando. Aceito: o `rich` resolve sozinho e a leitura continua possível.
 
 ## Ordem de execução
 
