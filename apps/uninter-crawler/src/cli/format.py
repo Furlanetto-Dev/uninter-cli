@@ -17,6 +17,16 @@ def short_periodo(periodo: str | None) -> str:
     return periodo.split(" - ")[0]
 
 
+def format_prazo(fim: datetime | None) -> str:
+    if fim is None:
+        return "—"
+    return fim.strftime("%d/%m/%y")
+
+
+def vencido(fim: datetime | None, now: datetime) -> bool:
+    return fim is not None and fim < now
+
+
 def humanize_age(moment: datetime | None, now: datetime) -> str:
     if moment is None:
         return "nunca sincronizada"

@@ -87,14 +87,15 @@ class UninterApp(App[None]):
     async def show_materia(self, materia: Materia | None) -> None:
         if materia is None:
             return
-        self.query_one(MateriaHeader).show(materia, datetime.now())
+        now = datetime.now()
+        self.query_one(MateriaHeader).show(materia, now)
         tabela = self.query_one(AtividadeTable)
         if materia.atividades_sincronizadas_em is None:
             tabela.show_pendente()
             self.query_one(MediaBar).hide()
             return
         atividades = await self._atividades_db.list_all(materia)
-        tabela.show(atividades)
+        tabela.show(atividades, now)
         media = self.query_one(MediaBar)
         if atividades:
             media.show(Media.from_atividades(atividades))
