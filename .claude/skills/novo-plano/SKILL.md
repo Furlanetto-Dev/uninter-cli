@@ -58,10 +58,11 @@ Ruim: `Documento sobre o crawler.`
 Comece do [template](./template.md). Nem toda seção é obrigatória, mas a ordem é:
 
 1. `# Título` em prosa, com acento — não é o slug.
-2. Um parágrafo dizendo **por que a spec existe**: o problema, e o que muda quando ela for executada. Linke o [CONTEXT.md](../../../../CONTEXT.md) e as specs relacionadas aqui.
-3. **Comportamento observado**, quando houver sistema externo envolvido. Só o que foi verificado contra a realidade, com o que prova cada afirmação. Separe explicitamente o que é medido do que é inferência.
-4. **Decisões**, cada uma num `###` cujo título é a decisão afirmada, não o assunto. `### O banco guarda só os campos que a tela usa`, não `### Sobre os campos`.
-5. **Rejeitados**, em lista. Cada item diz a alternativa e o porquê de não. É a seção que impede alguém de re-propor a mesma ideia em seis meses.
+2. `## TL;DR`, em lista: uma linha por mudança, até cinco. Quem lê só isso sabe o que a spec faz.
+3. Uma ou duas frases dizendo **por que a spec existe**: o problema, e o que muda quando ela for executada. Linke o [CONTEXT.md](../../../../CONTEXT.md) e as specs relacionadas aqui.
+4. **Comportamento observado**, quando houver sistema externo envolvido. Uma linha por fato, com o que o prova. Marque o que é inferência.
+5. **Decisões**, cada uma num `###` cujo título é a decisão afirmada, não o assunto. `### O banco guarda só os campos que a tela usa`, não `### Sobre os campos`.
+6. **Rejeitados**, em lista. Uma linha por item: a alternativa e o porquê de não.
 
 ## Links relativos
 
@@ -72,12 +73,24 @@ De `apps/<app>/specs/pending/` até a raiz do repo são quatro níveis:
 
 Confira que resolvem antes de terminar.
 
+# A régua de tamanho
+
+**Mais de 70 linhas de texto é sinal de enrolação.** É régua, não lei: o validador conta só o que está fora de blocos cercados e avisa. Se a spec que você está escrevendo aparecer no aviso, releia procurando ideia repetida; se não houver, o tamanho está justificado.
+
+- Não existe mínimo de texto por parágrafo, seção ou decisão. Se a ideia cabe em uma linha, é uma linha.
+- Um diagrama `mermaid` que substitui parágrafos é bem-vindo — fluxo, camadas, estados, layout. Mostra mais com menos texto, e não conta na régua.
+- Decisão é o que e o porquê, em uma ou duas frases. Custo só entra se não for óbvio.
+- Rejeitado é a alternativa e o motivo, em uma linha.
+- Fato observado é o fato e a prova, em uma linha. Só entra o que muda uma decisão.
+- Sem introdução que repete o título, sem retórica, sem código que a implementação vai reescrever. Código só quando o nome ou a assinatura é a decisão.
+- Não é telegrama: frases inteiras, em português normal. Concisão é cortar ideia repetida, não artigo e verbo.
+
 # A régua de qualidade
 
 - **Decida, não enumere.** Uma spec registra a escolha e o motivo. Se você ainda está pesando alternativas, pergunte ao usuário em vez de listar as opções no arquivo — o lugar de opção descartada é a seção Rejeitados, com o porquê.
 - **Afirme o que foi verificado e marque o resto.** Se você não mediu, escreva que é inferência.
 - **Sem enfeite.** Nada de "este documento visa", nada de repetir o título no primeiro parágrafo.
-- Escreva em português, no mesmo tom das specs existentes. Leia a mais recente antes de começar.
+- Escreva em português. O tom é o das specs existentes; o tamanho não — elas são anteriores à régua de tamanho.
 
 # Antes de terminar
 
@@ -91,6 +104,7 @@ from pathlib import Path
 
 REQUIRED = ("name", "description", "projects", "status", "created_at")
 PROJETOS_VALIDOS = {"crawler", "api", "frontend", "all"}
+LIMITE_DE_LINHAS = 70
 
 
 def projetos_invalidos(bruto):
@@ -107,9 +121,26 @@ def projetos_invalidos(bruto):
     return []
 
 
+def linhas_de_texto(text):
+    dentro = False
+    total = 0
+    for linha in text.splitlines():
+        if linha.startswith("```"):
+            dentro = not dentro
+            continue
+        if not dentro:
+            total += 1
+    return total
+
+
 ok = True
 for p in sorted(Path("apps").glob("*/specs/*/*.md")):
     text = p.read_text()
+    linhas = linhas_de_texto(text)
+    if p.parent.name == "pending" and linhas > LIMITE_DE_LINHAS:
+        print(f"{p}: AVISO {linhas} linhas de texto, acima de {LIMITE_DE_LINHAS}")
+    if p.parent.name == "pending" and "## TL;DR" not in text:
+        print(f"{p}: AVISO sem ## TL;DR")
     m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     if not m:
         print(f"{p}: FRONTMATTER AUSENTE"); ok = False; continue
@@ -134,6 +165,8 @@ for p in sorted(Path("apps").glob("*/specs/*/*.md")):
 print("tudo consistente" if ok else "HA PROBLEMAS")
 PY
 ```
+
+Aviso na spec que você escreveu é seu: adicione o TL;DR, e corte ideia repetida — ou conclua que o tamanho se justifica. Aviso em spec antiga fica para quando ela for tocada.
 
 Depois diga ao usuário o caminho do arquivo criado. Não faça commit a menos que ele peça.
 
