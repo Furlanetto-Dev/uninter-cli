@@ -1,3 +1,5 @@
+import asyncio
+
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from api.materias.entity import Materia
@@ -23,6 +25,13 @@ class AtividadeSyncService:
 
     async def sync(self, materia: Materia) -> list[Atividade]:
         atividades = await self._request.fetch(materia)
+        # Cancelar no meio da escrita deixa a sessao num estado que nem o rollback
+        # recupera; o shield garante que ela termine mesmo se o fetch for abortado.
+        return await asyncio.shield(self._gravar(materia, atividades))
+
+    async def _gravar(
+        self, materia: Materia, atividades: list[Atividade]
+    ) -> list[Atividade]:
         await self._repository.replace(materia, atividades)
         await self._materias.mark_atividades_synced(materia)
         await self._sessao.commit()
