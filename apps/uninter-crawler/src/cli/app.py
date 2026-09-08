@@ -4,6 +4,7 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
+from textual.widget import Widget
 from textual.widgets import Footer, Header, OptionList
 
 from api.atividades.media import Media
@@ -15,6 +16,7 @@ from api.materias.service import MateriaSyncService
 from crawler.session import LoginRejected
 
 from .atividades import AtividadeTable, MediaBar
+from .carregando import Carregando
 from .materias import MateriaHeader, MateriaList
 
 SEM_MATERIAS = (
@@ -63,6 +65,9 @@ class UninterApp(App[None]):
         await self.reload_materias()
         if vazio:
             self.sync_materias()
+
+    def get_loading_widget(self) -> Widget:
+        return Carregando()
 
     def watch_sincronizando(self) -> None:
         self.refresh_bindings()
