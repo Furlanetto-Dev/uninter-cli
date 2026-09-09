@@ -52,16 +52,16 @@ def ava_client() -> httpx.AsyncClient:
 
 
 class AvaSession:
-    def __init__(self, http: httpx.AsyncClient, ru: str, senha: str) -> None:
+    def __init__(self, http: httpx.AsyncClient, ru: str, password: str) -> None:
         self._http = http
         self._ru = ru
-        self._senha = senha
+        self._password = password
         self._stamp: str | None = None
-        self._aluno: str | None = None
+        self._student: str | None = None
 
     @property
-    def aluno(self) -> str | None:
-        return self._aluno
+    def student(self) -> str | None:
+        return self._student
 
     async def get(self, url: str) -> AvaResponse:
         response = await self._http.get(url, headers=await self._session_headers())
@@ -77,18 +77,18 @@ class AvaSession:
     async def _session_headers(self) -> dict[str, str]:
         if self._stamp is None:
             self._stamp = await self._log_in()
-        # O AVA nomeia o cookie de sessão com um timestamp e exige que x-time o repita.
+        # The AVA names its session cookie with a timestamp and expects x-time to echo it.
         return {"x-time": self._stamp}
 
     async def _log_in(self) -> str:
         response = await self._http.post(
             "/autenticacao/autenticar/false/Post",
-            data={"login": self._ru, "senha": self._senha, "recaptcha": ""},
+            data={"login": self._ru, "senha": self._password, "recaptcha": ""},
             headers={"content-type": FORM_CONTENT_TYPE},
         )
         response.raise_for_status()
         dto = LoginDTO.model_validate(response.json())
         if dto.usuario is None:
             raise LoginRejected(dto.mensagem or "RU ou senha inválidos")
-        self._aluno = dto.usuario.nome
+        self._student = dto.usuario.nome
         return dto.usuario.time

@@ -7,17 +7,17 @@ from .entity import Materia
 
 
 class MateriaRepository:
-    def __init__(self, sessao: AsyncSession) -> None:
-        self._sessao = sessao
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
 
     async def list_all(self) -> list[Materia]:
         statement = select(Materia).order_by(
             col(Materia.vigente).desc(), col(Materia.nome)
         )
-        return list((await self._sessao.exec(statement)).all())
+        return list((await self._session.exec(statement)).all())
 
     async def save(self, materias: list[Materia]) -> None:
-        carimbos = {
+        sync_stamps = {
             stored.id: (
                 stored.atividades_sincronizadas_em,
                 stored.trabalhos_sincronizados_em,
@@ -25,15 +25,17 @@ class MateriaRepository:
             for stored in await self.list_all()
         }
         for materia in materias:
-            atividades, trabalhos = carimbos.get(materia.id, (None, None))
-            materia.atividades_sincronizadas_em = atividades
-            materia.trabalhos_sincronizados_em = trabalhos
-            await self._sessao.merge(materia)
+            atividades_synced_at, trabalhos_synced_at = sync_stamps.get(
+                materia.id, (None, None)
+            )
+            materia.atividades_sincronizadas_em = atividades_synced_at
+            materia.trabalhos_sincronizados_em = trabalhos_synced_at
+            await self._session.merge(materia)
 
     async def mark_atividades_synced(self, materia: Materia) -> None:
         materia.atividades_sincronizadas_em = datetime.now()
-        await self._sessao.merge(materia)
+        await self._session.merge(materia)
 
     async def mark_trabalhos_synced(self, materia: Materia) -> None:
         materia.trabalhos_sincronizados_em = datetime.now()
-        await self._sessao.merge(materia)
+        await self._session.merge(materia)

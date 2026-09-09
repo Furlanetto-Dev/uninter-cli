@@ -3,15 +3,15 @@ from textual.app import RenderResult
 from textual.reactive import reactive
 from textual.widget import Widget
 
-ONDA = "▁▂▃▄▅▆▇█▇▆▅▄▃▂"
-COLUNAS = 9
-DEFASAGEM = 2
-INTERVALO = 0.07
+WAVE = "▁▂▃▄▅▆▇█▇▆▅▄▃▂"
+COLUMNS = 9
+PHASE_SHIFT = 2
+INTERVAL = 0.07
 
 
-class Carregando(Widget):
+class Loading(Widget):
     DEFAULT_CSS = """
-    Carregando {
+    Loading {
         width: 100%;
         height: 100%;
         content-align: center middle;
@@ -19,17 +19,17 @@ class Carregando(Widget):
     }
     """
 
-    quadro: reactive[int] = reactive(0)
+    frame: reactive[int] = reactive(0)
 
     def on_mount(self) -> None:
-        self.set_interval(INTERVALO, self.avancar)
+        self.set_interval(INTERVAL, self.advance)
 
-    def avancar(self) -> None:
-        self.quadro += 1
+    def advance(self) -> None:
+        self.frame += 1
 
     def render(self) -> RenderResult:
-        onda = "".join(
-            ONDA[(self.quadro + coluna * DEFASAGEM) % len(ONDA)]
-            for coluna in range(COLUNAS)
+        wave = "".join(
+            WAVE[(self.frame + column * PHASE_SHIFT) % len(WAVE)]
+            for column in range(COLUMNS)
         )
-        return Text(f"{onda}\n\nbuscando no AVA", justify="center")
+        return Text(f"{wave}\n\nbuscando no AVA", justify="center")

@@ -11,7 +11,7 @@ MateriaList {
     background: $surface;
 }
 
-#detalhe {
+#detail {
     height: 1fr;
     padding: 1 2;
 }
@@ -80,11 +80,11 @@ FieldsTable > .datatable--odd-row {
     background: $foreground 8%;
 }
 
-ConfirmarReset {
+ConfirmReset {
     align: center middle;
 }
 
-#confirmacao {
+#confirmation {
     width: 56;
     height: auto;
     padding: 1 2;

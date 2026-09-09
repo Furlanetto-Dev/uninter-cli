@@ -10,8 +10,8 @@ RELOAD = "Reload matérias"
 RELOAD_HELP = "Fetches the list of matérias again"
 
 
-class ComandosDoApp(Provider):
-    def _acoes(self) -> list[tuple[str, str, Callable[[], None]]]:
+class AppCommands(Provider):
+    def _actions(self) -> list[tuple[str, str, Callable[[], None]]]:
         from ..app import UninterApp
 
         app = self.app
@@ -28,12 +28,12 @@ class ComandosDoApp(Provider):
         ]
 
     async def discover(self) -> Hits:
-        for nome, ajuda, acao in self._acoes():
-            yield DiscoveryHit(nome, acao, help=ajuda)
+        for name, help_text, action in self._actions():
+            yield DiscoveryHit(name, action, help=help_text)
 
     async def search(self, query: str) -> Hits:
         matcher = self.matcher(query)
-        for nome, ajuda, acao in self._acoes():
-            score = matcher.match(nome)
+        for name, help_text, action in self._actions():
+            score = matcher.match(name)
             if score > 0:
-                yield Hit(score, matcher.highlight(nome), acao, help=ajuda)
+                yield Hit(score, matcher.highlight(name), action, help=help_text)

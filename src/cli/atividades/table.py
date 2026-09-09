@@ -7,20 +7,20 @@ from textual.message import Message
 from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowKey
 
-from ..format import format_number, format_prazo, vencido
+from ..format import format_number, format_deadline, is_overdue
 from ..navigation.sideways import step_left, step_right
 
-SEM_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
-NUNCA_SINCRONIZADA = "[dim]⏎ para buscar no AVA[/dim]"
+NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
+NEVER_SYNCED = "[dim]⏎ para buscar no AVA[/dim]"
 COLUMNS = ("Atividade", "Situação", "Nota", "Peso", "Contribuição", "Prazo")
 
 
-def _prazo(atividade: Atividade, now: datetime) -> Text:
-    texto = format_prazo(atividade.fim)
-    if not vencido(atividade.fim, now):
-        return Text(texto, justify="right")
+def _deadline(atividade: Atividade, now: datetime) -> Text:
+    text = format_deadline(atividade.fim)
+    if not is_overdue(atividade.fim, now):
+        return Text(text, justify="right")
     colour = "dim" if atividade.realizada else "red"
-    return Text(texto, style=colour, justify="right")
+    return Text(text, style=colour, justify="right")
 
 
 def row_cells(atividade: Atividade, now: datetime) -> tuple[Text, ...]:
@@ -31,7 +31,7 @@ def row_cells(atividade: Atividade, now: datetime) -> tuple[Text, ...]:
         Text(format_number(atividade.nota), justify="right"),
         Text(f"{atividade.peso}%", justify="right"),
         Text(format_number(atividade.contribuicao), justify="right"),
-        _prazo(atividade, now),
+        _deadline(atividade, now),
     )
 
 

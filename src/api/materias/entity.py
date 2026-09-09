@@ -15,5 +15,5 @@ class Materia(SQLModel, table=True):
 
     @property
     def oferta(self) -> int:
-        # O AVA só devolve atividades pela oferta de aproveitamento quando ela existe.
+        # The AVA only serves atividades through the oferta_aproveitamento when there is one.
         return self.oferta_aproveitamento or self.oferta_atual

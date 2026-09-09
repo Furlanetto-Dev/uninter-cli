@@ -12,13 +12,13 @@ class FetchResult(NamedTuple):
 
 
 class MateriaRequest:
-    def __init__(self, ava: AvaSession, id_curso: int) -> None:
+    def __init__(self, ava: AvaSession, course_id: int) -> None:
         self._ava = ava
-        self._id_curso = id_curso
+        self._course_id = course_id
 
     async def fetch(self) -> FetchResult:
         response = await self._ava.get(
-            f"/ava/SalaVirtual/{self._id_curso}/CursoUsuarioPermissao/true/"
+            f"/ava/SalaVirtual/{self._course_id}/CursoUsuarioPermissao/true/"
             "?emCurso=true&idUsuarioCurso=0"
         )
         if response.json is None:

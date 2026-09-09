@@ -29,11 +29,11 @@ async def db_session(
 ) -> AsyncGenerator[AsyncSession, None]:
     engine = create_async_engine(f"sqlite+aiosqlite:///{path}")
     try:
-        async with engine.begin() as conexao:
-            await conexao.run_sync(SQLModel.metadata.create_all)
-        # Sob async, o expire_on_commit padrao transforma todo acesso a atributo
-        # depois de um commit em IO implicito, o que levanta MissingGreenlet.
-        async with AsyncSession(engine, expire_on_commit=False) as sessao:
-            yield sessao
+        async with engine.begin() as connection:
+            await connection.run_sync(SQLModel.metadata.create_all)
+        # Under async, the default expire_on_commit turns every attribute access
+        # after a commit into implicit IO, which raises MissingGreenlet.
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            yield session
     finally:
         await engine.dispose()

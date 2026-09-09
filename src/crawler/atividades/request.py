@@ -25,7 +25,7 @@ class AtividadeRequest:
             return FetchResult(response, [])
         dto = AtividadesDTO.model_validate(response.json)
         atividades = [
-            atividade.to_atividade(materia.id, posicao)
-            for posicao, atividade in enumerate(dto.atividades)
+            atividade.to_atividade(materia.id, position)
+            for position, atividade in enumerate(dto.atividades)
         ]
         return FetchResult(response, atividades)

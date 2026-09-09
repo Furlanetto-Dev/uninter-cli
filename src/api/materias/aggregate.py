@@ -28,8 +28,8 @@ def filter_finalizadas(materias: list[Materia]) -> list[Materia]:
 
 
 def aggregate_materias(materias: list[Materia]) -> list[MateriaAggregate]:
-    agregados = [
+    aggregates = [
         MateriaAggregate(Vigencia.VIGENTE, filter_vigentes(materias)),
         MateriaAggregate(Vigencia.FINALIZADA, filter_finalizadas(materias)),
     ]
-    return [agregado for agregado in agregados if not agregado.vazio]
+    return [aggregate for aggregate in aggregates if not aggregate.vazio]

@@ -7,8 +7,8 @@ from .entity import Atividade
 
 
 class AtividadeRepository:
-    def __init__(self, sessao: AsyncSession) -> None:
-        self._sessao = sessao
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
 
     async def list_all(self, materia: Materia) -> list[Atividade]:
         statement = (
@@ -16,9 +16,9 @@ class AtividadeRepository:
             .where(col(Atividade.materia_id) == materia.id)
             .order_by(col(Atividade.posicao))
         )
-        return list((await self._sessao.exec(statement)).all())
+        return list((await self._session.exec(statement)).all())
 
     async def replace(self, materia: Materia, atividades: list[Atividade]) -> None:
         for stored in await self.list_all(materia):
-            await self._sessao.delete(stored)
-        self._sessao.add_all(atividades)
+            await self._session.delete(stored)
+        self._session.add_all(atividades)

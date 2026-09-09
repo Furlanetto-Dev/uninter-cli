@@ -10,13 +10,13 @@ class TrabalhoRequest:
         self._ava = ava
 
     async def fetch(self, materia: Materia) -> list[Trabalho]:
-        # Aqui o AVA quer as duas ofertas em posições diferentes, ao contrário do
-        # endpoint de atividades, que só aceita a resolvida.
-        aproveitamento = materia.oferta_aproveitamento or materia.oferta_atual
+        # Here the AVA wants both ofertas in separate slots, unlike the atividades
+        # endpoint, which only takes the resolved one.
+        oferta_aproveitamento = materia.oferta_aproveitamento or materia.oferta_atual
         response = await self._ava.get(
             f"/interacao/TrabalhoEtapa/{materia.oferta_atual}"
             "/GetEtapasByOfertaInscrito/false"
-            f"?master=true&idSalaVirtualOfertaAproveitamento={aproveitamento}"
+            f"?master=true&idSalaVirtualOfertaAproveitamento={oferta_aproveitamento}"
         )
         if response.json is None:
             return []

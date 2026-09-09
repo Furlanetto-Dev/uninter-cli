@@ -13,21 +13,21 @@ from crawler.session import AvaSession, ava_client
 from settings import Settings
 
 
-async def rodar(settings: Settings) -> bool:
-    async with ava_client() as http, db_session() as sessao:
-        ava = AvaSession(http, settings.ru, settings.senha)
-        materias_db = MateriaRepository(sessao)
-        atividades_db = AtividadeRepository(sessao)
-        capturas_db = CapturaRepository(sessao)
+async def run(settings: Settings) -> bool:
+    async with ava_client() as http, db_session() as session:
+        ava = AvaSession(http, settings.ru, settings.password)
+        materias_db = MateriaRepository(session)
+        atividades_db = AtividadeRepository(session)
+        capturas_db = CapturaRepository(session)
         materias_service = MateriaSyncService(
-            sessao=sessao,
+            session=session,
             ava=ava,
-            request=MateriaRequest(ava, settings.id_curso),
+            request=MateriaRequest(ava, settings.course_id),
             repository=materias_db,
             capturas=capturas_db,
         )
         atividades_service = AtividadeSyncService(
-            sessao=sessao,
+            session=session,
             request=AtividadeRequest(ava),
             repository=atividades_db,
             materias=materias_db,
@@ -41,14 +41,14 @@ async def rodar(settings: Settings) -> bool:
             capturas_db,
         )
         await app.run_async()
-        return app.resetar
+        return app.reset_requested
 
 
 async def main() -> None:
     settings = Settings.model_validate({})
-    # O arquivo só pode sumir depois que o engine foi descartado: apagá-lo com a
-    # sessão viva deixa o SQLite lendo de um inode órfão e recusando escrita.
-    while await rodar(settings):
+    # The file can only go once the engine is disposed: deleting it with a live
+    # session leaves SQLite reading an orphaned inode and refusing writes.
+    while await run(settings):
         DATABASE_PATH.unlink(missing_ok=True)
 
 

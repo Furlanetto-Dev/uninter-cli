@@ -3,7 +3,7 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
-PERGUNTA = (
+PROMPT = (
     "[bold]Apagar o banco?[/bold]\n\n"
     "Some tudo que está gravado, e o app reinicia.\n"
     "O AVA é a fonte: ele resincroniza ao subir.\n\n"
@@ -11,15 +11,15 @@ PERGUNTA = (
 )
 
 
-class ConfirmarReset(ModalScreen[bool]):
-    BINDINGS = [("escape", "cancelar", "cancelar"), ("enter", "confirmar", "apagar")]
+class ConfirmReset(ModalScreen[bool]):
+    BINDINGS = [("escape", "cancel", "cancelar"), ("enter", "confirm", "apagar")]
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="confirmacao"):
-            yield Static(PERGUNTA)
+        with Vertical(id="confirmation"):
+            yield Static(PROMPT)
 
-    def action_confirmar(self) -> None:
+    def action_confirm(self) -> None:
         self.dismiss(True)
 
-    def action_cancelar(self) -> None:
+    def action_cancel(self) -> None:
         self.dismiss(False)

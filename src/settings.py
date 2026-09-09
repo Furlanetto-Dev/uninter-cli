@@ -13,5 +13,5 @@ class Settings(BaseSettings):
     )
 
     ru: str
-    senha: str
-    id_curso: int
+    password: str
+    course_id: int

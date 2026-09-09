@@ -11,14 +11,14 @@ from .repository import TrabalhoRepository
 class TrabalhoSyncService:
     def __init__(
         self,
-        sessao: AsyncSession,
+        session: AsyncSession,
         trabalhos: TrabalhoRequest,
         entregas: EntregaRequest,
         etiquetas: EtiquetaRequest,
         repository: TrabalhoRepository,
         materias: MateriaRepository,
     ) -> None:
-        self._sessao = sessao
+        self._session = session
         self._trabalhos = trabalhos
         self._entregas = entregas
         self._etiquetas = etiquetas
@@ -36,5 +36,5 @@ class TrabalhoSyncService:
                     etiquetas += await self._etiquetas.fetch(entrega.correcao_id)
         await self._repository.replace(materia, trabalhos, entregas, etiquetas)
         await self._materias.mark_trabalhos_synced(materia)
-        await self._sessao.commit()
+        await self._session.commit()
         return trabalhos

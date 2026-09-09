@@ -17,13 +17,13 @@ def short_periodo(periodo: str | None) -> str:
     return periodo.split(" - ")[0]
 
 
-def format_prazo(fim: datetime | None) -> str:
+def format_deadline(fim: datetime | None) -> str:
     if fim is None:
         return "—"
     return fim.strftime("%d/%m/%y")
 
 
-def vencido(fim: datetime | None, now: datetime) -> bool:
+def is_overdue(fim: datetime | None, now: datetime) -> bool:
     return fim is not None and fim < now
 
 

@@ -74,7 +74,7 @@ def raw_view(item: object | None, fallback: str) -> View:
 
 def field_rows(entity: Materia | Atividade) -> list[tuple[str, str]]:
     return [
-        (campo, repr(getattr(entity, campo))) for campo in type(entity).model_fields
+        (field, repr(getattr(entity, field))) for field in type(entity).model_fields
     ]
 
 
@@ -85,11 +85,11 @@ def meta_text(
     selected: Atividade | None,
 ) -> Text:
     if selected is None:
-        materias = _meta(materias_captura)
-        materias.append(" · Materia", style="dim")
-        outras = _meta(atividades_captura)
-        outras.append(f" · {len(atividades)} Atividade", style="dim")
-        return Text("\n").join([materias, outras])
+        materias_line = _meta(materias_captura)
+        materias_line.append(" · Materia", style="dim")
+        atividades_line = _meta(atividades_captura)
+        atividades_line.append(f" · {len(atividades)} Atividade", style="dim")
+        return Text("\n").join([materias_line, atividades_line])
     meta = _meta(atividades_captura)
     meta.append(f" · Atividade {selected.posicao}", style="dim")
     return meta
@@ -174,8 +174,8 @@ class FieldsTable(DataTable[str]):
             entity.model_dump_json(indent=2) if entity is not None else None
         )
         if entity is not None:
-            for campo, valor in field_rows(entity):
-                self.add_row(campo, valor)
+            for field, value in field_rows(entity):
+                self.add_row(field, value)
             self.move_cursor(row=0, scroll=True)
         self.refresh_bindings()
 

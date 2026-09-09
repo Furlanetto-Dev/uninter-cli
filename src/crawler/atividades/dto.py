@@ -15,7 +15,7 @@ class ProvaDTO(AvaDTO):
 
 
 class AtividadeDTO(AvaDTO):
-    # O nome do campo no AVA e "avaliacao": o alias e o vocabulario deles, nao o nosso.
+    # The AVA calls this field "avaliacao": the alias is their vocabulary, not ours.
     prova: ProvaDTO = Field(alias="avaliacao")
     status: str
     nota: float | None = None
