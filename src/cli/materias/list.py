@@ -54,7 +54,7 @@ def build_options(
 
 
 class MateriaList(OptionList):
-    BINDINGS = [Binding("right", "app.focus_atividades", "atividades", show=False)]
+    BINDINGS = [Binding("right", "app.focus_pane", "atividades", show=False)]
 
     def __init__(self) -> None:
         super().__init__()

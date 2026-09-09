@@ -14,10 +14,11 @@ from api.materias.service import MateriaSyncService
 from crawler.session import LoginRejected
 from textual import work
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Footer, Header, OptionList
+from textual.widgets import Footer, Header, OptionList, TabbedContent, TabPane, Tabs
 
 from .animations.loading import Loading
 from .atividades.media import MediaBar
@@ -36,6 +37,7 @@ from .materias.list import MateriaList
 PAUSE_BETWEEN_MATERIAS = 1.0
 TALL_TERMINAL_ROWS = 40
 DEBUG_OPEN = "-debug"
+ATIVIDADES_PANE = "atividades"
 
 NO_MATERIAS = (
     "[yellow]Nenhuma matéria no banco.[/yellow]\n\n"
@@ -51,6 +53,9 @@ class UninterApp(App[None]):
         ("q", "quit", "quit"),
         ("j", "focus_debug", "debug"),
         ("d", "home", "home"),
+        Binding("1", "show_tab(1)", "atividades", show=False),
+        Binding("2", "show_tab(2)", "trabalhos", show=False),
+        Binding("3", "show_tab(3)", "aulas", show=False),
     ]
     COMMANDS = App.COMMANDS | {AppCommands}
     VERTICAL_BREAKPOINTS = [(0, "-short"), (TALL_TERMINAL_ROWS, "-tall")]
@@ -88,14 +93,16 @@ class UninterApp(App[None]):
             yield MateriaList()
             with Vertical(id="detail"):
                 yield MateriaHeader()
-                with Vertical(id="grades"):
-                    yield AtividadeHint()
-                    yield AtividadeTable()
-                    yield MediaBar()
+                with TabbedContent(id="collections"):
+                    with TabPane("1 Atividades", id=ATIVIDADES_PANE):
+                        yield AtividadeHint()
+                        yield AtividadeTable()
+                        yield MediaBar()
                 yield DebugPanel()
         yield Footer()
 
     async def on_mount(self) -> None:
+        self.query_one(Tabs).can_focus = False
         self.query_one(MediaBar).hide()
         materias = await self._materias_db.list_all()
         await self.reload_materias()
@@ -123,7 +130,7 @@ class UninterApp(App[None]):
         else:
             focused = self.focused
             if focused is not None and panel in focused.ancestors_with_self:
-                self.action_focus_atividades()
+                self.action_focus_pane()
         self.refresh_bindings()
 
     def toggle_debug(self) -> None:
@@ -196,7 +203,25 @@ class UninterApp(App[None]):
         if self.debug_mode:
             await self.show_debug(self.query_one(MateriaList).highlighted_materia)
 
-    def action_focus_atividades(self) -> None:
+    def action_show_tab(self, number: int) -> None:
+        pane = self.pane_at(number)
+        if pane is not None and pane.id is not None:
+            self.query_one(TabbedContent).active = pane.id
+
+    def pane_at(self, number: int) -> TabPane | None:
+        panes = list(self.query_one(TabbedContent).query(TabPane))
+        return panes[number - 1] if 0 < number <= len(panes) else None
+
+    def on_tabbed_content_tab_activated(
+        self, event: TabbedContent.TabActivated
+    ) -> None:
+        if self.focused is None:
+            self.action_focus_pane()
+
+    def action_focus_pane(self) -> None:
+        if self.query_one(TabbedContent).active != ATIVIDADES_PANE:
+            self.action_focus_materias()
+            return
         table = self.query_one(AtividadeTable)
         if not table.display or table.row_count == 0:
             self.action_focus_materias()

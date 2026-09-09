@@ -98,7 +98,7 @@ def meta_text(
 class DebugColumn(VerticalScroll):
     BINDINGS = [
         Binding("ctrl+c", "copy", "copy"),
-        Binding("escape", "app.focus_atividades", "back"),
+        Binding("escape", "app.focus_pane", "back"),
     ]
 
     def __init__(self, id: str) -> None:
@@ -138,10 +138,10 @@ class RawColumn(DebugColumn):
         yield Static()
 
     async def action_step_up(self) -> None:
-        await step_up(self, "app.focus_atividades")
+        await step_up(self, "app.focus_pane")
 
     async def action_step_left(self) -> None:
-        await step_left(self, "app.focus_atividades")
+        await step_left(self, "app.focus_pane")
 
     async def action_step_right(self) -> None:
         await step_right(self, "app.focus_stored")
@@ -154,7 +154,7 @@ class RawColumn(DebugColumn):
 class FieldsTable(DataTable[str]):
     BINDINGS = [
         Binding("ctrl+c", "copy", "copy"),
-        Binding("escape", "app.focus_atividades", "back"),
+        Binding("escape", "app.focus_pane", "back"),
         Binding("left", "step_left", "ava", show=False),
         Binding("right", "step_right", "", show=False),
         Binding("up", "step_up", "atividades", show=False),
@@ -168,7 +168,7 @@ class FieldsTable(DataTable[str]):
         if self.cursor_row > 0:
             self.action_cursor_up()
         else:
-            await self.run_action("app.focus_atividades")
+            await self.run_action("app.focus_pane")
 
     async def action_step_left(self) -> None:
         await step_left(self, "app.focus_raw")

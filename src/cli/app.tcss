@@ -34,7 +34,7 @@ AtividadeTable > .datatable--header {
     background: transparent;
 }
 
-#grades {
+#collections {
     height: auto;
 }
 
@@ -48,7 +48,7 @@ Screen.-debug DebugPanel {
     margin-top: 1;
 }
 
-Screen.-debug.-short #grades {
+Screen.-debug.-short #collections {
     display: none;
 }
 

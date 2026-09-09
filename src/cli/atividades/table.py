@@ -39,6 +39,7 @@ class AtividadeTable(DataTable[Text]):
     BINDINGS = [
         Binding("left", "step_left", "materias", show=False),
         Binding("right", "step_right", "debug", show=False),
+        Binding("escape", "app.focus_materias", "back"),
     ]
 
     class Selected(Message):
