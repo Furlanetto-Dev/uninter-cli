@@ -1,16 +1,21 @@
 import asyncio
 from collections import deque
+from collections.abc import Awaitable, Callable
 from datetime import datetime
+from typing import NamedTuple
 
 from api.atividades.entity import Atividade
 from api.atividades.media import Media
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
-from api.capturas.entity import ATIVIDADES, MATERIAS
+from api.capturas.entity import ATIVIDADES, MATERIAS, TRABALHOS
 from api.capturas.repository import CapturaRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
+from api.trabalhos.entity import Trabalho
+from api.trabalhos.repository import TrabalhoRepository
+from api.trabalhos.service import TrabalhoSyncService
 from crawler.session import LoginRejected
 from textual import work
 from textual.app import App, ComposeResult
@@ -22,27 +27,38 @@ from textual.widgets import Footer, Header, OptionList, TabbedContent, TabPane, 
 
 from .animations.loading import Loading
 from .atividades.media import MediaBar
-from .atividades.table import (
-    NEVER_SYNCED,
-    NO_ATIVIDADES,
-    AtividadeHint,
-    AtividadeTable,
-)
+from .atividades.table import NO_ATIVIDADES, AtividadeTable
 from .commands.palette import AppCommands
 from .commands.reset import ConfirmReset
 from .debug.panel import DebugColumn, DebugPanel, FieldsTable, RawColumn
+from .hint import NEVER_SYNCED, Hint
 from .materias.header import MateriaHeader
 from .materias.list import MateriaList
+from .trabalhos.table import NO_TRABALHOS, TrabalhoTable
 
 PAUSE_BETWEEN_MATERIAS = 1.0
 TALL_TERMINAL_ROWS = 40
 DEBUG_OPEN = "-debug"
-ATIVIDADES_PANE = "atividades"
+LOADING = "-loading"
+PANE = "pane"
+ATIVIDADES_HINT = "atividades-hint"
+TRABALHOS_HINT = "trabalhos-hint"
 
 NO_MATERIAS = (
     "[yellow]Nenhuma matéria no banco.[/yellow]\n\n"
     "[dim]Confira UNINTER_RU, UNINTER_PASSWORD e UNINTER_COURSE_ID no .env e sincronize com s.[/dim]"
 )
+
+
+class SyncItem(NamedTuple):
+    materia_id: int
+    collection: str
+
+
+def synced_at(materia: Materia, collection: str) -> datetime | None:
+    if collection == TRABALHOS:
+        return materia.trabalhos_sincronizados_em
+    return materia.atividades_sincronizadas_em
 
 
 class UninterApp(App[None]):
@@ -69,22 +85,27 @@ class UninterApp(App[None]):
         self,
         materias_service: MateriaSyncService,
         atividades_service: AtividadeSyncService,
+        trabalhos_service: TrabalhoSyncService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
+        trabalhos_db: TrabalhoRepository,
         capturas_db: CapturaRepository,
     ) -> None:
         super().__init__()
         self._materias_service = materias_service
         self._atividades_service = atividades_service
+        self._trabalhos_service = trabalhos_service
         self._materias_db = materias_db
         self._atividades_db = atividades_db
+        self._trabalhos_db = trabalhos_db
         self._capturas_db = capturas_db
-        self._queue: deque[int] = deque()
-        self._in_flight: int | None = None
+        self._queue: deque[SyncItem] = deque()
+        self._in_flight: SyncItem | None = None
         self._materias_requested = False
         self._consuming = False
         self._user_request = asyncio.Event()
-        self._sync_task: asyncio.Task[list[Atividade]] | None = None
+        self._sync_task: asyncio.Task[object] | None = None
+        self._debug_source = MATERIAS
         self.reset_requested = False
 
     def compose(self) -> ComposeResult:
@@ -94,15 +115,19 @@ class UninterApp(App[None]):
             with Vertical(id="detail"):
                 yield MateriaHeader()
                 with TabbedContent(id="collections"):
-                    with TabPane("1 Atividades", id=ATIVIDADES_PANE):
-                        yield AtividadeHint()
+                    with TabPane("1 Atividades", id=ATIVIDADES):
+                        yield Hint(id=ATIVIDADES_HINT)
                         yield AtividadeTable()
                         yield MediaBar()
+                    with TabPane("2 Trabalhos", id=TRABALHOS):
+                        yield Hint(id=TRABALHOS_HINT)
+                        yield TrabalhoTable()
                 yield DebugPanel()
         yield Footer()
 
     async def on_mount(self) -> None:
         self.query_one(Tabs).can_focus = False
+        self.watch(self.screen, "focused", self.follow_focus)
         self.query_one(MediaBar).hide()
         materias = await self._materias_db.list_all()
         await self.reload_materias()
@@ -114,13 +139,17 @@ class UninterApp(App[None]):
     def get_loading_widget(self) -> Widget:
         return Loading()
 
-    def watch_restantes(self, remaining: int) -> None:
+    def watch_remaining(self, remaining: int) -> None:
         self.sub_title = f"fila · {remaining} restantes" if remaining else ""
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         if action == "focus_debug":
             return self.debug_mode
         return True
+
+    @property
+    def active_collection(self) -> str:
+        return self.query_one(TabbedContent).active
 
     async def watch_debug_mode(self, debug_mode: bool) -> None:
         panel = self.query_one(DebugPanel)
@@ -142,13 +171,44 @@ class UninterApp(App[None]):
     async def show_debug(self, materia: Materia | None) -> None:
         if materia is None:
             return
+        collection = self.active_collection
+        selected = self.selected_for(collection)
         self.query_one(DebugPanel).show(
             materia,
             await self._capturas_db.find(MATERIAS, None),
-            await self._capturas_db.find(ATIVIDADES, materia.id),
-            await self._atividades_db.list_all(materia),
-            self.selected_atividade,
+            collection,
+            await self._capturas_db.find(collection, materia.id),
+            await self._count_rows(materia, collection),
+            selected,
         )
+
+    async def follow_focus(self, focused: Widget | None) -> None:
+        if focused is None or self.query_one(DebugPanel) in focused.ancestors_with_self:
+            return
+        source = MATERIAS if isinstance(focused, MateriaList) else PANE
+        if source == self._debug_source:
+            return
+        self._debug_source = source
+        if self.debug_mode:
+            await self.show_debug(self.query_one(MateriaList).highlighted_materia)
+
+    def selected_for(self, collection: str) -> Atividade | Trabalho | None:
+        if self._debug_source == MATERIAS:
+            return None
+        if collection == TRABALHOS:
+            return self.query_one(TrabalhoTable).selected
+        if collection == ATIVIDADES:
+            return self.selected_atividade
+        return None
+
+    async def on_trabalho_table_selected(self, event: TrabalhoTable.Selected) -> None:
+        if self.debug_mode and self.active_collection == TRABALHOS:
+            await self.show_debug(self.query_one(MateriaList).highlighted_materia)
+
+    async def _count_rows(self, materia: Materia, collection: str) -> int:
+        if collection == TRABALHOS:
+            return len(await self._trabalhos_db.list_all(materia))
+        return len(await self._atividades_db.list_all(materia))
 
     async def reload_materias(self) -> None:
         materias = await self._materias_db.list_all()
@@ -157,7 +217,9 @@ class UninterApp(App[None]):
         if not materias:
             self.query_one(MateriaHeader).update("")
             self.query_one(AtividadeTable).display = False
-            self.query_one(AtividadeHint).show(NO_MATERIAS)
+            self.query_one(TrabalhoTable).display = False
+            for hint in self.query(Hint):
+                hint.show(NO_MATERIAS)
             self.query_one(MediaBar).hide()
             return
         materia_list.focus()
@@ -168,8 +230,15 @@ class UninterApp(App[None]):
             return
         now = datetime.now()
         self.query_one(MateriaHeader).show(materia, now)
+        await self._show_atividades(materia, now)
+        await self._show_trabalhos(materia, now)
+        self.refresh_loading()
+        if self.debug_mode:
+            await self.show_debug(materia)
+
+    async def _show_atividades(self, materia: Materia, now: datetime) -> None:
         table = self.query_one(AtividadeTable)
-        hint = self.query_one(AtividadeHint)
+        hint = self.query_one(f"#{ATIVIDADES_HINT}", Hint)
         media_bar = self.query_one(MediaBar)
         atividades: list[Atividade] = []
         if materia.atividades_sincronizadas_em is None:
@@ -187,8 +256,21 @@ class UninterApp(App[None]):
         else:
             media_bar.hide()
         self.set_reactive(UninterApp.selected_atividade, table.selected)
-        if self.debug_mode:
-            await self.show_debug(materia)
+
+    async def _show_trabalhos(self, materia: Materia, now: datetime) -> None:
+        table = self.query_one(TrabalhoTable)
+        hint = self.query_one(f"#{TRABALHOS_HINT}", Hint)
+        trabalhos: list[Trabalho] = []
+        if materia.trabalhos_sincronizados_em is None:
+            hint.show(NEVER_SYNCED)
+        else:
+            trabalhos = await self._trabalhos_db.list_all(materia)
+            if trabalhos:
+                hint.hide()
+            else:
+                hint.show(NO_TRABALHOS)
+        table.show(trabalhos, now)
+        table.display = bool(trabalhos)
 
     def selection_within(self, materia: Materia) -> int | None:
         selected = self.selected_atividade
@@ -212,16 +294,41 @@ class UninterApp(App[None]):
         panes = list(self.query_one(TabbedContent).query(TabPane))
         return panes[number - 1] if 0 < number <= len(panes) else None
 
-    def on_tabbed_content_tab_activated(
+    async def on_tabbed_content_tab_activated(
         self, event: TabbedContent.TabActivated
     ) -> None:
         if self.focused is None:
             self.action_focus_pane()
+        materia = self.query_one(MateriaList).highlighted_materia
+        if materia is not None and self.active_collection == TRABALHOS:
+            self.fetch_missing_trabalhos(materia)
+        self.refresh_loading()
+        if self.debug_mode:
+            await self.show_debug(materia)
+
+    def fetch_missing_trabalhos(self, materia: Materia) -> None:
+        if materia.trabalhos_sincronizados_em is None:
+            self.enqueue(SyncItem(materia.id, TRABALHOS), to_front=True)
+
+    def refresh_loading(self) -> None:
+        pane = self.query_one(f"#{TRABALHOS}", TabPane)
+        materia = self.query_one(MateriaList).highlighted_materia
+        loading = materia is not None and self._in_flight == SyncItem(
+            materia.id, TRABALHOS
+        )
+        pane.set_class(loading, LOADING)
+        pane.loading = loading
 
     def action_focus_pane(self) -> None:
-        if self.query_one(TabbedContent).active != ATIVIDADES_PANE:
+        collection = self.active_collection
+        if collection == TRABALHOS:
+            self.focus_trabalhos()
+        elif collection == ATIVIDADES:
+            self.focus_atividades()
+        else:
             self.action_focus_materias()
-            return
+
+    def focus_atividades(self) -> None:
         table = self.query_one(AtividadeTable)
         if not table.display or table.row_count == 0:
             self.action_focus_materias()
@@ -229,6 +336,13 @@ class UninterApp(App[None]):
         selected = self.selected_atividade
         table.select_or_first(selected.id if selected is not None else None)
         self.selected_atividade = table.selected
+        table.focus()
+
+    def focus_trabalhos(self) -> None:
+        table = self.query_one(TrabalhoTable)
+        if not table.display or table.row_count == 0:
+            self.action_focus_materias()
+            return
         table.focus()
 
     def on_debug_column_copy(self, event: DebugColumn.Copy) -> None:
@@ -260,7 +374,7 @@ class UninterApp(App[None]):
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         materia = self.query_one(MateriaList).materia(event.option.id)
-        if materia is not None and materia.atividades_sincronizadas_em is None:
+        if materia is not None and synced_at(materia, self.active_collection) is None:
             self.refresh_materia(materia)
 
     def action_refresh(self) -> None:
@@ -277,7 +391,7 @@ class UninterApp(App[None]):
             self.exit()
 
     def refresh_materia(self, materia: Materia) -> None:
-        self.enqueue(materia, to_front=True)
+        self.enqueue(SyncItem(materia.id, self.active_collection), to_front=True)
 
     def sync_materias(self) -> None:
         if not self._materias_requested:
@@ -285,23 +399,24 @@ class UninterApp(App[None]):
             self.consume()
 
     def enqueue_pending(self, materias: list[Materia]) -> None:
-        for materia in materias:
-            if materia.atividades_sincronizadas_em is None:
-                self.enqueue(materia)
+        for collection in (ATIVIDADES, TRABALHOS):
+            for materia in materias:
+                if synced_at(materia, collection) is None:
+                    self.enqueue(SyncItem(materia.id, collection))
 
-    def enqueue(self, materia: Materia, to_front: bool = False) -> None:
-        if materia.id == self._in_flight:
+    def enqueue(self, item: SyncItem, to_front: bool = False) -> None:
+        if item == self._in_flight:
             return
-        if materia.id in self._queue:
+        if item in self._queue:
             if not to_front:
                 return
-            self._queue.remove(materia.id)
+            self._queue.remove(item)
         if to_front:
-            self._queue.appendleft(materia.id)
+            self._queue.appendleft(item)
             self._user_request.set()
             self.interrupt_background()
         else:
-            self._queue.append(materia.id)
+            self._queue.append(item)
         self.remaining = len(self._queue)
         self.consume()
 
@@ -325,7 +440,7 @@ class UninterApp(App[None]):
                 if self._materias_requested:
                     await self._run_materias_sync()
                 else:
-                    await self._run_atividades_sync(self._queue.popleft())
+                    await self._run_sync(self._queue.popleft())
                 self.remaining = len(self._queue)
                 if self._queue:
                     await self.pause()
@@ -360,22 +475,28 @@ class UninterApp(App[None]):
             materia_list.loading = False
             self.syncing = False
 
-    async def _run_atividades_sync(self, materia_id: int) -> None:
+    def _sync_for(self, collection: str) -> Callable[[Materia], Awaitable[object]]:
+        if collection == TRABALHOS:
+            return self._trabalhos_service.sync
+        return self._atividades_service.sync
+
+    async def _run_sync(self, item: SyncItem) -> None:
         materia_list = self.query_one(MateriaList)
-        materia = materia_list.materia(str(materia_id))
+        materia = materia_list.materia(str(item.materia_id))
         if materia is None:
             return
-        self._in_flight = materia.id
+        self._in_flight = item
         self.syncing = True
         materia_list.set_syncing(materia.id)
-        task = asyncio.ensure_future(self._atividades_service.sync(materia))
+        self.refresh_loading()
+        task = asyncio.ensure_future(self._sync_for(item.collection)(materia))
         self._sync_task = task
         try:
             await task
         except asyncio.CancelledError:
             # The cancellation belongs to the fetch, not the consumer: put the
-            # materia back right behind the user's request and carry on.
-            self._queue.insert(1, materia_id)
+            # item back right behind the user's request and carry on.
+            self._queue.insert(1, item)
         except LoginRejected as rejection:
             self.notify(str(rejection), title="Login recusado", severity="error")
             self._queue.clear()
@@ -385,6 +506,7 @@ class UninterApp(App[None]):
             self._sync_task = None
             self._in_flight = None
             materia_list.set_syncing(None)
+            self.refresh_loading()
             self.syncing = False
 
     async def redraw_materia(self, materia: Materia) -> None:

@@ -24,11 +24,11 @@ MediaBar {
     margin-top: 1;
 }
 
-AtividadeTable {
+AtividadeTable, TrabalhoTable {
     background: transparent;
 }
 
-AtividadeTable > .datatable--header {
+AtividadeTable > .datatable--header, TrabalhoTable > .datatable--header {
     text-style: none;
     color: $text-muted;
     background: transparent;
@@ -36,6 +36,10 @@ AtividadeTable > .datatable--header {
 
 #collections {
     height: auto;
+}
+
+TabPane.-loading {
+    min-height: 7;
 }
 
 DebugPanel {

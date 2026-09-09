@@ -4,14 +4,13 @@ from api.atividades.entity import Atividade
 from rich.text import Text
 from textual.binding import Binding
 from textual.message import Message
-from textual.widgets import DataTable, Static
+from textual.widgets import DataTable
 from textual.widgets.data_table import RowKey
 
 from ..format import format_number, format_deadline, is_overdue
 from ..navigation.steps import step_left, step_right
 
 NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
-NEVER_SYNCED = "[dim]⏎ para buscar no AVA[/dim]"
 COLUMNS = ("Atividade", "Situação", "Nota", "Peso", "Contribuição", "Prazo")
 
 
@@ -99,11 +98,3 @@ class AtividadeTable(DataTable[Text]):
             self.coordinate_to_cell_key(self.cursor_coordinate).row_key
         )
 
-
-class AtividadeHint(Static):
-    def show(self, text: str) -> None:
-        self.display = True
-        self.update(text)
-
-    def hide(self) -> None:
-        self.display = False

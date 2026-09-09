@@ -2,8 +2,9 @@ import json
 from typing import NamedTuple, cast
 
 from api.atividades.entity import Atividade
-from api.capturas.entity import Captura
+from api.capturas.entity import ATIVIDADES, TRABALHOS, Captura
 from api.materias.entity import Materia
+from api.trabalhos.entity import Trabalho
 from rich.console import RenderableType
 from rich.json import JSON
 from rich.text import Text
@@ -21,8 +22,11 @@ MISSING = "—"
 COPIED = "JSON copiado"
 MATERIAS_KEY = "salaVirtuais"
 ATIVIDADES_KEY = "avaliacaoUsuarios"
+TRABALHOS_KEY = "trabalhoEtapas"
 CLIENT_ERROR = 400
 FIELD_COLUMNS = ("campo", "valor")
+ENTITY_LABELS = {ATIVIDADES: "Atividade", TRABALHOS: "Trabalho"}
+Entity = Materia | Atividade | Trabalho
 
 
 class View(NamedTuple):
@@ -44,14 +48,22 @@ def _items(captura: Captura | None, key: str) -> list[object]:
     return cast(list[object], items) if isinstance(items, list) else []
 
 
-def _entry(captura: Captura | None, materia_id: int) -> object | None:
-    for item in _items(captura, MATERIAS_KEY):
-        if not isinstance(item, dict):
-            continue
-        entry = cast(dict[str, object], item)
-        if entry.get("id") == materia_id:
+def _item_with_id(captura: Captura | None, key: str, id: int) -> object | None:
+    for item in _items(captura, key):
+        entry = cast(dict[str, object], item) if isinstance(item, dict) else None
+        if entry is not None and entry.get("id") == id:
             return entry
     return None
+
+
+def _entry(captura: Captura | None, materia_id: int) -> object | None:
+    return _item_with_id(captura, MATERIAS_KEY, materia_id)
+
+
+def _label(selected: Atividade | Trabalho) -> str:
+    if isinstance(selected, Trabalho):
+        return f"Trabalho {selected.ordem}"
+    return f"Atividade {selected.posicao}"
 
 
 def _meta(captura: Captura | None) -> Text:
@@ -72,7 +84,7 @@ def raw_view(item: object | None, fallback: str) -> View:
     return View(JSON.from_data(item), json.dumps(item, indent=2, ensure_ascii=False))
 
 
-def field_rows(entity: Materia | Atividade) -> list[tuple[str, str]]:
+def field_rows(entity: Entity) -> list[tuple[str, str]]:
     return [
         (field, repr(getattr(entity, field))) for field in type(entity).model_fields
     ]
@@ -80,18 +92,19 @@ def field_rows(entity: Materia | Atividade) -> list[tuple[str, str]]:
 
 def meta_text(
     materias_captura: Captura | None,
-    atividades_captura: Captura | None,
-    atividades: list[Atividade],
-    selected: Atividade | None,
+    captura: Captura | None,
+    collection: str,
+    count: int,
+    selected: Atividade | Trabalho | None,
 ) -> Text:
     if selected is None:
         materias_line = _meta(materias_captura)
         materias_line.append(" · Materia", style="dim")
-        atividades_line = _meta(atividades_captura)
-        atividades_line.append(f" · {len(atividades)} Atividade", style="dim")
-        return Text("\n").join([materias_line, atividades_line])
-    meta = _meta(atividades_captura)
-    meta.append(f" · Atividade {selected.posicao}", style="dim")
+        collection_line = _meta(captura)
+        collection_line.append(f" · {count} {ENTITY_LABELS[collection]}", style="dim")
+        return Text("\n").join([materias_line, collection_line])
+    meta = _meta(captura)
+    meta.append(f" · {_label(selected)}", style="dim")
     return meta
 
 
@@ -179,7 +192,7 @@ class FieldsTable(DataTable[str]):
     def on_mount(self) -> None:
         self.add_columns(*FIELD_COLUMNS)
 
-    def show(self, entity: Materia | Atividade | None) -> None:
+    def show(self, entity: Entity | None) -> None:
         self.clear()
         self.json_text = (
             entity.model_dump_json(indent=2) if entity is not None else None
@@ -209,7 +222,7 @@ class StoredColumn(DebugColumn):
         yield FieldsTable()
         yield Static(Text(MISSING, style="dim"), id="stored-empty")
 
-    def show(self, entity: Materia | Atividade | None) -> None:
+    def show(self, entity: Entity | None) -> None:
         table = self.query_one(FieldsTable)
         table.display = entity is not None
         self.query_one("#stored-empty", Static).display = entity is None
@@ -228,19 +241,22 @@ class DebugPanel(Vertical):
         self,
         materia: Materia,
         materias_captura: Captura | None,
-        atividades_captura: Captura | None,
-        atividades: list[Atividade],
-        selected: Atividade | None,
+        collection: str,
+        captura: Captura | None,
+        count: int,
+        selected: Atividade | Trabalho | None,
     ) -> None:
         self.query_one("#debug-meta", Static).update(
-            meta_text(materias_captura, atividades_captura, atividades, selected)
+            meta_text(materias_captura, captura, collection, count, selected)
         )
-        if selected is None:
-            fallback = NOT_IN_LIST if materias_captura else MISSING
-            raw = raw_view(_entry(materias_captura, materia.id), fallback)
-        else:
-            items = _items(atividades_captura, ATIVIDADES_KEY)
+        if isinstance(selected, Trabalho):
+            raw = raw_view(_item_with_id(captura, TRABALHOS_KEY, selected.id), MISSING)
+        elif selected is not None:
+            items = _items(captura, ATIVIDADES_KEY)
             item = items[selected.posicao] if selected.posicao < len(items) else None
             raw = raw_view(item, MISSING)
+        else:
+            fallback = NOT_IN_LIST if materias_captura else MISSING
+            raw = raw_view(_entry(materias_captura, materia.id), fallback)
         self.query_one(RawColumn).show(raw)
         self.query_one(StoredColumn).show(selected or materia)

@@ -1,15 +1,22 @@
+from typing import NamedTuple
+
 from api.materias.entity import Materia
 from api.trabalhos.entity import Trabalho, TrabalhoEntrega, TrabalhoEtiqueta
-from crawler.session import AvaSession
+from crawler.session import AvaResponse, AvaSession
 
 from .dto import EntregasDTO, EtiquetasDTO, TrabalhoEtapasDTO
+
+
+class FetchResult(NamedTuple):
+    response: AvaResponse
+    trabalhos: list[Trabalho]
 
 
 class TrabalhoRequest:
     def __init__(self, ava: AvaSession) -> None:
         self._ava = ava
 
-    async def fetch(self, materia: Materia) -> list[Trabalho]:
+    async def fetch(self, materia: Materia) -> FetchResult:
         # Here the AVA wants both ofertas in separate slots, unlike the atividades
         # endpoint, which only takes the resolved one.
         oferta_aproveitamento = materia.oferta_aproveitamento or materia.oferta_atual
@@ -19,9 +26,10 @@ class TrabalhoRequest:
             f"?master=true&idSalaVirtualOfertaAproveitamento={oferta_aproveitamento}"
         )
         if response.json is None:
-            return []
+            return FetchResult(response, [])
         dto = TrabalhoEtapasDTO.model_validate(response.json)
-        return [etapa.to_trabalho(materia.id) for etapa in dto.etapas]
+        trabalhos = [etapa.to_trabalho(materia.id) for etapa in dto.etapas]
+        return FetchResult(response, trabalhos)
 
 
 class EntregaRequest:

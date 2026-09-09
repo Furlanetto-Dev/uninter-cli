@@ -6,10 +6,13 @@ from api.capturas.repository import CapturaRepository
 from api.db import DATABASE_PATH, db_session
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
+from api.trabalhos.repository import TrabalhoRepository
+from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
 from crawler.atividades.request import AtividadeRequest
 from crawler.materias.request import MateriaRequest
 from crawler.session import AvaSession, ava_client
+from crawler.trabalhos.request import EntregaRequest, EtiquetaRequest, TrabalhoRequest
 from settings import Settings
 
 
@@ -18,6 +21,7 @@ async def run(settings: Settings) -> bool:
         ava = AvaSession(http, settings.ru, settings.password)
         materias_db = MateriaRepository(session)
         atividades_db = AtividadeRepository(session)
+        trabalhos_db = TrabalhoRepository(session)
         capturas_db = CapturaRepository(session)
         materias_service = MateriaSyncService(
             session=session,
@@ -33,11 +37,22 @@ async def run(settings: Settings) -> bool:
             materias=materias_db,
             capturas=capturas_db,
         )
+        trabalhos_service = TrabalhoSyncService(
+            session=session,
+            trabalhos=TrabalhoRequest(ava),
+            entregas=EntregaRequest(ava),
+            etiquetas=EtiquetaRequest(ava),
+            repository=trabalhos_db,
+            materias=materias_db,
+            capturas=capturas_db,
+        )
         app = UninterApp(
             materias_service,
             atividades_service,
+            trabalhos_service,
             materias_db,
             atividades_db,
+            trabalhos_db,
             capturas_db,
         )
         await app.run_async()

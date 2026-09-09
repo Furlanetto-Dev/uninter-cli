@@ -96,7 +96,10 @@ class MateriaList(OptionList):
     def _mark(self, materia: Materia) -> str:
         if materia.id == self._syncing:
             return f"[cyan]{SPINNER_FRAMES[self._frame % len(SPINNER_FRAMES)]}[/cyan]"
-        if materia.atividades_sincronizadas_em is None:
+        if (
+            materia.atividades_sincronizadas_em is None
+            or materia.trabalhos_sincronizados_em is None
+        ):
             return f"[dim]{PENDING_MARK}[/dim]"
         return ""
 
