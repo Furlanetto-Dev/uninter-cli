@@ -2,7 +2,7 @@
 name: english-code-portuguese-domain
 description: Rules for the English rewrite — what stays Portuguese (entities, DTOs and their fields, screen text, the AVA's vocabulary), what goes English (everything else, specs and CONTEXT.md included), how to name a variable that holds an entity, how to undo the collisions translation exposes — and the move of apps/uninter-crawler/ to the repo root, with spec and novo-plano paths adjusted. Read before naming anything new, executing the rewrite, writing or translating a spec, proposing a field translation, or creating a second app.
 projects: [all]
-status: pending
+status: done
 created_at: 2026-09-08
 ---
 
@@ -12,11 +12,11 @@ Today the code mixes both languages with no rule saying where one ends and the o
 
 A worktree rehearsal (branch `tryout/english-rewrite`) applied the rule "domain in Portuguese, everything else in English" to the whole app. It touched 28 files and left six untouched — the entities and the DTOs, which are pure model. Besides reading better, the translation exposed two things the mix was hiding: public and private methods sharing a name across languages, and nouns serving as method names. This spec fixes the rehearsal's rules so the rewrite is done in one pass and everything that comes after is born inside them.
 
-The specs are part of the rewrite. Every spec written before this one is Portuguese, this one's first draft included, and they are where the code's names get decided — a Portuguese spec proposing English names has to translate itself in every sentence. The specs written since ([0010.1](../done/0010.1-selectable-atividades.md), [0010.2](../done/0010.2-debug-panel-focus-and-copy.md), [0011](0011-tabbed-detail-panel.md), [0011.1](0011.1-trabalhos-tab.md)) already follow this rule. From here on, the specs, `CONTEXT.md` and the `novo-plano` skill are English prose around the same Portuguese domain nouns, and the ones still in Portuguese are translated.
+The specs are part of the rewrite. Every spec written before this one is Portuguese, this one's first draft included, and they are where the code's names get decided — a Portuguese spec proposing English names has to translate itself in every sentence. The specs written since ([0010.1](0010.1-selectable-atividades.md), [0010.2](0010.2-debug-panel-focus-and-copy.md), [0011](../pending/0011-tabbed-detail-panel.md), [0011.1](../pending/0011.1-trabalhos-tab.md)) already follow this rule. From here on, the specs, `CONTEXT.md` and the `novo-plano` skill are English prose around the same Portuguese domain nouns, and the ones still in Portuguese are translated.
 
 The same pass settles something else left half-done: the repository is shaped like a monorepo — `apps/uninter-crawler/` — with a single app in it. The `apps/` folder exists for a second app that never came, and it charges every day: each spec reaches `CONTEXT.md` through four `../`, the spec skill starts by discovering which app, and the `.venv`, the `.env` and the database live two levels below where the terminal opens. The app moves to the root.
 
-The layers these rules refer to are in [0003](../done/0003-crawler-api-cli-layers.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](0002-testing-strategy.md) and [0005.1](0005.1-trabalhos-in-the-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](../done/0008-building-the-materias-list.md) and [0010](../done/0010-debug-mode.md) have already landed with Portuguese names, and the rewrite covers what they added.
+The layers these rules refer to are in [0003](0003-crawler-api-cli-layers.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](../pending/0002-testing-strategy.md) and [0005.1](../pending/0005.1-trabalhos-in-the-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](0008-building-the-materias-list.md) and [0010](0010-debug-mode.md) have already landed with Portuguese names, and the rewrite covers what they added.
 
 ## Decisions
 
@@ -103,7 +103,15 @@ Three commits, in that order. Moving first, the move's diff is only paths. Trans
 
 ### The rewrite is a mechanical refactor, done in one pass
 
-No behaviour changes, in any of the three steps. Verification is `pyright` in strict mode passing and `pdm start` at the root opening the app with the list, the detail pane, the background queue and the reset working as before — the same criteria as [0007](../done/0007-background-queue-and-reset.md) — plus the skill's validator reporting every spec consistent. The code rewrite itself is a single commit: the intermediate state, `session` in one repository and `sessao` in the next, is worse than either extreme, and the rehearsal showed the whole change fits in 28 files.
+No behaviour changes, in any of the three steps. Verification is `pyright` in strict mode passing and `pdm start` at the root opening the app with the list, the detail pane, the background queue and the reset working as before — the same criteria as [0007](0007-background-queue-and-reset.md) — plus the skill's validator reporting every spec consistent. The code rewrite itself is a single commit: the intermediate state, `session` in one repository and `sessao` in the next, is worse than either extreme, and the rehearsal showed the whole change fits in 28 files.
+
+## What execution corrected
+
+- **`_tarefa` could not become `_task`.** Textual's `MessagePump` keeps its own message-processing task in `self._task`; the rename clobbered it silently, and the background queue accepted work it never ran. The attribute is `_sync_task`. A private name on an `App` or `Widget` subclass is checked against the Textual base classes before it is used.
+- **A scripted rename must skip string literals.** The word-boundary pass that renamed `restantes` also hit the subtitle text "N restantes" on screen. Screen text is reviewed in the diff separately from identifiers.
+- **The rewrite landed on a code base the spec had not seen.** 0010 to 0010.2 added `api/capturas/`, the debug panel and the `animations`, `commands` and `navigation` packages. They fell under the rules with no new decision: `Captura` is a model and keeps its fields; everything around it went English.
+- **Specs written between this spec and its execution were already English.** 0010.1, 0010.2, 0011 and 0011.1 needed no translation; the ten older ones did, and got English slugs: `ava-atividades-crawler`, `testing-strategy`, `crawler-api-cli-layers`, `textual-tui`, `trabalhos`, `trabalhos-in-the-interface`, `deadline-and-media-colour`, `background-queue-and-reset`, `building-the-materias-list`, `debug-mode`.
+- **Verification ran headless.** `pyright` strict and `ruff` pass; the app was driven with Textual's `run_test` against a copy of the database with the AVA login stubbed to refuse, covering the list, the atividades table, `r`, the debug panel and its focus chain, `d` and the reset modal. `pdm start` in a real terminal was not run as part of the execution.
 
 ## Rejected
 
