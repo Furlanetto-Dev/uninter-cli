@@ -49,7 +49,7 @@ class UninterApp(App[None]):
     BINDINGS = [
         ("r", "refresh", "refresh"),
         ("q", "quit", "quit"),
-        ("j", "debug", "debug"),
+        ("j", "focus_debug", "debug"),
         ("d", "home", "home"),
     ]
     COMMANDS = App.COMMANDS | {AppCommands}
@@ -111,38 +111,23 @@ class UninterApp(App[None]):
         self.sub_title = f"fila · {remaining} restantes" if remaining else ""
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if action == "debug":
+        if action == "focus_debug":
             return self.debug_mode
         return True
 
-    def watch_debug_mode(self, debug_mode: bool) -> None:
-        if not debug_mode:
-            self.close_debug()
+    async def watch_debug_mode(self, debug_mode: bool) -> None:
+        panel = self.query_one(DebugPanel)
+        panel.screen.set_class(debug_mode, DEBUG_OPEN)
+        if debug_mode:
+            await self.show_debug(self.query_one(MateriaList).highlighted_materia)
+        else:
+            focused = self.focused
+            if focused is not None and panel in focused.ancestors_with_self:
+                self.action_focus_atividades()
         self.refresh_bindings()
 
     def toggle_debug(self) -> None:
         self.debug_mode = not self.debug_mode
-
-    @property
-    def debug_open(self) -> bool:
-        return self.query_one(DebugPanel).screen.has_class(DEBUG_OPEN)
-
-    async def action_debug(self) -> None:
-        if self.debug_open:
-            self.close_debug()
-        else:
-            await self.open_debug()
-
-    async def open_debug(self) -> None:
-        self.query_one(DebugPanel).screen.add_class(DEBUG_OPEN)
-        await self.show_debug(self.query_one(MateriaList).highlighted_materia)
-
-    def close_debug(self) -> None:
-        panel = self.query_one(DebugPanel)
-        panel.screen.remove_class(DEBUG_OPEN)
-        focused = self.focused
-        if focused is not None and panel in focused.ancestors_with_self:
-            self.action_focus_atividades()
 
     def action_focus_materias(self) -> None:
         self.query_one(MateriaList).focus()
@@ -195,7 +180,7 @@ class UninterApp(App[None]):
         else:
             media_bar.hide()
         self.set_reactive(UninterApp.selected_atividade, table.selected)
-        if self.debug_open:
+        if self.debug_mode:
             await self.show_debug(materia)
 
     def selection_within(self, materia: Materia) -> int | None:
@@ -208,7 +193,7 @@ class UninterApp(App[None]):
         self.selected_atividade = event.atividade
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
-        if self.debug_open:
+        if self.debug_mode:
             await self.show_debug(self.query_one(MateriaList).highlighted_materia)
 
     def action_focus_atividades(self) -> None:
@@ -225,7 +210,7 @@ class UninterApp(App[None]):
         self.copy_to_clipboard(event.json)
 
     def action_focus_debug(self) -> None:
-        if self.debug_open:
+        if self.debug_mode:
             self.query_one(RawColumn).focus()
 
     def action_focus_raw(self) -> None:

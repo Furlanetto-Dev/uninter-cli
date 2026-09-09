@@ -13,7 +13,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.widgets import DataTable, Static
 
-from ..navigation.sideways import step_left, step_right
+from ..navigation.steps import step_left, step_right, step_up
 
 NO_CAPTURA = "sem resposta gravada · r para buscar"
 NOT_IN_LIST = "matéria não está na última lista do AVA"
@@ -131,10 +131,14 @@ class RawColumn(DebugColumn):
     BINDINGS = [
         Binding("left", "step_left", "atividades", show=False),
         Binding("right", "step_right", "sqlite", show=False),
+        Binding("up", "step_up", "atividades", show=False),
     ]
 
     def compose(self) -> ComposeResult:
         yield Static()
+
+    async def action_step_up(self) -> None:
+        await step_up(self, "app.focus_atividades")
 
     async def action_step_left(self) -> None:
         await step_left(self, "app.focus_atividades")
@@ -153,11 +157,18 @@ class FieldsTable(DataTable[str]):
         Binding("escape", "app.focus_atividades", "back"),
         Binding("left", "step_left", "ava", show=False),
         Binding("right", "step_right", "", show=False),
+        Binding("up", "step_up", "atividades", show=False),
     ]
 
     def __init__(self) -> None:
         super().__init__(cursor_type="row", zebra_stripes=True, fixed_columns=1)
         self.json_text: str | None = None
+
+    async def action_step_up(self) -> None:
+        if self.cursor_row > 0:
+            self.action_cursor_up()
+        else:
+            await self.run_action("app.focus_atividades")
 
     async def action_step_left(self) -> None:
         await step_left(self, "app.focus_raw")

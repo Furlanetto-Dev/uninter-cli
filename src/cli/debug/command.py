@@ -1,7 +1,7 @@
 TURN_ON = "Enable debug mode"
 TURN_OFF = "Disable debug mode"
-TURN_ON_HELP = "Press 'd' to enable debug mode"
-TURN_OFF_HELP = "Hides 'd' from the footer"
+TURN_ON_HELP = "Shows the debug panel; 'j' moves the focus into it"
+TURN_OFF_HELP = "Hides the debug panel"
 
 
 def label(debug_mode: bool) -> str:

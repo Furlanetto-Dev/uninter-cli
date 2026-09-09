@@ -8,7 +8,7 @@ from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowKey
 
 from ..format import format_number, format_deadline, is_overdue
-from ..navigation.sideways import step_left, step_right
+from ..navigation.steps import step_left, step_right
 
 NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
 NEVER_SYNCED = "[dim]⏎ para buscar no AVA[/dim]"
