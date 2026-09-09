@@ -5,6 +5,7 @@ Screen {
 MateriaList {
     width: 44;
     height: 1fr;
+    border: none;
     border-right: solid $panel;
     padding: 1 1;
     background: $surface;
