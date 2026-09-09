@@ -2,7 +2,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -23,11 +24,33 @@ MAPPED_TABLES: tuple[type[SQLModel], ...] = (
 )
 
 
+def _engine(path: Path) -> AsyncEngine:
+    return create_async_engine(f"sqlite+aiosqlite:///{path}")
+
+
+async def schema_is_behind(engine: AsyncEngine) -> bool:
+    async with engine.connect() as connection:
+        for table in SQLModel.metadata.sorted_tables:
+            info = await connection.execute(text(f"PRAGMA table_info({table.name})"))
+            stored = {str(row[1]) for row in info.all()}
+            if stored and set(table.columns.keys()) - stored:
+                return True
+    return False
+
+
+async def _recreated(engine: AsyncEngine, path: Path) -> AsyncEngine:
+    await engine.dispose()
+    path.unlink(missing_ok=True)
+    return _engine(path)
+
+
 @asynccontextmanager
 async def db_session(
     path: Path = DATABASE_PATH,
 ) -> AsyncGenerator[AsyncSession, None]:
-    engine = create_async_engine(f"sqlite+aiosqlite:///{path}")
+    engine = _engine(path)
+    if await schema_is_behind(engine):
+        engine = await _recreated(engine, path)
     try:
         async with engine.begin() as connection:
             await connection.run_sync(SQLModel.metadata.create_all)

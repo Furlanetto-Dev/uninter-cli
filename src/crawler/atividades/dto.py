@@ -12,6 +12,10 @@ class ProvaDTO(AvaDTO):
     tipo: str = Field(alias="nomeAvaliacaoTipo")
     categoria: str = Field(alias="nomeAvaliacaoTipoCategoria")
     peso: int = Field(alias="pesoMedia")
+    presencial: bool = Field(default=False, alias="avaliacaoPresencial")
+    periodo: str | None = None
+    orientacao: str | None = None
+    tempo_total: int | None = Field(default=None, alias="tempoTotal")
 
 
 class AtividadeDTO(AvaDTO):
@@ -33,6 +37,10 @@ class AtividadeDTO(AvaDTO):
             nome=self.prova.nome,
             tipo=self.prova.tipo,
             categoria=self.prova.categoria,
+            presencial=self.prova.presencial,
+            periodo=self.prova.periodo,
+            orientacao=self.prova.orientacao,
+            tempo_total=self.prova.tempo_total,
             peso=self.prova.peso,
             status=self.status,
             nota=self.nota,

@@ -25,6 +25,8 @@ NOTA_WIDTH = 4
 PESO_WIDTH = 4
 CONTRIB_WIDTH = 12
 PRAZO_WIDTH = 8
+PRESENCIAL_TAG = " presencial"
+PRESENCIAL_STYLE = "magenta"
 EXPANDED_BY_DEFAULT = {APOL: True, PROVAS: True, OUTRAS: False}
 FIXED_WIDTH = (
     LEAF_INDENT + 5 * len(GAP) + NOTA_WIDTH + PESO_WIDTH + CONTRIB_WIDTH + PRAZO_WIDTH
@@ -36,8 +38,12 @@ class Widths(NamedTuple):
     status: int
 
 
+def _nome_width(atividade: Atividade) -> int:
+    return len(atividade.nome) + (len(PRESENCIAL_TAG) if atividade.presencial else 0)
+
+
 def widths_for(atividades: list[Atividade], available: int) -> Widths:
-    longest = max((len(atividade.nome) for atividade in atividades), default=0)
+    longest = max((_nome_width(atividade) for atividade in atividades), default=0)
     status = max((len(atividade.status) for atividade in atividades), default=0)
     status = max(status, len(COLUMNS[1]))
     room = available - FIXED_WIDTH - status
@@ -77,10 +83,19 @@ def _deadline(atividade: Atividade, now: datetime) -> tuple[str, str]:
     return text, "dim" if atividade.realizada else "red"
 
 
+def _nome(atividade: Atividade, width: int) -> Text:
+    if not atividade.presencial:
+        return Text(_fit(atividade.nome, width))
+    return Text.assemble(
+        _fit(atividade.nome, width - len(PRESENCIAL_TAG)),
+        (PRESENCIAL_TAG, PRESENCIAL_STYLE),
+    )
+
+
 def leaf_label(atividade: Atividade, now: datetime, widths: Widths) -> Text:
     colour = "green" if atividade.realizada else "dim"
     return Text.assemble(
-        _fit(atividade.nome, widths.nome),
+        _nome(atividade, widths.nome),
         GAP,
         (_fit(atividade.status, widths.status), colour),
         GAP,

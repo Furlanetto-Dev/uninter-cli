@@ -1,7 +1,7 @@
 from collections.abc import Callable, Generator, Iterator
 from contextlib import contextmanager
 
-from api.materias.aggregate import MateriaAggregate, Vigencia, aggregate_materias
+from api.materias.aggregate import MateriaAggregate, Situacao, aggregate_materias
 from api.materias.entity import Materia
 from rich.table import Table
 from textual.binding import Binding
@@ -14,7 +14,12 @@ from ..format import short_periodo
 PENDING_MARK = "●"
 SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 INTERVAL = 0.08
-TITLES = {Vigencia.VIGENTE: "EM CURSO", Vigencia.FINALIZADA: "FINALIZADAS"}
+TITLES = {
+    Situacao.OBRIGATORIA_DA_FASE: "EM ANDAMENTO (obrigatórias da fase)",
+    Situacao.PRAZO_ESTENDIDO: "EM ANDAMENTO (prazo estendido)",
+    Situacao.PENDENTE: "PENDENTES OU FUTURAS",
+    Situacao.CONCLUIDA: "CONCLUÍDAS",
+}
 
 
 def index_by_id(materias: list[Materia]) -> dict[str, Materia]:
@@ -35,7 +40,7 @@ def _row(materia: Materia, mark: str) -> Table:
 
 
 def _title(aggregate: MateriaAggregate) -> Option:
-    return Option(f"[dim]{TITLES[aggregate.vigencia]}[/dim]", disabled=True)
+    return Option(f"[dim]{TITLES[aggregate.situacao]}[/dim]", disabled=True)
 
 
 def _option(materia: Materia, mark: str) -> Option:

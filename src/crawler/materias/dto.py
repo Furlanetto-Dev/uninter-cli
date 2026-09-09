@@ -9,6 +9,8 @@ class MateriaDTO(AvaDTO):
     nome: str
     periodo: str | None = Field(default=None, alias="modulo")
     vigente: bool = False
+    concluida: bool = Field(default=False, alias="statusConcluido")
+    oferta_flexivel: bool = Field(default=False, alias="ofertaFlexivel")
     oferta_atual: int = Field(alias="idSalaVirtualOfertaAtual")
     oferta_aproveitamento: int | None = Field(
         default=None, alias="idSalaVirtualOfertaAproveitamento"
@@ -20,6 +22,8 @@ class MateriaDTO(AvaDTO):
             nome=self.nome,
             periodo=self.periodo,
             vigente=self.vigente,
+            concluida=self.concluida,
+            oferta_flexivel=self.oferta_flexivel,
             oferta_atual=self.oferta_atual,
             oferta_aproveitamento=self.oferta_aproveitamento,
         )

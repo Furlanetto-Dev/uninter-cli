@@ -11,9 +11,7 @@ class MateriaRepository:
         self._session = session
 
     async def list_all(self) -> list[Materia]:
-        statement = select(Materia).order_by(
-            col(Materia.vigente).desc(), col(Materia.nome)
-        )
+        statement = select(Materia).order_by(col(Materia.nome))
         return list((await self._session.exec(statement)).all())
 
     async def save(self, materias: list[Materia]) -> None:

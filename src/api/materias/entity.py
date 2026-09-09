@@ -8,6 +8,8 @@ class Materia(SQLModel, table=True):
     nome: str
     periodo: str | None = None
     vigente: bool = False
+    concluida: bool = False
+    oferta_flexivel: bool = False
     oferta_atual: int
     oferta_aproveitamento: int | None = None
     atividades_sincronizadas_em: datetime | None = None
