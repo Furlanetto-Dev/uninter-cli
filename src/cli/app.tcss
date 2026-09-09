@@ -24,11 +24,20 @@ MediaBar {
     margin-top: 1;
 }
 
-AtividadeTable, TrabalhoTable {
+AtividadeTree, TrabalhoTable {
     background: transparent;
 }
 
-AtividadeTable > .datatable--header, TrabalhoTable > .datatable--header {
+AtividadeTree {
+    height: auto;
+    max-height: 100%;
+}
+
+AtividadeHeader {
+    margin-bottom: 0;
+}
+
+TrabalhoTable > .datatable--header {
     text-style: none;
     color: $text-muted;
     background: transparent;

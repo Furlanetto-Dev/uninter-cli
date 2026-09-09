@@ -27,7 +27,7 @@ from textual.widgets import Footer, Header, OptionList, TabbedContent, TabPane, 
 
 from .animations.loading import Loading
 from .atividades.media import MediaBar
-from .atividades.table import NO_ATIVIDADES, AtividadeTable
+from .atividades.tree import NO_ATIVIDADES, AtividadeHeader, AtividadeTree
 from .commands.palette import AppCommands
 from .commands.reset import ConfirmReset
 from .debug.panel import DebugColumn, DebugPanel, FieldsTable, RawColumn
@@ -117,7 +117,8 @@ class UninterApp(App[None]):
                 with TabbedContent(id="collections"):
                     with TabPane("1 Atividades", id=ATIVIDADES):
                         yield Hint(id=ATIVIDADES_HINT)
-                        yield AtividadeTable()
+                        yield AtividadeHeader()
+                        yield AtividadeTree()
                         yield MediaBar()
                     with TabPane("2 Trabalhos", id=TRABALHOS):
                         yield Hint(id=TRABALHOS_HINT)
@@ -216,7 +217,8 @@ class UninterApp(App[None]):
         materia_list.show(materias)
         if not materias:
             self.query_one(MateriaHeader).update("")
-            self.query_one(AtividadeTable).display = False
+            self.query_one(AtividadeHeader).display = False
+            self.query_one(AtividadeTree).display = False
             self.query_one(TrabalhoTable).display = False
             for hint in self.query(Hint):
                 hint.show(NO_MATERIAS)
@@ -237,7 +239,8 @@ class UninterApp(App[None]):
             await self.show_debug(materia)
 
     async def _show_atividades(self, materia: Materia, now: datetime) -> None:
-        table = self.query_one(AtividadeTable)
+        table = self.query_one(AtividadeTree)
+        header = self.query_one(AtividadeHeader)
         hint = self.query_one(f"#{ATIVIDADES_HINT}", Hint)
         media_bar = self.query_one(MediaBar)
         atividades: list[Atividade] = []
@@ -250,7 +253,7 @@ class UninterApp(App[None]):
             else:
                 hint.show(NO_ATIVIDADES)
         table.show(atividades, now, self.selection_within(materia))
-        table.display = bool(atividades)
+        table.display = header.display = bool(atividades)
         if atividades:
             media_bar.show(Media.from_atividades(atividades))
         else:
@@ -278,7 +281,10 @@ class UninterApp(App[None]):
             return None
         return selected.id
 
-    def on_atividade_table_selected(self, event: AtividadeTable.Selected) -> None:
+    def on_atividade_tree_refit(self, event: AtividadeTree.Refit) -> None:
+        self.query_one(AtividadeHeader).show(event.widths)
+
+    def on_atividade_tree_selected(self, event: AtividadeTree.Selected) -> None:
         self.selected_atividade = event.atividade
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
@@ -329,8 +335,8 @@ class UninterApp(App[None]):
             self.action_focus_materias()
 
     def focus_atividades(self) -> None:
-        table = self.query_one(AtividadeTable)
-        if not table.display or table.row_count == 0:
+        table = self.query_one(AtividadeTree)
+        if not table.display or not table.has_atividades:
             self.action_focus_materias()
             return
         selected = self.selected_atividade
@@ -361,7 +367,7 @@ class UninterApp(App[None]):
             table.focus()
 
     def action_home(self) -> None:
-        self.query_one(AtividadeTable).select(None)
+        self.query_one(AtividadeTree).select(None)
         self.selected_atividade = None
         materia_list = self.query_one(MateriaList)
         materia_list.select_first()
