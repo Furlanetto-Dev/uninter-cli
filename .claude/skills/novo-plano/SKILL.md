@@ -31,7 +31,7 @@ created_at: <today, ISO, via `date +%F`>
 
 - `name` matches the file slug. No number, no accents.
 - `projects` is an array of the parts the spec touches. Valid values: `crawler`, `api`, `frontend` and `all`. Use the order the data flows in — `crawler`, then `api`, then `frontend`. `all` is exclusive: either the spec touches everything, or you list the parts; never both.
-- `status` uses the same vocabulary as the directory — `pending` or `done`, never `aceito`/`proposto`. The information lives in two places; identical vocabulary is what keeps them from drifting apart.
+- `status` has three values. `pending`: not executed yet. `awaiting-review`: executed, verified, not committed; the file stays in `pending/`. `done`: implementation committed, file in `done/`. Never `aceito`/`proposto`. The directory only knows executed-and-committed from everything else, so the status carries the middle state.
 - `created_at` comes from `date +%F`. Never guess the date.
 - **No `Status:` and no date in the body.** The header is the only source.
 
@@ -148,8 +148,8 @@ for p in sorted(Path("specs").glob("*/*.md")):
         [f"missing {k}" for k in REQUIRED if k not in fields]
         + ([f"name {fields.get('name')!r} != file slug"]
            if fields.get("name") != re.sub(r"^\d+(\.\d+)?-", "", p.stem) else [])
-        + ([f"status {fields.get('status')!r} != folder {p.parent.name!r}"]
-           if fields.get("status") != p.parent.name else [])
+        + ([f"status {fields.get('status')!r} does not fit folder {p.parent.name!r}"]
+           if fields.get("status") not in ({"done"} if p.parent.name == "done" else {"pending", "awaiting-review"}) else [])
         + ([f"Status:/date in the body"] if re.search(r"^Status:|^(Aceito|Proposto) em", text, re.M) else [])
         + projetos_invalidos(fields.get("projects", ""))
     ):
@@ -169,13 +169,17 @@ A warning on the spec you wrote is yours: add the TL;DR, and cut repeated ideas 
 
 Then tell the user the path of the file created. Do not commit unless they ask.
 
+# After executing
+
+Execution done and verified, but not committed: set `status: awaiting-review` in the header and keep the file in `pending/`. Add the `## What execution corrected` section then. Do not move the file — only a commit does that.
+
 # Promoting to done
 
-When a spec's work is finished, moving is not enough — `status` and directory must move together:
+When the implementation is committed, moving is not enough — `status` and directory must move together:
 
 ```bash
 git mv specs/pending/NNNN-<slug>.md specs/done/
-sed -i 's/^status: pending$/status: done/' specs/done/NNNN-<slug>.md
+sed -i 's/^status: awaiting-review$/status: done/' specs/done/NNNN-<slug>.md
 ```
 
 And fix the relative links of whatever pointed at the spec in `pending`.
