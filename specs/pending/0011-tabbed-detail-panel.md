@@ -15,7 +15,7 @@ created_at: 2026-09-08
 - Each pane owns one collection: `r`, `⏎`, the "never synced" hint and the empty message act on the active pane. Today that is atividades, unchanged.
 - `#grades` dissolves into the pane; the `-short` debug rule hides `#collections` instead.
 
-[0005.1](0005.1-trabalhos-na-interface.md) asked where trabalhos go on screen. The answer is a second tab in the same panel, and the tab layout lands now so nothing moves when [0011.1](0011.1-trabalhos-tab.md) arrives. Context in [CONTEXT.md](../../../../CONTEXT.md); the master-detail screen in [0004](../done/0004-tui-em-textual.md), the debug panel in [0010](../done/0010-modo-debug.md), focus keys in [0010.1](../done/0010.1-selectable-atividades.md).
+[0005.1](0005.1-trabalhos-na-interface.md) asked where trabalhos go on screen. The answer is a second tab in the same panel, and the tab layout lands now so nothing moves when [0011.1](0011.1-trabalhos-tab.md) arrives. Context in [CONTEXT.md](../../CONTEXT.md); the master-detail screen in [0004](../done/0004-tui-em-textual.md), the debug panel in [0010](../done/0010-modo-debug.md), focus keys in [0010.1](../done/0010.1-selectable-atividades.md).
 
 ## Observed behaviour
 - Textual 8.2.8 `ContentTabs`, the strip inside `TabbedContent`, is focusable and binds `←`/`→` to previous/next tab; `TabbedContent` itself binds nothing. Checked in `BINDINGS` and `can_focus`.

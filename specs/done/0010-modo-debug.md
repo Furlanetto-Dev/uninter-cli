@@ -14,7 +14,7 @@ created_at: 2026-09-08
 - `d` abre no painel da matéria uma tabela: bruto do AVA à esquerda, linha gravada à direita, uma linha por objeto.
 - Terminal com 40 linhas ou mais: o painel fica embaixo da média. Menos: substitui a tabela de atividades.
 
-Hoje o corpo da resposta morre dentro do `fetch`, e quando um valor parece errado não dá para saber se a culpa é do AVA, do DTO ou da tela. Contexto em [CONTEXT.md](../../../../CONTEXT.md); 404 na [0001](0001-crawler-de-atividades-do-ava.md), camadas na [0003](0003-camadas-crawler-api-cli.md), `check_action` na [0004](0004-tui-em-textual.md), paleta na [0007](0007-fila-em-background-e-reset.md), nomes na [0009](../pending/0009-english-code-portuguese-domain.md), fixtures na [0002](../pending/0002-estrategia-de-testes.md).
+Hoje o corpo da resposta morre dentro do `fetch`, e quando um valor parece errado não dá para saber se a culpa é do AVA, do DTO ou da tela. Contexto em [CONTEXT.md](../../CONTEXT.md); 404 na [0001](0001-crawler-de-atividades-do-ava.md), camadas na [0003](0003-camadas-crawler-api-cli.md), `check_action` na [0004](0004-tui-em-textual.md), paleta na [0007](0007-fila-em-background-e-reset.md), nomes na [0009](../pending/0009-english-code-portuguese-domain.md), fixtures na [0002](../pending/0002-estrategia-de-testes.md).
 
 ## Comportamento observado
 - `AvaSession.get` devolve só o JSON parseado, ou `None` no 404; URL, status e texto se perdem. Lido no código.

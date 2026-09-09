@@ -16,7 +16,7 @@ The specs are part of the rewrite. Every spec written before this one is Portugu
 
 The same pass settles something else left half-done: the repository is shaped like a monorepo — `apps/uninter-crawler/` — with a single app in it. The `apps/` folder exists for a second app that never came, and it charges every day: each spec reaches `CONTEXT.md` through four `../`, the spec skill starts by discovering which app, and the `.venv`, the `.env` and the database live two levels below where the terminal opens. The app moves to the root.
 
-The layers these rules refer to are in [0003](../done/0003-camadas-crawler-api-cli.md); the domain vocabulary is in [CONTEXT.md](../../../../CONTEXT.md). The pending specs [0002](0002-estrategia-de-testes.md) and [0005.1](0005.1-trabalhos-na-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](../done/0008-montagem-da-lista-de-materias.md) and [0010](../done/0010-modo-debug.md) have already landed with Portuguese names, and the rewrite covers what they added.
+The layers these rules refer to are in [0003](../done/0003-camadas-crawler-api-cli.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](0002-estrategia-de-testes.md) and [0005.1](0005.1-trabalhos-na-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](../done/0008-montagem-da-lista-de-materias.md) and [0010](../done/0010-modo-debug.md) have already landed with Portuguese names, and the rewrite covers what they added.
 
 ## Decisions
 
@@ -107,7 +107,7 @@ No behaviour changes, in any of the three steps. Verification is `pyright` in st
 
 ## Rejected
 
-- **Translating the entity fields (`nome` → `name`, `nota` → `grade`).** Changes the SQLite schema, detaches the code from the vocabulary in [CONTEXT.md](../../../../CONTEXT.md) and the specs, and produces hybrids like `Materia.name`. Terms like `contribuicao` and `aproveitamento` have no translation that keeps the meaning the AVA gives them.
+- **Translating the entity fields (`nome` → `name`, `nota` → `grade`).** Changes the SQLite schema, detaches the code from the vocabulary in [CONTEXT.md](../../CONTEXT.md) and the specs, and produces hybrids like `Materia.name`. Terms like `contribuicao` and `aproveitamento` have no translation that keeps the meaning the AVA gives them.
 - **Translating everything, entities included (`Subject`, `Activity`, `Assignment`).** Loses the tie to the payload — `salaVirtuais`, `avaliacaoUsuarios`, `trabalhoEtapas` — and forces a glossary between code, specs and screen.
 - **Translating screen text.** The app is for a Brazilian student. Interface language is a product decision; this spec is about what the developer reads, not what the student reads.
 - **Keeping the current convention and stopping there.** It was the starting point. It covered class, method and field and left the rest to each commit's taste; that slack is what let `sync_materias` and `sincronizar_materias` coexist with nobody feeling the friction.

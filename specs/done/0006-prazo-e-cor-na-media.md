@@ -10,7 +10,7 @@ created_at: 2026-09-02
 
 A tabela da matéria mostra nome, situação, nota, peso e contribuição. Faltam as duas coisas que o aluno de fato quer saber ao abrir uma matéria: **até quando** cada atividade vale, e se a média **passa**. A primeira já está no banco desde o começo e nunca foi desenhada; a segunda precisa de uma régua, e o AVA publica a dele.
 
-Esta spec mexe só no que a tela desenha: nenhuma requisição nova, nenhuma coluna nova no banco, nenhuma assinatura alterada. O que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md), a interface em [0004](0004-tui-em-textual.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
+Esta spec mexe só no que a tela desenha: nenhuma requisição nova, nenhuma coluna nova no banco, nenhuma assinatura alterada. O que o projeto é está em [CONTEXT.md](../../CONTEXT.md), a interface em [0004](0004-tui-em-textual.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
 
 ## Comportamento observado
 

@@ -8,7 +8,7 @@ created_at: 2026-09-02
 
 # Trabalhos e suas correções
 
-Uma matéria tem atividades e trabalhos. As atividades já são espelhadas; os trabalhos não, e é neles que mora a entrega prática do aluno — protocolo, anexos, nota e o comentário de quem corrigiu. Esta spec cobre **apenas crawler e api**: nada de interface, e nenhuma mudança na TUI da [0004](../done/0004-tui-em-textual.md). O que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-atividades-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
+Uma matéria tem atividades e trabalhos. As atividades já são espelhadas; os trabalhos não, e é neles que mora a entrega prática do aluno — protocolo, anexos, nota e o comentário de quem corrigiu. Esta spec cobre **apenas crawler e api**: nada de interface, e nenhuma mudança na TUI da [0004](../done/0004-tui-em-textual.md). O que o projeto é está em [CONTEXT.md](../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-atividades-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
 
 ## Comportamento observado
 

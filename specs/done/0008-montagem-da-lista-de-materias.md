@@ -33,7 +33,7 @@ Guarda o destaque, zera o widget, particiona as matérias, desenha três tipos d
 
 Depois desta spec o método só exibe matérias já agrupadas. Agrupar é de um `MateriaAggregate` que mora em `api/materias/`, montado por funções de filtro com nome; desenhar é uma função pura da TUI; e nenhuma comprehension fica solta no corpo de um método.
 
-A interface está descrita em [0004](0004-tui-em-textual.md), que fixou os dois grupos, o título `disabled` como separador e a restauração do destaque por id; o que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md).
+A interface está descrita em [0004](0004-tui-em-textual.md), que fixou os dois grupos, o título `disabled` como separador e a restauração do destaque por id; o que o projeto é está em [CONTEXT.md](../../CONTEXT.md).
 
 ## Decisões
 

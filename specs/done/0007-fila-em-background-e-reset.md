@@ -12,7 +12,7 @@ Duas mudanças que parecem independentes e são a mesma decisão vista de dois l
 
 Depois desta spec o banco se enche sozinho depois do primeiro sync, e uma tecla o zera inteiro. As duas coisas se encontram no mesmo ponto: zerar o banco com a fila ligada dispara justamente a varredura completa.
 
-O que o projeto é está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md), a interface e o guarda de sync em [0004](0004-tui-em-textual.md), e os trabalhos em [0005](0005-trabalhos.md).
+O que o projeto é está em [CONTEXT.md](../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md), a interface e o guarda de sync em [0004](0004-tui-em-textual.md), e os trabalhos em [0005](0005-trabalhos.md).
 
 ## Comportamento observado
 

@@ -10,7 +10,7 @@ created_at: 2026-09-02
 
 Hoje `src/` se organiza por domínio: `materias/` e `atividades/` guardam lado a lado a entity que vira tabela, o payload que vem do AVA e o service que costura os dois. Funciona, mas apaga justamente a fronteira que mais importa aqui — a que separa o que a Uninter devolve do que nós modelamos. Um alias de JSON e uma coluna de SQLite não deveriam ser vizinhos de pasta.
 
-A reorganização troca o eixo: primeiro a camada, depois o domínio. Nenhum comportamento muda; é mover, renomear e reapontar import. O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md) e os testes planejados em [0002](../pending/0002-estrategia-de-testes.md).
+A reorganização troca o eixo: primeiro a camada, depois o domínio. Nenhum comportamento muda; é mover, renomear e reapontar import. O vocabulário está em [CONTEXT.md](../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md) e os testes planejados em [0002](../pending/0002-estrategia-de-testes.md).
 
 ## A estrutura alvo
 

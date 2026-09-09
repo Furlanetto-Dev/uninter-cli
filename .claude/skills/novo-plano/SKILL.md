@@ -3,16 +3,15 @@ name: novo-plano
 description: "Cria uma spec nova em specs/pending com o header, a numeração e a estrutura da casa. Use quando o usuário pedir um plano, uma spec, um ADR ou um documento de decisão para um app deste repo."
 ---
 
-Você vai escrever uma spec nova. Neste repo, "plano", "spec" e "documento de decisão" são a mesma coisa: um arquivo markdown em `apps/<app>/specs/`.
+Você vai escrever uma spec nova. Neste repo, "plano", "spec" e "documento de decisão" são a mesma coisa: um arquivo markdown em `specs/`.
 
 # Onde o arquivo vai
 
-`apps/<app>/specs/pending/NNNN-<slug>.md`
+`specs/pending/NNNN-<slug>.md`
 
 - **Sempre `pending`.** `done` é para spec cujo trabalho já está feito; uma spec nova nunca nasce lá.
-- Descubra o app com `ls -d apps/*/specs 2>/dev/null`. Se houver mais de um, pergunte qual antes de escrever.
 - `NNNN` é o próximo número livre, contando `done` **e** `pending` juntos, com 4 dígitos:
-  `ls apps/<app>/specs/done apps/<app>/specs/pending | grep -oE '^[0-9]{4}' | sort -n | tail -1`
+  `ls specs/done specs/pending | grep -oE '^[0-9]{4}' | sort -n | tail -1`
 - **Continuação de uma spec existente usa `NNNN.M`**, como `0005.1`. Serve para o que ficou de fora da spec NNNN e depende dela: o número diz de quem é filha. Assunto novo ganha número inteiro.
 - `<slug>` é o título em kebab-case, sem acento e sem artigo: `estrategia-de-testes`, não `a-estrategia-de-testes`.
 
@@ -59,16 +58,16 @@ Comece do [template](./template.md). Nem toda seção é obrigatória, mas a ord
 
 1. `# Título` em prosa, com acento — não é o slug.
 2. `## TL;DR`, em lista: uma linha por mudança, até cinco. Quem lê só isso sabe o que a spec faz.
-3. Uma ou duas frases dizendo **por que a spec existe**: o problema, e o que muda quando ela for executada. Linke o [CONTEXT.md](../../../../CONTEXT.md) e as specs relacionadas aqui.
+3. Uma ou duas frases dizendo **por que a spec existe**: o problema, e o que muda quando ela for executada. Linke o [CONTEXT.md](../../CONTEXT.md) e as specs relacionadas aqui.
 4. **Comportamento observado**, quando houver sistema externo envolvido. Uma linha por fato, com o que o prova. Marque o que é inferência.
 5. **Decisões**, cada uma num `###` cujo título é a decisão afirmada, não o assunto. `### O banco guarda só os campos que a tela usa`, não `### Sobre os campos`.
 6. **Rejeitados**, em lista. Uma linha por item: a alternativa e o porquê de não.
 
 ## Links relativos
 
-De `apps/<app>/specs/pending/` até a raiz do repo são quatro níveis:
+De `specs/pending/` até a raiz do repo são dois níveis:
 
-- descrição do projeto: `[CONTEXT.md](../../../../CONTEXT.md)`
+- descrição do projeto: `[CONTEXT.md](../../CONTEXT.md)`
 - spec irmã em done: `[0001](../done/0001-<slug>.md)`
 
 Confira que resolvem antes de terminar.
@@ -134,7 +133,7 @@ def linhas_de_texto(text):
 
 
 ok = True
-for p in sorted(Path("apps").glob("*/specs/*/*.md")):
+for p in sorted(Path("specs").glob("*/*.md")):
     text = p.read_text()
     linhas = linhas_de_texto(text)
     if p.parent.name == "pending" and linhas > LIMITE_DE_LINHAS:
@@ -175,8 +174,8 @@ Depois diga ao usuário o caminho do arquivo criado. Não faça commit a menos q
 Quando o trabalho de uma spec terminar, mover não basta — `status` e diretório precisam andar juntos:
 
 ```bash
-git mv apps/<app>/specs/pending/NNNN-<slug>.md apps/<app>/specs/done/
-sed -i 's/^status: pending$/status: done/' apps/<app>/specs/done/NNNN-<slug>.md
+git mv specs/pending/NNNN-<slug>.md specs/done/
+sed -i 's/^status: pending$/status: done/' specs/done/NNNN-<slug>.md
 ```
 
 E arrume os links relativos de quem apontava para a spec em `pending`.

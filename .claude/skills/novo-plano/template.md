@@ -11,7 +11,7 @@ created_at: <date +%F>
 ## TL;DR
 - <Uma mudança por linha. Até cinco.>
 
-<Por que existe, em uma ou duas frases. Linke o [CONTEXT.md](../../../../CONTEXT.md) e as specs relacionadas.>
+<Por que existe, em uma ou duas frases. Linke o [CONTEXT.md](../../CONTEXT.md) e as specs relacionadas.>
 
 ## Comportamento observado
 - <Fato, e a prova. Marque inferência.>

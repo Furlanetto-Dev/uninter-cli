@@ -8,7 +8,7 @@ created_at: 2026-08-28
 
 # Crawler de atividades do AVA
 
-Consultar nota no AVA da Uninter exige navegar num SPA lento, matéria por matéria. Este projeto espelha essas informações num SQLite local e as expõe por uma CLI interativa. O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md); aqui ficam as decisões e o porquê delas.
+Consultar nota no AVA da Uninter exige navegar num SPA lento, matéria por matéria. Este projeto espelha essas informações num SQLite local e as expõe por uma CLI interativa. O vocabulário está em [CONTEXT.md](../../CONTEXT.md); aqui ficam as decisões e o porquê delas.
 
 ## Comportamento observado do AVA
 

@@ -12,7 +12,7 @@ Hoje a lista de matérias desaparece a cada consulta: `browse_materias` pergunta
 
 Trocar `questionary` + `rich` por Textual não é trocar de biblioteca: é inversão de controle. O `while True: pergunta → renderiza` de `cli/app.py` desaparece e vira widget mais handler. E como o Textual roda num event loop, todo I/O bloqueante tem que sair da frente — o que arrasta `crawler` e `api` para async. Quando esta spec for executada, a tela é uma só, a lista nunca sai dela, e nenhuma chamada síncrona sobra no caminho da rede ou do banco.
 
-O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md), as camadas em [0003](0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
+O vocabulário está em [CONTEXT.md](../../CONTEXT.md), as decisões de desenho em [0001](0001-crawler-de-atividades-do-ava.md), as camadas em [0003](0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
 
 ## Comportamento observado
 

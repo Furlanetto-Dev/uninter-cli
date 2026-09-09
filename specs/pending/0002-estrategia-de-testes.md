@@ -10,7 +10,7 @@ created_at: 2026-09-02
 
 O projeto não tem nenhum teste. A refatoração para camadas criou as costuras que faltavam — transporte HTTP injetado, banco por caminho, relógio como parâmetro — e a [0004](../done/0004-tui-em-textual.md) acrescenta a que faltava na ponta: os services chegam à App por construtor, então a interface inteira pode ser exercitada com falsos. Este documento decide o que testar, com o quê, e em que ordem.
 
-O vocabulário está em [CONTEXT.md](../../../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-atividades-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e a interface em [0004](../done/0004-tui-em-textual.md). **Nada aqui é escrito antes da 0004 ser executada**: ela muda toda assinatura de `fetch`, `sync` e repository para `async`, e testes escritos antes nasceriam para reescrever.
+O vocabulário está em [CONTEXT.md](../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-atividades-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e a interface em [0004](../done/0004-tui-em-textual.md). **Nada aqui é escrito antes da 0004 ser executada**: ela muda toda assinatura de `fetch`, `sync` e repository para `async`, e testes escritos antes nasceriam para reescrever.
 
 ## O mapa de risco
 
