@@ -9,7 +9,7 @@ created_at: 2026-09-08
 # Tabbed detail panel
 
 ## TL;DR
-- Below `MateriaHeader`, a `TabbedContent#collections` with one `TabPane` per collection: "1 Atividades" now, "2 Trabalhos" with [0011.1](../pending/0011.1-trabalhos-tab.md), "3 Aulas" with a spec of its own. Today only `#atividades` exists, holding `AtividadeHint`, `AtividadeTable` and `MediaBar`.
+- Below `MateriaHeader`, a `TabbedContent#collections` with one `TabPane` per collection: "1 Atividades" now, "2 Trabalhos" with [0011.1](0011.1-trabalhos-tab.md), "3 Aulas" with a spec of its own. Today only `#atividades` exists, holding `AtividadeHint`, `AtividadeTable` and `MediaBar`.
 - `1`, `2`, `3` activate the tab with that number from anywhere; the label carries the digit, the footer does not. A digit without a pane does nothing.
 - The tab strip cannot take focus, so `←`/`→` stay the panel-focus keys of 0010.1 and 0010.2.
 - `esc` steps back along the focus chain: debug panel → the active pane's table → the list. `focus_atividades` becomes `focus_pane`.
