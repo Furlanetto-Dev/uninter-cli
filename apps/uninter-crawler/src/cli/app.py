@@ -17,7 +17,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import DataTable, Footer, Header, OptionList
+from textual.widgets import Footer, Header, OptionList
 
 from .animations.loading import Carregando
 from .atividades.media import MediaBar
@@ -29,7 +29,7 @@ from .atividades.table import (
 )
 from .commands.palette import ComandosDoApp
 from .commands.reset import ConfirmarReset
-from .debug.panel import DebugPanel
+from .debug.panel import DebugColumn, DebugPanel, FieldsTable, RawColumn
 from .materias.header import MateriaHeader
 from .materias.list import MateriaList
 
@@ -140,8 +140,9 @@ class UninterApp(App[None]):
     def close_debug(self) -> None:
         painel = self.query_one(DebugPanel)
         painel.screen.remove_class(DEBUG_OPEN)
-        if self.focused is painel:
-            self.action_focus_materias()
+        focused = self.focused
+        if focused is not None and painel in focused.ancestors_with_self:
+            self.action_focus_atividades()
 
     def action_focus_materias(self) -> None:
         self.query_one(MateriaList).focus()
@@ -203,10 +204,8 @@ class UninterApp(App[None]):
             return None
         return selected.id
 
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        tabela = self.query_one(AtividadeTable)
-        if tabela.show_cursor:
-            self.selected_atividade = tabela.atividade(event.row_key)
+    def on_atividade_table_selected(self, event: AtividadeTable.Selected) -> None:
+        self.selected_atividade = event.atividade
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
         if self.debug_open:
@@ -215,11 +214,27 @@ class UninterApp(App[None]):
     def action_focus_atividades(self) -> None:
         tabela = self.query_one(AtividadeTable)
         if not tabela.display or tabela.row_count == 0:
+            self.action_focus_materias()
             return
         selected = self.selected_atividade
         tabela.select_or_first(selected.id if selected is not None else None)
         self.selected_atividade = tabela.selected
         tabela.focus()
+
+    def on_debug_column_copy(self, event: DebugColumn.Copy) -> None:
+        self.copy_to_clipboard(event.json)
+
+    def action_focus_debug(self) -> None:
+        if self.debug_open:
+            self.query_one(RawColumn).focus()
+
+    def action_focus_raw(self) -> None:
+        self.query_one(RawColumn).focus()
+
+    def action_focus_stored(self) -> None:
+        table = self.query_one(FieldsTable)
+        if table.display:
+            table.focus()
 
     def action_home(self) -> None:
         self.query_one(AtividadeTable).select(None)

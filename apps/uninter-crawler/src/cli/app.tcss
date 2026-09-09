@@ -52,6 +52,34 @@ Screen.-debug.-short #grades {
     display: none;
 }
 
+#debug-meta {
+    height: auto;
+    margin-bottom: 1;
+}
+
+#debug-columns {
+    height: 1fr;
+}
+
+DebugColumn {
+    width: 1fr;
+    padding: 0 1;
+    border: round $panel;
+}
+
+DebugColumn:focus,
+DebugColumn:focus-within {
+    border: round $border;
+}
+
+FieldsTable {
+    background: transparent;
+}
+
+FieldsTable > .datatable--odd-row {
+    background: $foreground 8%;
+}
+
 ConfirmarReset {
     align: center middle;
 }

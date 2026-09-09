@@ -3,10 +3,12 @@ from datetime import datetime
 from api.atividades.entity import Atividade
 from rich.text import Text
 from textual.binding import Binding
+from textual.message import Message
 from textual.widgets import DataTable, Static
 from textual.widgets.data_table import RowKey
 
 from ..format import format_number, format_prazo, vencido
+from ..navigation.sideways import step_left, step_right
 
 SEM_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
 NUNCA_SINCRONIZADA = "[dim]⏎ para buscar no AVA[/dim]"
@@ -34,7 +36,15 @@ def row_cells(atividade: Atividade, now: datetime) -> tuple[Text, ...]:
 
 
 class AtividadeTable(DataTable[Text]):
-    BINDINGS = [Binding("left", "app.focus_materias", "materias", show=False)]
+    BINDINGS = [
+        Binding("left", "step_left", "materias", show=False),
+        Binding("right", "step_right", "debug", show=False),
+    ]
+
+    class Selected(Message):
+        def __init__(self, atividade: Atividade | None) -> None:
+            super().__init__()
+            self.atividade = atividade
 
     def __init__(self) -> None:
         super().__init__(cursor_type="row", show_cursor=False)
@@ -42,6 +52,17 @@ class AtividadeTable(DataTable[Text]):
 
     def on_mount(self) -> None:
         self.add_columns(*COLUMNS)
+
+    async def action_step_left(self) -> None:
+        await step_left(self, "app.focus_materias")
+
+    async def action_step_right(self) -> None:
+        await step_right(self, "app.focus_debug")
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        event.stop()
+        if self.show_cursor:
+            self.post_message(self.Selected(self.atividade(event.row_key)))
 
     def show(
         self, atividades: list[Atividade], now: datetime, selected_id: int | None
