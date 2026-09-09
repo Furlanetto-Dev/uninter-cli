@@ -16,7 +16,7 @@ The specs are part of the rewrite. Every spec written before this one is Portugu
 
 The same pass settles something else left half-done: the repository is shaped like a monorepo — `apps/uninter-crawler/` — with a single app in it. The `apps/` folder exists for a second app that never came, and it charges every day: each spec reaches `CONTEXT.md` through four `../`, the spec skill starts by discovering which app, and the `.venv`, the `.env` and the database live two levels below where the terminal opens. The app moves to the root.
 
-The layers these rules refer to are in [0003](../done/0003-camadas-crawler-api-cli.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](0002-estrategia-de-testes.md) and [0005.1](0005.1-trabalhos-na-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](../done/0008-montagem-da-lista-de-materias.md) and [0010](../done/0010-modo-debug.md) have already landed with Portuguese names, and the rewrite covers what they added.
+The layers these rules refer to are in [0003](../done/0003-crawler-api-cli-layers.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](0002-testing-strategy.md) and [0005.1](0005.1-trabalhos-in-the-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](../done/0008-building-the-materias-list.md) and [0010](../done/0010-debug-mode.md) have already landed with Portuguese names, and the rewrite covers what they added.
 
 ## Decisions
 
@@ -103,7 +103,7 @@ Three commits, in that order. Moving first, the move's diff is only paths. Trans
 
 ### The rewrite is a mechanical refactor, done in one pass
 
-No behaviour changes, in any of the three steps. Verification is `pyright` in strict mode passing and `pdm start` at the root opening the app with the list, the detail pane, the background queue and the reset working as before — the same criteria as [0007](../done/0007-fila-em-background-e-reset.md) — plus the skill's validator reporting every spec consistent. The code rewrite itself is a single commit: the intermediate state, `session` in one repository and `sessao` in the next, is worse than either extreme, and the rehearsal showed the whole change fits in 28 files.
+No behaviour changes, in any of the three steps. Verification is `pyright` in strict mode passing and `pdm start` at the root opening the app with the list, the detail pane, the background queue and the reset working as before — the same criteria as [0007](../done/0007-background-queue-and-reset.md) — plus the skill's validator reporting every spec consistent. The code rewrite itself is a single commit: the intermediate state, `session` in one repository and `sessao` in the next, is worse than either extreme, and the rehearsal showed the whole change fits in 28 files.
 
 ## Rejected
 

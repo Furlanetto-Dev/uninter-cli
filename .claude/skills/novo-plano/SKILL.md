@@ -1,99 +1,99 @@
 ---
 name: novo-plano
-description: "Cria uma spec nova em specs/pending com o header, a numeração e a estrutura da casa. Use quando o usuário pedir um plano, uma spec, um ADR ou um documento de decisão para um app deste repo."
+description: "Creates a new spec in specs/pending with the house header, numbering and structure. Use when the user asks for a plan, a spec, an ADR or a decision document for an app in this repo."
 ---
 
-Você vai escrever uma spec nova. Neste repo, "plano", "spec" e "documento de decisão" são a mesma coisa: um arquivo markdown em `specs/`.
+You are going to write a new spec. In this repo, "plan", "spec" and "decision document" are the same thing: a markdown file in `specs/`.
 
-# Onde o arquivo vai
+# Where the file goes
 
 `specs/pending/NNNN-<slug>.md`
 
-- **Sempre `pending`.** `done` é para spec cujo trabalho já está feito; uma spec nova nunca nasce lá.
-- `NNNN` é o próximo número livre, contando `done` **e** `pending` juntos, com 4 dígitos:
+- **Always `pending`.** `done` is for a spec whose work is already finished; a new spec is never born there.
+- `NNNN` is the next free number, counting `done` **and** `pending` together, with 4 digits:
   `ls specs/done specs/pending | grep -oE '^[0-9]{4}' | sort -n | tail -1`
-- **Continuação de uma spec existente usa `NNNN.M`**, como `0005.1`. Serve para o que ficou de fora da spec NNNN e depende dela: o número diz de quem é filha. Assunto novo ganha número inteiro.
-- `<slug>` é o título em kebab-case, sem acento e sem artigo: `estrategia-de-testes`, não `a-estrategia-de-testes`.
+- **A continuation of an existing spec uses `NNNN.M`**, like `0005.1`. It is for what was left out of spec NNNN and depends on it: the number says whose child it is. A new subject gets a whole number.
+- `<slug>` is the title in kebab-case, unaccented and without the article: `testing-strategy`, not `the-testing-strategy`.
 
-# O header
+# The header
 
-YAML frontmatter no formato de skill, com cinco campos obrigatórios e nesta ordem:
+YAML frontmatter in the skill format, with five required fields, in this order:
 
 ```yaml
 ---
-name: <slug, igual ao do nome do arquivo, sem o NNNN>
-description: <ver abaixo>
-projects: [<ver abaixo>]
+name: <slug, same as the file name, without the NNNN>
+description: <see below>
+projects: [<see below>]
 status: pending
-created_at: <hoje, ISO, via `date +%F`>
+created_at: <today, ISO, via `date +%F`>
 ---
 ```
 
-- `name` casa com o slug do arquivo. Sem número, sem acento.
-- `projects` é um array com as partes que a spec toca. Valores válidos: `crawler`, `api`, `frontend` e `all`. Use a ordem do sentido do dado — `crawler`, depois `api`, depois `frontend`. `all` é exclusivo: ou a spec toca tudo, ou você lista as partes; nunca os dois.
-- `status` usa o mesmo vocabulário do diretório — `pending` ou `done`, nunca `aceito`/`proposto`. A informação vive nos dois lugares; vocabulário idêntico é o que impede de divergirem.
-- `created_at` vem de `date +%F`. Nunca chute a data.
-- **Nada de `Status:` nem de data no corpo.** O header é a única fonte.
+- `name` matches the file slug. No number, no accents.
+- `projects` is an array of the parts the spec touches. Valid values: `crawler`, `api`, `frontend` and `all`. Use the order the data flows in — `crawler`, then `api`, then `frontend`. `all` is exclusive: either the spec touches everything, or you list the parts; never both.
+- `status` uses the same vocabulary as the directory — `pending` or `done`, never `aceito`/`proposto`. The information lives in two places; identical vocabulary is what keeps them from drifting apart.
+- `created_at` comes from `date +%F`. Never guess the date.
+- **No `Status:` and no date in the body.** The header is the only source.
 
-## Como escolher os projects
+## How to choose the projects
 
-Liste o que a spec **muda**, não o assunto dela. Uma spec sobre a interface que migra o app inteiro para async toca os três, mesmo que o título fale só de tela.
+List what the spec **changes**, not its subject. A spec about the interface that migrates the whole app to async touches all three, even if the title only talks about the screen.
 
-- `crawler` — requests e DTOs do AVA, sessão HTTP
-- `api` — entities, repositories, services, banco
-- `frontend` — a TUI em `cli/`
-- `all` — toca os três; sozinho no array
+- `crawler` — AVA requests and DTOs, HTTP session
+- `api` — entities, repositories, services, database
+- `frontend` — the TUI in `cli/`
+- `all` — touches all three; alone in the array
 
-## A description é um gatilho, não um resumo
+## The description is a trigger, not a summary
 
-Escreva quando **abrir** a spec, não só o que ela contém. Uma frase com o conteúdo, outra começando com "Ler antes de...". É o que faz a description ser útil para quem (ou o que) está decidindo se precisa ler o arquivo.
+Write when to **open** the spec, not just what it contains. One sentence with the content, another starting with "Read before...". That is what makes the description useful to whoever (or whatever) is deciding whether it needs to read the file.
 
-Bom: `Decisões de desenho do crawler — cookie x-time, regra aproveitamento-ou-atual, 404 indistinguível de vazio. Ler antes de mexer em request, dto ou na resolução de oferta.`
+Good: `Crawler design decisions — x-time cookie, aproveitamento-or-current rule, 404 indistinguishable from empty. Read before touching request, dto or oferta resolution.`
 
-Ruim: `Documento sobre o crawler.`
+Bad: `A document about the crawler.`
 
-# A estrutura do corpo
+# The body structure
 
-Comece do [template](./template.md). Nem toda seção é obrigatória, mas a ordem é:
+Start from the [template](./template.md). Not every section is required, but the order is:
 
-1. `# Título` em prosa, com acento — não é o slug.
-2. `## TL;DR`, em lista: uma linha por mudança, até cinco. Quem lê só isso sabe o que a spec faz.
-3. Uma ou duas frases dizendo **por que a spec existe**: o problema, e o que muda quando ela for executada. Linke o [CONTEXT.md](../../CONTEXT.md) e as specs relacionadas aqui.
-4. **Comportamento observado**, quando houver sistema externo envolvido. Uma linha por fato, com o que o prova. Marque o que é inferência.
-5. **Decisões**, cada uma num `###` cujo título é a decisão afirmada, não o assunto. `### O banco guarda só os campos que a tela usa`, não `### Sobre os campos`.
-6. **Rejeitados**, em lista. Uma linha por item: a alternativa e o porquê de não.
+1. `# Title` in prose, accents included — it is not the slug.
+2. `## TL;DR`, as a list: one line per change, up to five. Whoever reads only this knows what the spec does.
+3. One or two sentences saying **why the spec exists**: the problem, and what changes once it is executed. Link [CONTEXT.md](../../CONTEXT.md) and the related specs here.
+4. **Observed behaviour**, when an external system is involved. One line per fact, with what proves it. Mark what is inference.
+5. **Decisions**, each in a `###` whose title is the decision stated, not the subject. `### The database stores only the fields the screen uses`, not `### About the fields`.
+6. **Rejected**, as a list. One line per item: the alternative and why not.
 
-## Links relativos
+## Relative links
 
-De `specs/pending/` até a raiz do repo são dois níveis:
+From `specs/pending/` the repo root is two levels up:
 
-- descrição do projeto: `[CONTEXT.md](../../CONTEXT.md)`
-- spec irmã em done: `[0001](../done/0001-<slug>.md)`
+- project description: `[CONTEXT.md](../../CONTEXT.md)`
+- sibling spec in done: `[0001](../done/0001-<slug>.md)`
 
-Confira que resolvem antes de terminar.
+Check that they resolve before finishing.
 
-# A régua de tamanho
+# The size yardstick
 
-**Mais de 70 linhas de texto é sinal de enrolação.** É régua, não lei: o validador conta só o que está fora de blocos cercados e avisa. Se a spec que você está escrevendo aparecer no aviso, releia procurando ideia repetida; se não houver, o tamanho está justificado.
+**More than 70 lines of text is a sign of padding.** It is a yardstick, not a law: the validator counts only what is outside fenced blocks and warns. If the spec you are writing shows up in the warning, reread it looking for a repeated idea; if there is none, the size is justified.
 
-- Não existe mínimo de texto por parágrafo, seção ou decisão. Se a ideia cabe em uma linha, é uma linha.
-- Um diagrama `mermaid` que substitui parágrafos é bem-vindo — fluxo, camadas, estados, layout. Mostra mais com menos texto, e não conta na régua.
-- Decisão é o que e o porquê, em uma ou duas frases. Custo só entra se não for óbvio.
-- Rejeitado é a alternativa e o motivo, em uma linha.
-- Fato observado é o fato e a prova, em uma linha. Só entra o que muda uma decisão.
-- Sem introdução que repete o título, sem retórica, sem código que a implementação vai reescrever. Código só quando o nome ou a assinatura é a decisão.
-- Não é telegrama: frases inteiras, em português normal. Concisão é cortar ideia repetida, não artigo e verbo.
+- There is no minimum text per paragraph, section or decision. If the idea fits in one line, it is one line.
+- A `mermaid` diagram that replaces paragraphs is welcome — flow, layers, states, layout. It shows more with less text, and does not count toward the yardstick.
+- A decision is the what and the why, in one or two sentences. Cost only goes in if it is not obvious.
+- A rejected item is the alternative and the reason, in one line.
+- An observed fact is the fact and the proof, in one line. Only what changes a decision goes in.
+- No introduction that repeats the title, no rhetoric, no code the implementation will rewrite. Code only when the name or the signature is the decision.
+- It is not a telegram: whole sentences, in plain English. Concision is cutting repeated ideas, not articles and verbs.
 
-# A régua de qualidade
+# The quality yardstick
 
-- **Decida, não enumere.** Uma spec registra a escolha e o motivo. Se você ainda está pesando alternativas, pergunte ao usuário em vez de listar as opções no arquivo — o lugar de opção descartada é a seção Rejeitados, com o porquê.
-- **Afirme o que foi verificado e marque o resto.** Se você não mediu, escreva que é inferência.
-- **Sem enfeite.** Nada de "este documento visa", nada de repetir o título no primeiro parágrafo.
-- Escreva em português. O tom é o das specs existentes; o tamanho não — elas são anteriores à régua de tamanho.
+- **Decide, do not enumerate.** A spec records the choice and the reason. If you are still weighing alternatives, ask the user instead of listing the options in the file — the place for a discarded option is the Rejected section, with the why.
+- **State what was verified and mark the rest.** If you did not measure it, write that it is inference.
+- **No frills.** No "this document aims to", no repeating the title in the first paragraph.
+- Write in English, in the tone of the existing specs, keeping the domain nouns in Portuguese: matéria, atividade, trabalho, entrega, etiqueta, etapa, oferta, aproveitamento, média, RU, AVA. The file slug and the title are English too; the slug is kebab-case, with the domain nouns unaccented (`materias`, not `matérias`). The tone is the existing specs'; the size is not — they predate the size yardstick.
 
-# Antes de terminar
+# Before finishing
 
-Rode a validação:
+Run the validation:
 
 ```bash
 python3 - <<'PY'
@@ -108,15 +108,15 @@ LIMITE_DE_LINHAS = 70
 
 def projetos_invalidos(bruto):
     if not (bruto.startswith("[") and bruto.endswith("]")):
-        return ["projects nao e um array [a, b]"]
+        return ["projects is not an array [a, b]"]
     itens = [i.strip() for i in bruto[1:-1].split(",") if i.strip()]
     if not itens:
-        return ["projects vazio"]
+        return ["projects empty"]
     fora = [i for i in itens if i not in PROJETOS_VALIDOS]
     if fora:
-        return [f"projects invalido: {fora}"]
+        return [f"projects invalid: {fora}"]
     if "all" in itens and len(itens) > 1:
-        return ["projects: 'all' nao combina com outros"]
+        return ["projects: 'all' does not go with others"]
     return []
 
 
@@ -137,45 +137,45 @@ for p in sorted(Path("specs").glob("*/*.md")):
     text = p.read_text()
     linhas = linhas_de_texto(text)
     if p.parent.name == "pending" and linhas > LIMITE_DE_LINHAS:
-        print(f"{p}: AVISO {linhas} linhas de texto, acima de {LIMITE_DE_LINHAS}")
+        print(f"{p}: WARNING {linhas} lines of text, above {LIMITE_DE_LINHAS}")
     if p.parent.name == "pending" and "## TL;DR" not in text:
-        print(f"{p}: AVISO sem ## TL;DR")
+        print(f"{p}: WARNING no ## TL;DR")
     m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     if not m:
-        print(f"{p}: FRONTMATTER AUSENTE"); ok = False; continue
+        print(f"{p}: FRONTMATTER MISSING"); ok = False; continue
     fields = dict(l.split(": ", 1) for l in m.group(1).split("\n") if ": " in l)
     for problema in (
-        [f"falta {k}" for k in REQUIRED if k not in fields]
-        + ([f"name {fields.get('name')!r} != slug do arquivo"]
+        [f"missing {k}" for k in REQUIRED if k not in fields]
+        + ([f"name {fields.get('name')!r} != file slug"]
            if fields.get("name") != re.sub(r"^\d+(\.\d+)?-", "", p.stem) else [])
-        + ([f"status {fields.get('status')!r} != pasta {p.parent.name!r}"]
+        + ([f"status {fields.get('status')!r} != folder {p.parent.name!r}"]
            if fields.get("status") != p.parent.name else [])
-        + ([f"Status:/data no corpo"] if re.search(r"^Status:|^(Aceito|Proposto) em", text, re.M) else [])
+        + ([f"Status:/date in the body"] if re.search(r"^Status:|^(Aceito|Proposto) em", text, re.M) else [])
         + projetos_invalidos(fields.get("projects", ""))
     ):
         print(f"{p}: {problema}"); ok = False
     try:
         date.fromisoformat(fields.get("created_at", ""))
     except ValueError:
-        print(f"{p}: created_at invalido"); ok = False
+        print(f"{p}: created_at invalid"); ok = False
     for label, target in re.findall(r"\[([^\]]+)\]\((\.[^)]+)\)", text):
         if not (p.parent / target).resolve().exists():
-            print(f"{p}: link quebrado -> {target}"); ok = False
-print("tudo consistente" if ok else "HA PROBLEMAS")
+            print(f"{p}: broken link -> {target}"); ok = False
+print("all consistent" if ok else "PROBLEMS FOUND")
 PY
 ```
 
-Aviso na spec que você escreveu é seu: adicione o TL;DR, e corte ideia repetida — ou conclua que o tamanho se justifica. Aviso em spec antiga fica para quando ela for tocada.
+A warning on the spec you wrote is yours: add the TL;DR, and cut repeated ideas — or conclude that the size is justified. A warning on an old spec waits until that spec is touched.
 
-Depois diga ao usuário o caminho do arquivo criado. Não faça commit a menos que ele peça.
+Then tell the user the path of the file created. Do not commit unless they ask.
 
-# Promover para done
+# Promoting to done
 
-Quando o trabalho de uma spec terminar, mover não basta — `status` e diretório precisam andar juntos:
+When a spec's work is finished, moving is not enough — `status` and directory must move together:
 
 ```bash
 git mv specs/pending/NNNN-<slug>.md specs/done/
 sed -i 's/^status: pending$/status: done/' specs/done/NNNN-<slug>.md
 ```
 
-E arrume os links relativos de quem apontava para a spec em `pending`.
+And fix the relative links of whatever pointed at the spec in `pending`.

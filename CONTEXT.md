@@ -1,7 +1,7 @@
 # Uninter
 
-Espelha localmente o que o AVA da Uninter (Univirtus) sabe sobre a vida acadêmica de um aluno, para consulta fora do navegador.
+Mirrors locally what Uninter's AVA (Univirtus) knows about a student's academic life, for lookup outside the browser.
 
-O AVA é um SPA lento: ver uma nota exige entrar, esperar carregar e navegar matéria por matéria. Este projeto busca esses dados quando o aluno pede, guarda o resultado na máquina dele e o apresenta num terminal, onde a consulta é imediata e não depende de sessão aberta.
+The AVA is a slow SPA: seeing a grade means logging in, waiting for it to load and navigating matéria by matéria. This project fetches that data when the student asks, stores the result on their machine and shows it in a terminal, where lookup is immediate and does not depend on an open session.
 
-É de uso pessoal e de um aluno só. As credenciais ficam num `.env` que nunca é versionado, não há servidor nem multiusuário, e nada sai da máquina de quem consulta.
+It is for personal use, by a single student. Credentials live in a `.env` that is never committed, there is no server and no multi-user support, and nothing leaves the machine of whoever is looking.

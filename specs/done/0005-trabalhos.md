@@ -1,73 +1,73 @@
 ---
 name: trabalhos
-description: Trabalhos de uma matéria e suas correções — a cadeia etapa → entrega → etiqueta, as três tabelas, o sync em cascata e quais "detalhes" da tela do AVA são alcançáveis. Ler antes de mexer em qualquer coisa sob crawler/trabalhos ou api/trabalhos.
+description: A matéria's trabalhos and their corrections — the etapa → entrega → etiqueta chain, the three tables, the cascading sync and which "detalhes" of the AVA screen are reachable. Read before touching anything under crawler/trabalhos or api/trabalhos.
 projects: [crawler, api]
 status: done
 created_at: 2026-09-02
 ---
 
-# Trabalhos e suas correções
+# Trabalhos
 
-Uma matéria tem atividades e trabalhos. As atividades já são espelhadas; os trabalhos não, e é neles que mora a entrega prática do aluno — protocolo, anexos, nota e o comentário de quem corrigiu. Esta spec cobre **apenas crawler e api**: nada de interface, e nenhuma mudança na TUI da [0004](../done/0004-tui-em-textual.md). O que o projeto é está em [CONTEXT.md](../../CONTEXT.md), as decisões de desenho em [0001](../done/0001-crawler-de-atividades-do-ava.md), as camadas em [0003](../done/0003-camadas-crawler-api-cli.md) e os testes em [0002](../pending/0002-estrategia-de-testes.md).
+A matéria has atividades and trabalhos. The atividades are already mirrored; the trabalhos are not, and they are where the student's hands-on entrega lives — protocol number, attachments, grade and the grader's comment. This spec covers **crawler and api only**: no interface, and no change to the TUI of [0004](../done/0004-textual-tui.md). What the project is lives in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](../done/0001-ava-atividades-crawler.md), the layers in [0003](../done/0003-crawler-api-cli-layers.md) and the tests in [0002](../pending/0002-testing-strategy.md).
 
-## Comportamento observado
+## Observed behaviour
 
-Verificado contra a API real em 2026-09-02, com login novo e a conta inteira varrida. Onde for dedução, está dito.
+Checked against the real API on 2026-09-02, with a fresh login and the whole account swept. Where it is inference, it says so.
 
-- **A cadeia é auto-suficiente.** Todo id que o passo seguinte precisa vem da resposta anterior: `trabalhoEtapas[].id` e `trabalhoEtapas[].idTrabalhoVinculadoEtapa` montam a URL da entrega; `trabalhoEntregas[].idTrabalhoCorrecao` monta a URL das etiquetas. Nada precisa ser adivinhado nem configurado.
-- **A listagem quer as duas ofertas, em posições diferentes**: `oferta_atual` no path, `oferta_aproveitamento` na query. É o oposto do endpoint de atividades, que só aceita a resolvida — e por isso `Materia.oferta` não serve aqui.
-- **Quando não há oferta de aproveitamento, passar a atual nas duas posições funciona.** Verificado nas duas matérias da conta em que ela é nula; ambas devolveram trabalhos.
-- **404 significa "matéria sem trabalho"**, e é o caso de 13 das 26 matérias. Mesma ambiguidade da [0001](../done/0001-crawler-de-atividades-do-ava.md): erro real e ausência chegam iguais.
-- **O leque é pequeno.** 19 etapas na conta inteira: a maioria das matérias tem 1, uma tem 2 e duas têm 4. Oito têm entrega feita. As 26 matérias foram varridas em 1,6s.
-- **`totalRegistros` mente.** Vem 0 na listagem de etapas e nas etiquetas, mesmo com registro na resposta. Não serve para detectar vazio.
-- **A etiqueta não sabe de quem é.** `trabalhoCorrecaoEtiquetas[].idTrabalhoEntrega` vem 0. Só quem fez a requisição sabe a qual correção o resultado pertence.
-- **`aprovadoEtapa` é tri-estado.** Vem `true`/`false` nos 8 trabalhos avaliados e `null` nos 11 que não foram. O `default=` do Pydantic não cobre isso: ele só vale quando a chave falta, não quando o valor é nulo. Varridos os 19, também aceitam nulo `dataInicio`, `dataFim`, `dataEntrega`, `notaEtapa` e `mensagemErro`; nenhum campo de entrega ou de etiqueta veio nulo nas 8 amostras.
-- **O texto da etiqueta é HTML.** A devolutiva do tutor vem com `<br />` e entidades como `&gt;`, às vezes com milhares de caracteres. Guardamos cru; converter é problema de quem for exibir.
-- **A correção não é recurso próprio.** Seu resumo — corretor, RU do corretor, data, contagem de arquivos — vem embutido na entrega. Só as etiquetas têm endpoint.
-- **O próprio AVA trata as duas como coisas separadas.** O menu lateral da sala virtual lista "Atividades" e "Trabalhos" como seções irmãs, cada uma com sua tela.
-- **A nota do trabalho não aparece entre as atividades.** Em Engenharia de Software o trabalho tem nota 100, e nenhuma das 7 atividades da matéria corresponde a ele; os pesos das atividades somam 70%. A entrega traz `idAvaliacaoUsuario`, mas o id não bate com nenhuma atividade retornada para a matéria.
+- **The chain is self-sufficient.** Every id the next step needs comes from the previous response: `trabalhoEtapas[].id` and `trabalhoEtapas[].idTrabalhoVinculadoEtapa` build the entrega URL; `trabalhoEntregas[].idTrabalhoCorrecao` builds the etiquetas URL. Nothing needs guessing or configuring.
+- **The listing wants both ofertas, in different positions**: `oferta_atual` in the path, `oferta_aproveitamento` in the query. It is the opposite of the atividades endpoint, which only takes the resolved one — which is why `Materia.oferta` is no use here.
+- **When there is no aproveitamento oferta, passing the current one in both positions works.** Checked on the two matérias in the account where it is null; both returned trabalhos.
+- **404 means "matéria with no trabalho"**, and that is the case for 13 of the 26 matérias. Same ambiguity as [0001](../done/0001-ava-atividades-crawler.md): a real error and absence arrive the same.
+- **The range is small.** 19 etapas in the whole account: most matérias have 1, one has 2 and two have 4. Eight have an entrega made. The 26 matérias were swept in 1,6s.
+- **`totalRegistros` lies.** It comes back 0 in the etapas listing and in the etiquetas, even with records in the response. It is no use for detecting empty.
+- **The etiqueta does not know whose it is.** `trabalhoCorrecaoEtiquetas[].idTrabalhoEntrega` comes back 0. Only whoever made the request knows which correction the result belongs to.
+- **`aprovadoEtapa` is tri-state.** It comes back `true`/`false` on the 8 graded trabalhos and `null` on the 11 that were not. Pydantic's `default=` does not cover this: it only applies when the key is missing, not when the value is null. Sweeping all 19, `dataInicio`, `dataFim`, `dataEntrega`, `notaEtapa` and `mensagemErro` also accept null; no entrega or etiqueta field came back null in the 8 samples.
+- **The etiqueta text is HTML.** The tutor's feedback comes with `<br />` and entities like `&gt;`, sometimes thousands of characters long. We store it raw; converting is a problem for whoever displays it.
+- **The correction is not a resource of its own.** Its summary — grader, grader's RU, date, file count — comes embedded in the entrega. Only the etiquetas have an endpoint.
+- **The AVA itself treats the two as separate things.** The sala virtual's side menu lists "Atividades" and "Trabalhos" as sibling sections, each with its own screen.
+- **The trabalho's grade does not appear among the atividades.** In Engenharia de Software the trabalho has grade 100, and none of the matéria's 7 atividades corresponds to it; the atividades' weights add up to 70%. The entrega carries `idAvaliacaoUsuario`, but the id matches no atividade returned for the matéria.
 
-## Decisões
+## Decisions
 
-### Trabalho pendura na matéria, ao lado de atividade
+### Trabalho hangs off the matéria, next to atividade
 
-A URL da listagem só pede as ofertas da matéria, e a nota do trabalho não tem correspondente na lista de atividades. São duas coleções irmãs, e sincronizar trabalhos não depende de haver atividade nenhuma no banco.
+The listing URL only asks for the matéria's ofertas, and the trabalho's grade has no counterpart in the atividades list. They are two sibling collections, and syncing trabalhos does not depend on any atividade being in the database.
 
-### `idAvaliacaoUsuario` não vira chave estrangeira
+### `idAvaliacaoUsuario` does not become a foreign key
 
-O campo existe na entrega e é tentador, mas o id não resolve para nenhuma atividade que a API devolva para aquela matéria. Persistir como FK criaria referência pendurada. Fica de fora até que alguém demonstre para onde ele aponta.
+The field exists on the entrega and is tempting, but the id resolves to no atividade the API returns for that matéria. Persisting it as an FK would create a dangling reference. It stays out until someone shows where it points.
 
-### Três tabelas, espelhando os três endpoints
+### Three tables, mirroring the three endpoints
 
-`trabalho` para a etapa, `trabalho_entrega` para a entrega com o resumo da correção achatado dentro — porque é assim que o AVA a entrega —, e `trabalho_etiqueta` para os itens do formulário de correção. A etiqueta é chaveada pelo `correcao_id` que originou a requisição, já que a resposta não o traz.
+`trabalho` for the etapa, `trabalho_entrega` for the entrega with the correction summary flattened into it — because that is how the AVA delivers it —, and `trabalho_etiqueta` for the items of the correction form. The etiqueta is keyed by the `correcao_id` that originated the request, since the response does not carry it.
 
-Seguindo a [0001](../done/0001-crawler-de-atividades-do-ava.md), guardamos só o que a tela usa: 14 dos 33 campos da etapa, 13 dos 48 da entrega, 3 da etiqueta.
+Following [0001](../done/0001-ava-atividades-crawler.md), we store only what the screen uses: 14 of the etapa's 33 fields, 13 of the entrega's 48, 3 of the etiqueta's.
 
-### O sync desce a cascata inteira, por matéria
+### The sync walks the whole cascade, per matéria
 
-Um método, um carimbo, uma transação. Sincronizar uma matéria custa de 2 a 3 requisições e menos de 200ms — o argumento que justificou o sob-demanda das atividades (27 matérias a meio segundo cada) não se aplica a um leque de 1 a 4 trabalhos. Em troca, nunca existe trabalho meio sincronizado no banco.
+One method, one timestamp, one transaction. Syncing a matéria costs 2 to 3 requests and under 200ms — the argument that justified on-demand for the atividades (27 matérias at half a second each) does not apply to a range of 1 to 4 trabalhos. In exchange, there is never a half-synced trabalho in the database.
 
-### O carimbo é próprio
+### The timestamp is its own
 
-`materia.trabalhos_sincronizados_em`, separado do carimbo das atividades. As duas coleções vêm de endpoints diferentes, com custos diferentes, e uma pode estar fresca com a outra velha.
+`materia.trabalhos_sincronizados_em`, separate from the atividades timestamp. The two collections come from different endpoints, with different costs, and one can be fresh while the other is stale.
 
-### Anexos e gabarito ficam de fora
+### Attachments and answer key stay out
 
-A entrega diz **quantos** arquivos existem (`totalArquivosEntrega`, `totalArquivosCorrecao`), mas listá-los exige um endpoint que não foi capturado. O mesmo vale para o gabarito. Pela regra do projeto não se sai procurando endpoint: ambos ficam registrados como pendência de captura.
+The entrega says **how many** files exist (`totalArquivosEntrega`, `totalArquivosCorrecao`), but listing them takes an endpoint that was not captured. The same goes for the answer key. By the project's rule nobody goes hunting for endpoints: both are recorded as pending capture.
 
-## Os "detalhes" da tela, e de onde cada um vem
+## The screen's "detalhes", and where each one comes from
 
-| detalhe | origem | alcançável |
+| detail | source | reachable |
 |---|---|---|
-| Detalhes da etapa | `trabalhoEtapas[]` — nome, `dataInicio`, `dataFim`, `nomePeriodo`, `nomeTrabalhoTipo`, `ordemTrabalho` | sim |
-| Detalhes da entrega | `trabalhoEntregas[]` — `protocolo`, `dataCriacao`, `nomeTrabalhoStatus`, `tentativa`, `finalizadoTrabalhoStatus` | sim |
-| Bloco Correção | `trabalhoEntregas[]` — `nomeUsuarioCorretor`, `RUUsuarioCorretor`, `dataCriacaoCorrecao` | sim |
-| Detalhes da correção | `trabalhoCorrecaoEtiquetas[]` — `constante`, `texto` | sim |
-| Anexos | só o contador `totalArquivosEntrega` | **falta captura** |
-| Gabarito | — | **falta captura** |
-| Editar | operação de escrita, sinalizada por `podeEditar` | fora de escopo |
+| Etapa details | `trabalhoEtapas[]` — name, `dataInicio`, `dataFim`, `nomePeriodo`, `nomeTrabalhoTipo`, `ordemTrabalho` | yes |
+| Entrega details | `trabalhoEntregas[]` — `protocolo`, `dataCriacao`, `nomeTrabalhoStatus`, `tentativa`, `finalizadoTrabalhoStatus` | yes |
+| Correction block | `trabalhoEntregas[]` — `nomeUsuarioCorretor`, `RUUsuarioCorretor`, `dataCriacaoCorrecao` | yes |
+| Correction details | `trabalhoCorrecaoEtiquetas[]` — `constante`, `texto` | yes |
+| Attachments | only the `totalArquivosEntrega` counter | **pending capture** |
+| Answer key | — | **pending capture** |
+| Edit | write operation, flagged by `podeEditar` | out of scope |
 
-## As tabelas
+## The tables
 
 ```
 trabalho                          de trabalhoEtapas[]
@@ -98,40 +98,40 @@ trabalho_etiqueta                 de trabalhoCorrecaoEtiquetas[]
   constante, texto
 ```
 
-## As tarefas
+## The tasks
 
-Cada uma é pequena e verificável sozinha. A ordem respeita as dependências.
+Each one is small and verifiable on its own. The order respects the dependencies.
 
-**Preparação**
+**Preparation**
 
-1. Trocar o cookie de sessão vivo nos três curls de `uninter-endpoints/trabalhos/` por placeholders, como nos demais.
+1. Replace the live session cookie in the three curls under `uninter-endpoints/trabalhos/` with placeholders, as in the others.
 
-**Camada crawler**
+**Crawler layer**
 
-2. `crawler/trabalhos/dto.py`: `TrabalhoEtapaDTO` e `TrabalhoEtapasDTO`, com `to_trabalho(materia_id)`.
-3. `crawler/trabalhos/request.py`: `TrabalhoRequest.fetch(materia)`, montando path com `oferta_atual` e query com `oferta_aproveitamento or oferta_atual`, 404 → lista vazia.
-4. `EntregaDTO` e `EntregasDTO`, com `to_entrega(trabalho_id)`.
-5. `EntregaRequest.fetch(trabalho)`, usando `trabalho.id` e `trabalho.vinculado_etapa`.
-6. `EtiquetaDTO` e `EtiquetasDTO`, com `to_etiqueta(correcao_id)`.
+2. `crawler/trabalhos/dto.py`: `TrabalhoEtapaDTO` and `TrabalhoEtapasDTO`, with `to_trabalho(materia_id)`.
+3. `crawler/trabalhos/request.py`: `TrabalhoRequest.fetch(materia)`, building the path with `oferta_atual` and the query with `oferta_aproveitamento or oferta_atual`, 404 → empty list.
+4. `EntregaDTO` and `EntregasDTO`, with `to_entrega(trabalho_id)`.
+5. `EntregaRequest.fetch(trabalho)`, using `trabalho.id` and `trabalho.vinculado_etapa`.
+6. `EtiquetaDTO` and `EtiquetasDTO`, with `to_etiqueta(correcao_id)`.
 7. `EtiquetaRequest.fetch(correcao_id)`.
 
-**Camada api**
+**API layer**
 
 8. `api/trabalhos/entity.py`: `Trabalho`.
 9. `api/trabalhos/entity.py`: `TrabalhoEntrega`.
 10. `api/trabalhos/entity.py`: `TrabalhoEtiqueta`.
-11. Coluna `trabalhos_sincronizados_em` em `Materia`, e o par `mark_trabalhos_synced` no `MateriaRepository`.
-12. Registrar as três tabelas em `MAPPED_TABLES` (`api/db.py`).
-13. `api/trabalhos/repository.py`: `list_all(materia)`, `replace(materia, trabalhos)`, e as leituras de entrega e etiqueta.
-14. `api/trabalhos/service.py`: `TrabalhoSyncService.sync(materia)` descendo a cascata e commitando uma vez.
+11. Column `trabalhos_sincronizados_em` on `Materia`, and its counterpart `mark_trabalhos_synced` on `MateriaRepository`.
+12. Register the three tables in `MAPPED_TABLES` (`api/db.py`).
+13. `api/trabalhos/repository.py`: `list_all(materia)`, `replace(materia, trabalhos)`, and the entrega and etiqueta reads.
+14. `api/trabalhos/service.py`: `TrabalhoSyncService.sync(materia)` walking the cascade and committing once.
 
-Levar os trabalhos até a tela e capturar os endpoints de anexo e gabarito ficam na [0005.1](../pending/0005.1-trabalhos-na-interface.md).
+Bringing the trabalhos to the screen and capturing the attachment and answer-key endpoints are left to [0005.1](../pending/0005.1-trabalhos-in-the-interface.md).
 
-## Rejeitados
+## Rejected
 
-- **Trabalho como filho de atividade.** A API não aceita id de atividade em lugar nenhum da URL, a nota do trabalho não aparece na lista de atividades, e o próprio AVA separa as duas em seções distintas do menu. A ligação teria que ser inventada por nome ou peso.
-- **Uma tabela achatada.** Cabe hoje, porque toda etapa da conta tem no máximo uma entrega. Mas o campo `tentativa` e o rótulo "1ª entrega" da tela dizem que existe N, e achatar agora significa migração quando aparecer a segunda.
-- **Etiquetas como JSON numa coluna da entrega.** Evitaria uma tabela e um join, ao custo de não dar para filtrar por `constante` em SQL e de introduzir o único campo-documento do schema.
-- **Sync sob demanda por nível.** Seguiria o padrão das atividades ao pé da letra, com três carimbos e três métodos. Economiza uma ou duas requisições por matéria e paga com "trabalho meio sincronizado" virando estado normal do banco.
-- **Varrer a conta inteira num comando.** 53 requisições e uns 4 segundos para o banco completo, sendo 13 delas garantidamente 404. Contraria a decisão da [0001](../done/0001-crawler-de-atividades-do-ava.md) de que a rede só entra quando o usuário pede aquela matéria.
-- **Procurar os endpoints de anexo e gabarito.** Exigiria engenharia reversa do SPA. Ficam pendentes de captura no DevTools.
+- **Trabalho as a child of atividade.** The API takes no atividade id anywhere in the URL, the trabalho's grade does not appear in the atividades list, and the AVA itself splits the two into distinct menu sections. The link would have to be invented by name or weight.
+- **One flattened table.** It fits today, because every etapa in the account has at most one entrega. But the `tentativa` field and the screen's "1ª entrega" label say there are N, and flattening now means a migration when the second one shows up.
+- **Etiquetas as JSON in an entrega column.** Would save a table and a join, at the cost of not being able to filter by `constante` in SQL and of introducing the schema's only document field.
+- **On-demand sync per level.** Would follow the atividades pattern to the letter, with three timestamps and three methods. Saves one or two requests per matéria and pays with "half-synced trabalho" becoming a normal state of the database.
+- **Sweeping the whole account in one command.** 53 requests and some 4 seconds for the full database, 13 of them guaranteed 404s. Goes against the [0001](../done/0001-ava-atividades-crawler.md) decision that the network only comes in when the user asks for that matéria.
+- **Hunting for the attachment and answer-key endpoints.** Would take reverse-engineering the SPA. They stay pending capture in DevTools.

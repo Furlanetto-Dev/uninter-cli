@@ -1,25 +1,25 @@
 ---
 name: <slug>
-description: <o que a spec contém>. Ler antes de <situação em que ela importa>.
-projects: [<crawler, api, frontend ou all>]
+description: <what the spec contains>. Read before <the situation where it matters>.
+projects: [<crawler, api, frontend or all>]
 status: pending
 created_at: <date +%F>
 ---
 
-# <Título em prosa>
+# <Title in prose>
 
 ## TL;DR
-- <Uma mudança por linha. Até cinco.>
+- <One change per line. Up to five.>
 
-<Por que existe, em uma ou duas frases. Linke o [CONTEXT.md](../../CONTEXT.md) e as specs relacionadas.>
+<Why it exists, in one or two sentences. Link [CONTEXT.md](../../CONTEXT.md) and the related specs.>
 
-## Comportamento observado
-- <Fato, e a prova. Marque inferência.>
+## Observed behaviour
+- <Fact, and the proof. Mark inference.>
 
-## Decisões
+## Decisions
 
-### <A decisão afirmada, não o assunto>
-<O porquê, em uma ou duas frases.>
+### <The decision stated, not the subject>
+<The why, in one or two sentences.>
 
-## Rejeitados
-- **<Alternativa>.** <Por que não.>
+## Rejected
+- **<Alternative>.** <Why not.>
