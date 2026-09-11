@@ -1,0 +1,15 @@
+# Endpoint não retorna dados além dos que o listar-atividades já retorna. 
+curl 'https://univirtus.uninter.com/ava/web/js/views/ava/avaliacaousuariohistorico//avaliacaousuariohistorico.html?v=38BD20B2-2149-45EE-9925-CA25F289A092' \
+  -H 'accept: */*' \
+  -H 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
+  -b '$UNINTER_TIME=$UNINTER_TOKEN' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://univirtus.uninter.com/ava/web/' \
+  -H 'sec-ch-ua: "Not;A=Brand";v="8", "Chromium";v="150", "Brave";v="150"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'sec-gpc: 1' \
+  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36'

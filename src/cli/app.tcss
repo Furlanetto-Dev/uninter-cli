@@ -123,3 +123,38 @@ ConfirmReset {
     border: round $warning;
     background: $surface;
 }
+
+ConfirmStart {
+    align: center middle;
+}
+
+#start-confirmation {
+    width: 76;
+    height: auto;
+    padding: 1 2;
+    border: round $accent;
+    background: $surface;
+}
+
+#start-answers {
+    height: auto;
+    margin-top: 1;
+}
+
+#start-answers Button {
+    min-width: 0;
+    width: auto;
+    height: 3;
+    padding: 0 1;
+    margin-right: 1;
+    background: $surface;
+    color: $foreground;
+    border: round $foreground 15%;
+    text-style: none;
+}
+
+#start-answers Button:focus {
+    border: round $foreground;
+    background-tint: transparent;
+    text-style: none;
+}

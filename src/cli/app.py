@@ -27,6 +27,7 @@ from textual.widgets import Footer, Header, OptionList, TabbedContent, TabPane, 
 
 from .animations.loading import Loading
 from .atividades.media import MediaBar
+from .atividades.start import ConfirmStart
 from .atividades.tree import NO_ATIVIDADES, AtividadeHeader, AtividadeTree
 from .commands.palette import AppCommands
 from .commands.reset import ConfirmReset
@@ -41,6 +42,10 @@ TALL_TERMINAL_ROWS = 40
 DEBUG_OPEN = "-debug"
 LOADING = "-loading"
 PANE = "pane"
+PRESENCIAL_TOAST = "Avaliação presencial: ainda não dá para iniciar pelo app."
+START_NOT_CAPTURED = (
+    "Iniciar ainda não está disponível: a chamada do AVA não foi capturada."
+)
 ATIVIDADES_HINT = "atividades-hint"
 TRABALHOS_HINT = "trabalhos-hint"
 
@@ -286,6 +291,23 @@ class UninterApp(App[None]):
 
     def on_atividade_tree_selected(self, event: AtividadeTree.Selected) -> None:
         self.selected_atividade = event.atividade
+
+    def on_atividade_tree_start(self, event: AtividadeTree.Start) -> None:
+        atividade = event.atividade
+        if not atividade.aguardando_inicio:
+            return
+        if atividade.presencial:
+            self.notify(PRESENCIAL_TOAST, severity="warning")
+            return
+        materia = self.query_one(MateriaList).highlighted_materia
+        if materia is not None:
+            self.push_screen(
+                ConfirmStart(atividade, materia.nome), self.on_start_answered
+            )
+
+    def on_start_answered(self, confirmed: bool | None) -> None:
+        if confirmed:
+            self.notify(START_NOT_CAPTURED, severity="warning")
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
         if self.debug_mode:

@@ -1,3 +1,5 @@
+import re
+from html import unescape
 from datetime import datetime
 
 SECONDS_PER_HOUR = 3600
@@ -36,3 +38,9 @@ def humanize_age(moment: datetime | None, now: datetime) -> str:
     if elapsed.seconds >= SECONDS_PER_HOUR:
         return f"sincronizada há {elapsed.seconds // SECONDS_PER_HOUR}h"
     return "sincronizada agora"
+
+
+def html_to_text(html: str) -> str:
+    text = re.sub(r"<br\s*/?>", "\n", html, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    return unescape(text).strip()

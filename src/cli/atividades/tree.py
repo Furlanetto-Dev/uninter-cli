@@ -16,7 +16,15 @@ from .groups import APOL, OUTRAS, PROVAS, group_atividades, group_of
 from .media import PASSING_GRADE
 
 NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
-COLUMNS = ("Atividade", "Situação", "Nota", "Peso", "Contribuição", "Prazo")
+COLUMNS = (
+    "Atividade",
+    "Situação",
+    "Tentativa",
+    "Nota",
+    "Peso",
+    "Contribuição",
+    "Prazo",
+)
 GAP = "  "
 LEAF_INDENT = 4
 NOME_MAX = 48
@@ -25,11 +33,18 @@ NOTA_WIDTH = 4
 PESO_WIDTH = 4
 CONTRIB_WIDTH = 12
 PRAZO_WIDTH = 8
+TENTATIVA_WIDTH = 9
 PRESENCIAL_TAG = " presencial"
 PRESENCIAL_STYLE = "magenta"
 EXPANDED_BY_DEFAULT = {APOL: True, PROVAS: True, OUTRAS: False}
 FIXED_WIDTH = (
-    LEAF_INDENT + 5 * len(GAP) + NOTA_WIDTH + PESO_WIDTH + CONTRIB_WIDTH + PRAZO_WIDTH
+    LEAF_INDENT
+    + 6 * len(GAP)
+    + TENTATIVA_WIDTH
+    + NOTA_WIDTH
+    + PESO_WIDTH
+    + CONTRIB_WIDTH
+    + PRAZO_WIDTH
 )
 
 
@@ -64,10 +79,11 @@ def header_text(widths: Widths) -> Text:
             (
                 _fit(COLUMNS[0], widths.nome),
                 _fit(COLUMNS[1], widths.status),
-                COLUMNS[2].rjust(NOTA_WIDTH),
-                COLUMNS[3].rjust(PESO_WIDTH),
-                COLUMNS[4].rjust(CONTRIB_WIDTH),
-                COLUMNS[5].rjust(PRAZO_WIDTH),
+                COLUMNS[2].rjust(TENTATIVA_WIDTH),
+                COLUMNS[3].rjust(NOTA_WIDTH),
+                COLUMNS[4].rjust(PESO_WIDTH),
+                COLUMNS[5].rjust(CONTRIB_WIDTH),
+                COLUMNS[6].rjust(PRAZO_WIDTH),
             )
         ),
         style="dim",
@@ -92,12 +108,18 @@ def _nome(atividade: Atividade, width: int) -> Text:
     )
 
 
+def _attempt(atividade: Atividade) -> str:
+    return f"{atividade.tentativa}/{atividade.tentativa_total}"
+
+
 def leaf_label(atividade: Atividade, now: datetime, widths: Widths) -> Text:
     colour = "green" if atividade.realizada else "dim"
     return Text.assemble(
         _nome(atividade, widths.nome),
         GAP,
         (_fit(atividade.status, widths.status), colour),
+        GAP,
+        _attempt(atividade).rjust(TENTATIVA_WIDTH),
         GAP,
         format_number(atividade.nota).rjust(NOTA_WIDTH),
         GAP,
@@ -154,6 +176,11 @@ class AtividadeTree(Tree[Atividade]):
             super().__init__()
             self.widths = widths
 
+    class Start(Message):
+        def __init__(self, atividade: Atividade) -> None:
+            super().__init__()
+            self.atividade = atividade
+
     def __init__(self) -> None:
         super().__init__("atividades")
         self.show_root = False
@@ -178,6 +205,8 @@ class AtividadeTree(Tree[Atividade]):
 
     def on_tree_node_selected(self, event: Tree.NodeSelected[Atividade]) -> None:
         event.stop()
+        if event.node.data is not None:
+            self.post_message(self.Start(event.node.data))
 
     def on_tree_node_expanded(self, event: Tree.NodeExpanded[Atividade]) -> None:
         self._remember(event.node, True)
