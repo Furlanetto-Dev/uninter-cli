@@ -9,6 +9,7 @@ from api.materias.service import MateriaSyncService
 from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
+from crawler.atividades.prova_mock import CAPTURE, MockProvaSource
 from crawler.atividades.request import AtividadeRequest
 from crawler.materias.request import MateriaRequest
 from crawler.session import AvaSession, ava_client
@@ -50,6 +51,8 @@ async def run(settings: Settings) -> bool:
             materias_service,
             atividades_service,
             trabalhos_service,
+            # 0015: the mocked prova, until the start call is written.
+            MockProvaSource(CAPTURE),
             materias_db,
             atividades_db,
             trabalhos_db,

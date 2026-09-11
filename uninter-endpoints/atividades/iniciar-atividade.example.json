@@ -1,0 +1,1059 @@
+{
+  "mensagens": null,
+  "avaliacaoUsuarioHistoricos": [
+    {
+      "id": 1088534617,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 1,
+      "idQuestao": 3702012,
+      "idQuestaoAlternativa": 13775994,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 3316075,
+      "dataModificacao": "2026-09-11T13:24:08",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Quando se desenvolve um sistema computacional é necessário após os levantamentos iniciais e a elaboração da documentação, decidir qual sistema gerenciador de banco de dados será utilizado para o armazenamento dos dados. Quando falamos em sistemas gerenciadores de banco de dados relacionais, existem várias opções no mercado que atendem perfeitamente as necessidades de armazenamento dos sistemas administrativos.</p>",
+      "comando": "<strong>Podemos citar como os principais e mais conhecidos do mercado os seguintes SGBD:</strong>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13775992,
+          "idQuestao": 3702012,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099765,
+              "idQuestaoAlternativa": 13775992,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Java, Python, PHP e Javascript",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13775993,
+          "idQuestao": 3702012,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099766,
+              "idQuestaoAlternativa": 13775993,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Windows, Linux, Android e iOS",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13775994,
+          "idQuestao": 3702012,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099767,
+              "idQuestaoAlternativa": 13775994,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "SQL Server, MySQL, PostgreSQL e Oracle",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13775995,
+          "idQuestao": 3702012,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099770,
+              "idQuestaoAlternativa": 13775995,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Word, Excel, Power Point e Access",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534618,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 2,
+      "idQuestao": 3702016,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Para utilizar um sistema de banco de dados é necessário criar um usuário para que ele faça a conexão. O setor de Tecnologia da Informação recebeu uma solicitação para criar um usuário para o Sr. Francisco que será o novo desenvolvedor, com senha Fran345.</p>",
+      "comando": "<strong>Para a realização dessa tarefa comando de criação é o:</strong>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776008,
+          "idQuestao": 3702016,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099789,
+              "idQuestaoAlternativa": 13776008,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "insert user fran345 senha francisco",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776009,
+          "idQuestao": 3702016,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099790,
+              "idQuestaoAlternativa": 13776009,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "insert user ‘francisco’@’localhost’ identified by‘Fran345’",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776010,
+          "idQuestao": 3702016,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099791,
+              "idQuestaoAlternativa": 13776010,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "create user fran345 senha francisco@localhost",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776011,
+          "idQuestao": 3702016,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099792,
+              "idQuestaoAlternativa": 13776011,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "create user ‘francisco’@’localhost’ identified by ‘Fran345’",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534619,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 3,
+      "idQuestao": 3702025,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">A criação de objetos em um banco de dados é uma situação muito importante, pois é a partir dos objetos que os dados serão controlados, armazenados e extraídos. Em virtude disso é importante ter alguns cuidados ao nomear um objeto na hora da sua criação, analise as assertivas que seguem e marque V para as asserções verdadeiras, e F para as asserções falsas.<br /><br />I.   ( ) Sempre utilizar nomes significativos. Embora não seja obrigatório, pode ajudar a prevenir erros</p>\r\n<p>II.  ( ) Não é obrigatório iniciar o nome de uma tabela e de um campo com uma letra</p>\r\n<p>III. ( ) O nome de um objeto não pode ser igual a uma palavra reservada da linguagem SQL, por exemplo: CREATE, SELECT, DROP, INTEGER, entre outras</p>\r\n<p>IV. ( ) É permitido a utilização de espaços em branco, ponto (.) ou hífen (-) no nome dos objetos</p>",
+      "comando": "<p><strong>Agora, assinale a alternativa que apresenta a sequência correta:</strong></p>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776044,
+          "idQuestao": 3702025,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099842,
+              "idQuestaoAlternativa": 13776044,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "V – F – V – F",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776045,
+          "idQuestao": 3702025,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099845,
+              "idQuestaoAlternativa": 13776045,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "V – F – F – V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776046,
+          "idQuestao": 3702025,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099846,
+              "idQuestaoAlternativa": 13776046,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "V – V – F – V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776047,
+          "idQuestao": 3702025,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099847,
+              "idQuestaoAlternativa": 13776047,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "F – F – F – F",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534620,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 4,
+      "idQuestao": 3702014,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Os comandos para a manipulação dos dados de um SGBD servem para manipular os dados armazenados além de permitirem que sejam recuperados depois de serem tratados. É a partir dessa recuperação e tratamento que é possível extrair informação e gerar conhecimento, que será sempre o objetivo principal quando se trabalha com o gerenciamento de banco de dados. </p>",
+      "comando": "<strong>Essa manipulação de dados é realizada, entre outros, por quatro comandos principais que são:</strong>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776000,
+          "idQuestao": 3702014,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099776,
+              "idQuestaoAlternativa": 13776000,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "add, select, drop e alter",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776001,
+          "idQuestao": 3702014,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099777,
+              "idQuestaoAlternativa": 13776001,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "create, drop, alter e select",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776002,
+          "idQuestao": 3702014,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099779,
+              "idQuestaoAlternativa": 13776002,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "insert, delete, update e select",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776003,
+          "idQuestao": 3702014,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099782,
+              "idQuestaoAlternativa": 13776003,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "select, create, update, drop",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534621,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 5,
+      "idQuestao": 3702022,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">O comando select recupera os dados de uma ou mais tabelas, sendo um dos comandos mais simples e, ao mesmo tempo, mais extenso da SQL devido as suas funções, operandos, comandos, sub-comandos e cláusulas não obrigatórias. Para essa atividade vamos considerar a tabela funcionário que pode ser vista a seguir:</p>\r\n<p> </p>\r\n<table>\r\n<tr>\r\n<td>\r\n<p>CODIGO</p>\r\n</td>\r\n<td>\r\n<p>NOME</p>\r\n</td>\r\n<td>\r\n<p>CPF</p>\r\n</td>\r\n<td>\r\n<p>DATA_NCTO</p>\r\n</td>\r\n<td>\r\n<p>SALARIO</p>\r\n</td>\r\n<td>\r\n<p>DEPTO</p>\r\n</td>\r\n<td>\r\n<p>CARGO</p>\r\n</td>\r\n</tr>\r\n<tr>\r\n<td>\r\n<p>1</p>\r\n</td>\r\n<td>\r\n<p>JOSÉ</p>\r\n</td>\r\n<td>\r\n<p>1234567</p>\r\n</td>\r\n<td>\r\n<p>17/01/1960</p>\r\n</td>\r\n<td>\r\n<p>  5.000,00</p>\r\n</td>\r\n<td>\r\n<p>TI</p>\r\n</td>\r\n<td>\r\n<p>DBA</p>\r\n</td>\r\n</tr>\r\n<tr>\r\n<td>\r\n<p>2</p>\r\n</td>\r\n<td>\r\n<p>MARIA</p>\r\n</td>\r\n<td>\r\n<p>456789</p>\r\n</td>\r\n<td>\r\n<p>21/11/1965</p>\r\n</td>\r\n<td>\r\n<p>  6.000,00</p>\r\n</td>\r\n<td>\r\n<p>RH</p>\r\n</td>\r\n<td>\r\n<p>GERENTE</p>\r\n</td>\r\n</tr>\r\n<tr>\r\n<td>\r\n<p>3</p>\r\n</td>\r\n<td>\r\n<p>JOÃO</p>\r\n</td>\r\n<td>\r\n<p>8777666</p>\r\n</td>\r\n<td>\r\n<p>30/04/1971</p>\r\n</td>\r\n<td>\r\n<p>  3.000,00</p>\r\n</td>\r\n<td>\r\n<p>ADM</p>\r\n</td>\r\n<td>\r\n<p>OPERACIONAL</p>\r\n</td>\r\n</tr>\r\n</table>\r\n<p>Fonte: o Autor</p>",
+      "comando": "<p>Relacione corretamente os comandos de select da SQL às suas respectivas características:</p>\r\n<ol>\r\n<li>select nome, cpf, salario from funcionario where salario &gt; 5000</li>\r\n<li>select nome, cargo, salario from funcionario where depto = ‘TI’</li>\r\n<li>select nome, depto, salario + 5000 from funcionario where cargo = ‘DBA’</li>\r\n<li>select nome, data_ncto from funcionario where month(data_ncto) = 11</li>\r\n<li>select nome, dpto, cargo, salario + 5000 from funcionario order by nome</li>\r\n</ol>\r\n<p> </p>\r\n<p>(     ) Seleciona o nome e a data de nascimento dos funcionários nascidos no mês de novembro</p>\r\n<p>(     ) Seleciona o nome, o cargo e o salário dos funcionários que trabalham no departamento de Tecnologia da Informação</p>\r\n<p>(     ) Seleciona o nome, o departamento, o cargo e o salário com R$ 5.000,00 dos funcionários, ordenando a seleção pelo nome do funcionário</p>\r\n<p>(     ) Seleciona o nome, o depto e o salário com R$ 5.000,00 dos funcionários com cargo de Data Base Administrador</p>\r\n<p>(     ) Seleciona o nome, o cpf e o salário dos funcionários que recebem mais do que R$ 5.000,00</p>\r\n<p> </p>\r\n<p><strong>Agora, selecione a alternativa que apresenta a sequência correta:</strong></p>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776032,
+          "idQuestao": 3702022,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099825,
+              "idQuestaoAlternativa": 13776032,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "1 – 2 – 4 – 3 – 5",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776033,
+          "idQuestao": 3702022,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099826,
+              "idQuestaoAlternativa": 13776033,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "2 – 4 – 3– 5- 1",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776034,
+          "idQuestao": 3702022,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099827,
+              "idQuestaoAlternativa": 13776034,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "4 – 2 – 3 – 5 – 1",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776035,
+          "idQuestao": 3702022,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099828,
+              "idQuestaoAlternativa": 13776035,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "4 – 2 – 5 – 3 – 1",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534622,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 6,
+      "idQuestao": 3702026,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Para inserir registros em uma tabela através da linguagem SQL, é utilizado o comando INSERT INTO com a seguinte sintaxe: INSERT INTO &lt;tabela&gt; (campo1, campo2, ...) VALUES (Valor1, Valor2, ...). Cada campo especificado na instrução INSERT deve ter um valor correspondente na lista de valores. A lista de valores deve estar na mesma ordem que a lista de campos, analise as assertivas que seguem para a tabela aluno (código, nome, endereço, município e data_nasc) e marque V para as asserções verdadeiras, e F para as asserções falsas.</p>",
+      "comando": "<p> I.  ( ) INSERT INTO aluno (1, ‘Maria da Silva’, ‘Rua XV, 125’, ‘Curitiba’, ‘1966/07/17’)</p>\r\n<p>II.  ( ) INSERT INTO Aluno (Codigo, Nome, Endereco, Municipio, Data_Nasc) VALUES (1, ‘Maria da Silva’, ‘Rua XV, 125’, ‘Curitiba’, ‘1966/07/17’)</p>\r\n<p>III. ( ) INSERT INTO Aluno (Codigo, Nome, Endereco, Municipio, Data_Nasc) VALUES (1, ‘Maria da Silva’, ‘Curitiba’, ‘1966/07/17’)</p>\r\n<p>IV. ( ) INSERT INTO Aluno (Nome, Endereco, Municipio, Data_Nasc) VALUES (‘Maria da Silva’, ‘Rua XV, 125’, ‘Curitiba’, ‘1966/07/17’)<br /><br /></p>\r\n<p><strong>Agora, assinale a alternativa que apresenta a sequência correta:</strong></p>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776048,
+          "idQuestao": 3702026,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099848,
+              "idQuestaoAlternativa": 13776048,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "V – F – V – V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776049,
+          "idQuestao": 3702026,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099849,
+              "idQuestaoAlternativa": 13776049,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "F – V – F – V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776050,
+          "idQuestao": 3702026,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099852,
+              "idQuestaoAlternativa": 13776050,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "V – F – F – V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776051,
+          "idQuestao": 3702026,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099853,
+              "idQuestaoAlternativa": 13776051,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "F – F – F - V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534623,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 7,
+      "idQuestao": 3702015,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Um banco de dados pode ser criado através de scripts, sendo possível configurar alguns itens, como os caracteres que serão utilizados conforme o idioma do local e encriptação de dados. Porém, em alguns casos, como na criação de um banco de dados de desenvolvimento, que é um DB utilizado para os testes quando da criação de um sistema, é possível utilizar um comando de criação de banco de dados sem nenhum parâmetro de configuração.</p>",
+      "comando": "<p><strong>Esse comando de criação simples, sem parâmetros de configuração é o:</strong></p>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776004,
+          "idQuestao": 3702015,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099783,
+              "idQuestaoAlternativa": 13776004,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "insert database",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776005,
+          "idQuestao": 3702015,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099784,
+              "idQuestaoAlternativa": 13776005,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "create database NOME_BANCO_DE_DADOS",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776006,
+          "idQuestao": 3702015,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099787,
+              "idQuestaoAlternativa": 13776006,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "create table NOME_BANCO_DE_DADOS",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776007,
+          "idQuestao": 3702015,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099788,
+              "idQuestaoAlternativa": 13776007,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "drop database NOME_BANCO_DE_DADOS",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534624,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 8,
+      "idQuestao": 3702027,
+      "idQuestaoAlternativa": 13776055,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 3316075,
+      "dataModificacao": "2026-09-11T13:26:31",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">As funções agrupadoras permitem agrupar valores de uma tabela com conteúdo numérico. São muito uteis para a emissão de relatórios gerenciais pois permitem de forma reduzida mostrar informações contidas no banco de dados, não como uma lista, mas como valores que podem representar o total de vendas mensal, ou a quantidade de produtos vendidos, valores médios, além de maiores e menores valores de uma seleção, analise as afirmativas a seguir que contemplem tais funções agrupadoras e suas funcionalidades:<br /><br /><br />I-COUNT Conta o número de registros de uma seleção<br /><br />II-SUM Soma os valores de uma seleção<br /><br />III-AVG Calcula Automaticamente o Valor Geral de uma seleção</p>\r\nIV-MAX Retorna o valor máximo em uma seleção<br /><br />V-MIN Retorna o valor menos repetido em uma seleção<br />\r\n<p> </p>",
+      "comando": "<p><strong>São corretas apenas as afirmativas:</strong></p>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776052,
+          "idQuestao": 3702027,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099858,
+              "idQuestaoAlternativa": 13776052,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "I e II",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776053,
+          "idQuestao": 3702027,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099857,
+              "idQuestaoAlternativa": 13776053,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "I, II e V",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776054,
+          "idQuestao": 3702027,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099856,
+              "idQuestaoAlternativa": 13776054,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "I, II e IV",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776055,
+          "idQuestao": 3702027,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099855,
+              "idQuestaoAlternativa": 13776055,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "I, III e IV",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534625,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 9,
+      "idQuestao": 3702024,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Sabendo que o dado, que é o elemento principal de um banco de dados, possui um ciclo de vida, que se inicia com a sua produção, podendo se dar por vários dispositivos de produção, como um editor de texto, uma planilha de cálculo, um sensor presencial, um formulário HTML, uma câmera digital ou ainda através de uma página de mídia social. </p>",
+      "comando": "<strong>Logo após a sua produção, seguindo o seu ciclo de vida, o dado deverá ser:</strong>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13776040,
+          "idQuestao": 3702024,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099836,
+              "idQuestaoAlternativa": 13776040,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Descartado pois já cumpriu o seu papel.",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776041,
+          "idQuestao": 3702024,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099837,
+              "idQuestaoAlternativa": 13776041,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Copiado para outro servidor.",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776042,
+          "idQuestao": 3702024,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099838,
+              "idQuestaoAlternativa": 13776042,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Armazenado para posterior consulta.",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13776043,
+          "idQuestao": 3702024,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099841,
+              "idQuestaoAlternativa": 13776043,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "Enviado para o usuário para verificação.",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    },
+    {
+      "id": 1088534626,
+      "idAvaliacaoUsuario": 154653964,
+      "tentativa": 1,
+      "ordem": 10,
+      "idQuestao": 3702013,
+      "idQuestaoAlternativa": null,
+      "resposta": null,
+      "idUsuarioCorretor": null,
+      "dataCorrecao": null,
+      "percentualAcerto": null,
+      "anulada": false,
+      "idAvaliacaoUsuarioHistoricoTipoSorteio": 1,
+      "idBancoQuestao": 1649082,
+      "notaQuestao": null,
+      "idUsuarioCriador": 1,
+      "dataCriacao": "2026-09-11T13:17:40",
+      "idUsuarioModificador": 1,
+      "dataModificacao": "2026-09-11T13:17:40",
+      "excluido": false,
+      "comentarioCorrecao": null,
+      "questao": "<p style=\"text-align: justify;\">Para a manipulação de objetos em um sistema gerenciador de banco de dados, usamos instruções que são destinadas à criação e manutenção de banco de dados, tabelas, índices, entre outros. Os principais comandos de definição de dados são: create, drop e alter. Essas instruções são importantes e devem ser conhecidas pelos administradores de banco de dados, pois é através da criação dessas instruções que é possível otimizar o gerenciamento dos objetos em vários locais.</p>",
+      "comando": "<strong>Para essa manipulação de objetos usamos as instruções:</strong>",
+      "idQuestaoTipo": 1,
+      "alternativas": [
+        {
+          "id": 13775996,
+          "idQuestao": 3702013,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099771,
+              "idQuestaoAlternativa": 13775996,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "SQL (Structure Query Language)",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13775997,
+          "idQuestao": 3702013,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099772,
+              "idQuestaoAlternativa": 13775997,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "DML (Data Manipulation Language)",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13775998,
+          "idQuestao": 3702013,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099773,
+              "idQuestaoAlternativa": 13775998,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "OOP (Object-oriented programming).",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        },
+        {
+          "id": 13775999,
+          "idQuestao": 3702013,
+          "ativa": true,
+          "questaoAlternativaAtributos": [
+            {
+              "id": 27099774,
+              "idQuestaoAlternativa": 13775999,
+              "idAtributoQuestaoTipo": 1,
+              "valor": "DDL (Data Definition Language)",
+              "ativo": true,
+              "idAtributo": 1,
+              "nomeAtributo": "texto",
+              "parametros": null
+            }
+          ]
+        }
+      ],
+      "ordemBancoQuestao": 0,
+      "correcaoManual": false,
+      "permiteAnexo": false,
+      "videoSianee": null,
+      "audioQuestao": false,
+      "questaoEtiquetas": null,
+      "anexos": null,
+      "extensoes": null,
+      "avaliacaoUsuarioHistoricoControle": null,
+      "peso": null
+    }
+  ],
+  "id": 0,
+  "sid": null,
+  "totalRegistros": 0,
+  "exception": null
+}

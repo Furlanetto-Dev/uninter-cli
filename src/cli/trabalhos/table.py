@@ -8,7 +8,7 @@ from textual.widgets import DataTable
 from textual.widgets.data_table import RowKey
 
 from ..format import format_deadline, format_number, is_overdue
-from ..navigation.steps import step_left, step_right
+from ..components.steps import step_left, step_right
 
 NO_TRABALHOS = "[yellow]Esta matéria não tem trabalhos no AVA.[/yellow]"
 COLUMNS = ("Trabalho", "Entrega", "Nota", "Situação", "Prazo")
@@ -54,7 +54,7 @@ class TrabalhoTable(DataTable[Text]):
     BINDINGS = [
         Binding("left", "step_left", "materias", show=False),
         Binding("right", "step_right", "debug", show=False),
-        Binding("escape", "app.focus_materias", "back"),
+        Binding("escape", "app.focus_materias", "voltar"),
     ]
 
     class Selected(Message):

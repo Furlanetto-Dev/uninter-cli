@@ -14,7 +14,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.widgets import DataTable, Static
 
-from ..navigation.steps import step_left, step_right, step_up
+from ..components.steps import step_left, step_right, step_up
 
 NO_CAPTURA = "sem resposta gravada · r para buscar"
 NOT_IN_LIST = "matéria não está na última lista do AVA"
@@ -110,8 +110,8 @@ def meta_text(
 
 class DebugColumn(VerticalScroll):
     BINDINGS = [
-        Binding("ctrl+c", "copy", "copy"),
-        Binding("escape", "app.focus_pane", "back"),
+        Binding("ctrl+c", "copy", "copiar"),
+        Binding("escape", "app.focus_pane", "voltar"),
     ]
 
     def __init__(self, id: str) -> None:
@@ -166,8 +166,8 @@ class RawColumn(DebugColumn):
 
 class FieldsTable(DataTable[str]):
     BINDINGS = [
-        Binding("ctrl+c", "copy", "copy"),
-        Binding("escape", "app.focus_pane", "back"),
+        Binding("ctrl+c", "copy", "copiar"),
+        Binding("escape", "app.focus_pane", "voltar"),
         Binding("left", "step_left", "ava", show=False),
         Binding("right", "step_right", "", show=False),
         Binding("up", "step_up", "atividades", show=False),

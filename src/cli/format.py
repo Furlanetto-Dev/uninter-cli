@@ -1,8 +1,9 @@
 import re
 from html import unescape
-from datetime import datetime
+from datetime import datetime, timedelta
 
 SECONDS_PER_HOUR = 3600
+SECONDS_PER_MINUTE = 60
 
 
 def format_number(value: float | None) -> str:
@@ -38,6 +39,15 @@ def humanize_age(moment: datetime | None, now: datetime) -> str:
     if elapsed.seconds >= SECONDS_PER_HOUR:
         return f"sincronizada há {elapsed.seconds // SECONDS_PER_HOUR}h"
     return "sincronizada agora"
+
+
+def format_elapsed(elapsed: timedelta) -> str:
+    total = max(int(elapsed.total_seconds()), 0)
+    hours, rest = divmod(total, SECONDS_PER_HOUR)
+    minutes, seconds = divmod(rest, SECONDS_PER_MINUTE)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
 
 
 def html_to_text(html: str) -> str:

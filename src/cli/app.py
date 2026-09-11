@@ -16,25 +16,29 @@ from api.materias.service import MateriaSyncService
 from api.trabalhos.entity import Trabalho
 from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
+from crawler.atividades.prova import ProvaSource
 from crawler.session import LoginRejected
+from pydantic import ValidationError
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Footer, Header, OptionList, TabbedContent, TabPane, Tabs
+from textual.widgets import Header, OptionList, TabbedContent, TabPane, Tabs
 
-from .animations.loading import Loading
 from .atividades.media import MediaBar
 from .atividades.start import ConfirmStart
 from .atividades.tree import NO_ATIVIDADES, AtividadeHeader, AtividadeTree
 from .commands.palette import AppCommands
 from .commands.reset import ConfirmReset
+from .components.footer import Footer
+from .components.hint import NEVER_SYNCED, Hint
+from .components.loading import Loading
 from .debug.panel import DebugColumn, DebugPanel, FieldsTable, RawColumn
-from .hint import NEVER_SYNCED, Hint
 from .materias.header import MateriaHeader
-from .materias.list import MateriaList
+from .materias.list import MateriaList, synced_at
+from .provas.screen import ProvaScreen
 from .trabalhos.table import NO_TRABALHOS, TrabalhoTable
 
 PAUSE_BETWEEN_MATERIAS = 1.0
@@ -43,9 +47,7 @@ DEBUG_OPEN = "-debug"
 LOADING = "-loading"
 PANE = "pane"
 PRESENCIAL_TOAST = "Avaliação presencial: ainda não dá para iniciar pelo app."
-START_NOT_CAPTURED = (
-    "Iniciar ainda não está disponível: a chamada do AVA não foi capturada."
-)
+PROVA_UNAVAILABLE = "Não foi possível abrir a prova: {reason}"
 ATIVIDADES_HINT = "atividades-hint"
 TRABALHOS_HINT = "trabalhos-hint"
 
@@ -60,20 +62,14 @@ class SyncItem(NamedTuple):
     collection: str
 
 
-def synced_at(materia: Materia, collection: str) -> datetime | None:
-    if collection == TRABALHOS:
-        return materia.trabalhos_sincronizados_em
-    return materia.atividades_sincronizadas_em
-
-
 class UninterApp(App[None]):
     CSS_PATH = "app.tcss"
     TITLE = "Uninter"
     BINDINGS = [
-        ("r", "refresh", "refresh"),
-        ("q", "quit", "quit"),
+        ("r", "refresh", "atualizar"),
+        ("q", "quit", "sair"),
         ("j", "focus_debug", "debug"),
-        ("d", "home", "home"),
+        ("d", "home", "início"),
         Binding("1", "show_tab(1)", "atividades", show=False),
         Binding("2", "show_tab(2)", "trabalhos", show=False),
         Binding("3", "show_tab(3)", "aulas", show=False),
@@ -91,6 +87,7 @@ class UninterApp(App[None]):
         materias_service: MateriaSyncService,
         atividades_service: AtividadeSyncService,
         trabalhos_service: TrabalhoSyncService,
+        prova_source: ProvaSource,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
@@ -100,6 +97,7 @@ class UninterApp(App[None]):
         self._materias_service = materias_service
         self._atividades_service = atividades_service
         self._trabalhos_service = trabalhos_service
+        self._prova_source = prova_source
         self._materias_db = materias_db
         self._atividades_db = atividades_db
         self._trabalhos_db = trabalhos_db
@@ -257,7 +255,12 @@ class UninterApp(App[None]):
                 hint.hide()
             else:
                 hint.show(NO_ATIVIDADES)
-        table.show(atividades, now, self.selection_within(materia))
+        table.show(
+            atividades,
+            now,
+            self.selection_within(materia),
+            await self.started(atividades),
+        )
         table.display = header.display = bool(atividades)
         if atividades:
             media_bar.show(Media.from_atividades(atividades))
@@ -301,13 +304,30 @@ class UninterApp(App[None]):
             return
         materia = self.query_one(MateriaList).highlighted_materia
         if materia is not None:
-            self.push_screen(
-                ConfirmStart(atividade, materia.nome), self.on_start_answered
-            )
+            self.start_prova(atividade, materia)
 
-    def on_start_answered(self, confirmed: bool | None) -> None:
-        if confirmed:
-            self.notify(START_NOT_CAPTURED, severity="warning")
+    async def started(self, atividades: list[Atividade]) -> dict[int, datetime]:
+        started: dict[int, datetime] = {}
+        for atividade in atividades:
+            moment = await self._prova_source.started_at(atividade)
+            if moment is not None:
+                started[atividade.id] = moment
+        return started
+
+    @work
+    async def start_prova(self, atividade: Atividade, materia: Materia) -> None:
+        if await self._prova_source.started_at(atividade) is None:
+            if not await self.push_screen_wait(ConfirmStart(atividade, materia.nome)):
+                return
+        try:
+            prova = await self._prova_source.fetch(atividade)
+        except (OSError, ValidationError) as error:
+            self.notify(PROVA_UNAVAILABLE.format(reason=error), severity="error")
+            return
+        await self.push_screen_wait(
+            ProvaScreen(atividade, materia.nome, prova, self._prova_source)
+        )
+        await self.show_materia(materia)
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
         if self.debug_mode:
@@ -330,6 +350,7 @@ class UninterApp(App[None]):
         materia = self.query_one(MateriaList).highlighted_materia
         if materia is not None and self.active_collection == TRABALHOS:
             self.fetch_missing_trabalhos(materia)
+        self.query_one(MateriaList).show_collection(self.active_collection)
         self.refresh_loading()
         if self.debug_mode:
             await self.show_debug(materia)
@@ -540,6 +561,7 @@ class UninterApp(App[None]):
     async def redraw_materia(self, materia: Materia) -> None:
         materia_list = self.query_one(MateriaList)
         materia_list.redraw(materia.id)
+        materia_list.refresh_bindings()
         highlighted_materia = materia_list.highlighted_materia
         if highlighted_materia is not None and highlighted_materia.id == materia.id:
             await self.show_materia(materia)

@@ -1,6 +1,8 @@
 from collections.abc import Callable, Generator, Iterator
 from contextlib import contextmanager
+from datetime import datetime
 
+from api.capturas.entity import ATIVIDADES, TRABALHOS
 from api.materias.aggregate import MateriaAggregate, Situacao, aggregate_materias
 from api.materias.entity import Materia
 from rich.table import Table
@@ -12,6 +14,7 @@ from textual.widgets.option_list import Option, OptionDoesNotExist
 from ..format import short_periodo
 
 PENDING_MARK = "●"
+FETCH = "buscar no AVA"
 SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 INTERVAL = 0.08
 TITLES = {
@@ -24,6 +27,12 @@ TITLES = {
 
 def index_by_id(materias: list[Materia]) -> dict[str, Materia]:
     return {str(materia.id): materia for materia in materias}
+
+
+def synced_at(materia: Materia, collection: str) -> datetime | None:
+    if collection == TRABALHOS:
+        return materia.trabalhos_sincronizados_em
+    return materia.atividades_sincronizadas_em
 
 
 def _row(materia: Materia, mark: str) -> Table:
@@ -59,14 +68,37 @@ def build_options(
 
 
 class MateriaList(OptionList):
-    BINDINGS = [Binding("right", "app.focus_pane", "atividades", show=False)]
+    BINDINGS = [
+        Binding("right", "app.focus_pane", "atividades", show=False),
+        Binding("enter", "select", FETCH),
+    ]
 
     def __init__(self) -> None:
         super().__init__()
         self._materias: dict[str, Materia] = {}
+        self._collection = ATIVIDADES
         self._syncing: int | None = None
         self._frame = 0
         self._animation: Timer | None = None
+
+    def show_collection(self, collection: str) -> None:
+        self._collection = collection
+        self.refresh_bindings()
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "select":
+            return self.awaiting_fetch
+        return True
+
+    @property
+    def awaiting_fetch(self) -> bool:
+        materia = self.highlighted_materia
+        return materia is not None and synced_at(materia, self._collection) is None
+
+    def on_option_list_option_highlighted(
+        self, event: OptionList.OptionHighlighted
+    ) -> None:
+        self.refresh_bindings()
 
     def show(self, materias: list[Materia]) -> None:
         with self._keeping_focus():

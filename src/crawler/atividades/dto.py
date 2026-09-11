@@ -1,8 +1,10 @@
+from collections.abc import Mapping
 from datetime import datetime
 
 from pydantic import Field
 
 from api.atividades.entity import Atividade
+from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 from crawler.dto import AvaDTO
 
 
@@ -56,3 +58,57 @@ class AtividadesDTO(AvaDTO):
     atividades: list[AtividadeDTO] = Field(
         default_factory=list[AtividadeDTO], alias="avaliacaoUsuarios"
     )
+
+
+class AtributoDTO(AvaDTO):
+    valor: str = ""
+
+
+class AlternativaDTO(AvaDTO):
+    id: int
+    ativa: bool = True
+    atributos: list[AtributoDTO] = Field(
+        default_factory=list[AtributoDTO], alias="questaoAlternativaAtributos"
+    )
+
+    def to_alternativa(self, letra: str) -> Alternativa:
+        return Alternativa(
+            id=self.id,
+            letra=letra,
+            texto=self.atributos[0].valor if self.atributos else "",
+        )
+
+
+class QuestaoDTO(AvaDTO):
+    id: int
+    ordem: int
+    questao: str = ""
+    comando: str = ""
+    alternativas: list[AlternativaDTO] = Field(default_factory=list[AlternativaDTO])
+
+    def to_questao(self) -> Questao:
+        ativas = [alternativa for alternativa in self.alternativas if alternativa.ativa]
+        return Questao(
+            id=self.id,
+            ordem=self.ordem,
+            enunciado=self.questao,
+            comando=self.comando,
+            alternativas=tuple(
+                alternativa.to_alternativa(LETTERS[position])
+                for position, alternativa in enumerate(ativas)
+            ),
+        )
+
+
+class QuestoesDTO(AvaDTO):
+    questoes: list[QuestaoDTO] = Field(
+        default_factory=list[QuestaoDTO], alias="avaliacaoUsuarioHistoricos"
+    )
+
+    def to_prova(self, atividade_id: int, respostas: Mapping[int, int]) -> Prova:
+        ordenadas = sorted(self.questoes, key=lambda questao: questao.ordem)
+        return Prova(
+            atividade_id=atividade_id,
+            questoes=tuple(questao.to_questao() for questao in ordenadas),
+            respostas=dict(respostas),
+        )

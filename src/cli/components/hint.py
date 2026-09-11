@@ -1,6 +1,6 @@
 from textual.widgets import Static
 
-NEVER_SYNCED = "[dim]⏎ para buscar no AVA[/dim]"
+NEVER_SYNCED = "[dim]Esta matéria nunca foi sincronizada.[/dim]"
 
 
 class Hint(Static):

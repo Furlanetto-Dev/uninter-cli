@@ -1,10 +1,12 @@
 from api.atividades.entity import Atividade
 from rich.markup import escape
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Static
 
+from ..components.footer import Footer
 from ..format import html_to_text
 
 TITLE = "Orientações para realização da avaliação."
@@ -15,6 +17,7 @@ UNLIMITED = "ilimitado (enquanto a avaliação estiver vigente)"
 QUESTION = "Deseja iniciar a prova agora?"
 YES = "Sim"
 NO = "Não"
+CHOOSE = "escolher"
 YES_ID = "start-yes"
 NO_ID = "start-no"
 
@@ -37,11 +40,15 @@ def build_text(atividade: Atividade, materia_nome: str) -> str:
     )
 
 
+class Answer(Button):
+    BINDINGS = [Binding("enter", "press", CHOOSE)]
+
+
 class ConfirmStart(ModalScreen[bool]):
     BINDINGS = [
-        ("escape", "cancel", "não"),
-        ("left", "focus_previous", "resposta anterior"),
-        ("right", "focus_next", "próxima resposta"),
+        Binding("escape", "cancel", "não"),
+        Binding("left", "focus_previous", "resposta anterior", show=False),
+        Binding("right", "focus_next", "próxima resposta", show=False),
     ]
     AUTO_FOCUS = f"#{YES_ID}"
 
@@ -54,8 +61,9 @@ class ConfirmStart(ModalScreen[bool]):
         with Vertical(id="start-confirmation"):
             yield Static(build_text(self._atividade, self._materia_nome))
             with Horizontal(id="start-answers"):
-                yield Button(NO, id=NO_ID)
-                yield Button(YES, id=YES_ID)
+                yield Answer(NO, id=NO_ID)
+                yield Answer(YES, id=YES_ID)
+        yield Footer()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == YES_ID)

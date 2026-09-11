@@ -1,4 +1,5 @@
-from datetime import datetime
+from collections.abc import Mapping
+from datetime import datetime, timedelta
 from typing import NamedTuple
 
 from api.atividades.entity import Atividade
@@ -7,11 +8,12 @@ from rich.text import Text
 from textual import events
 from textual.binding import Binding
 from textual.message import Message
+from textual.timer import Timer
 from textual.widgets import Static, Tree
 from textual.widgets.tree import TreeNode
 
-from ..format import format_deadline, format_number, is_overdue
-from ..navigation.steps import step_left, step_right
+from ..format import format_deadline, format_elapsed, format_number, is_overdue
+from ..components.steps import step_left, step_right
 from .groups import APOL, OUTRAS, PROVAS, group_atividades, group_of
 from .media import PASSING_GRADE
 
@@ -24,6 +26,7 @@ COLUMNS = (
     "Peso",
     "Contribuição",
     "Prazo",
+    "Tempo",
 )
 GAP = "  "
 LEAF_INDENT = 4
@@ -34,12 +37,15 @@ PESO_WIDTH = 4
 CONTRIB_WIDTH = 12
 PRAZO_WIDTH = 8
 TENTATIVA_WIDTH = 9
+TEMPO_WIDTH = 7
+TICK = 1.0
 PRESENCIAL_TAG = " presencial"
 PRESENCIAL_STYLE = "magenta"
 EXPANDED_BY_DEFAULT = {APOL: True, PROVAS: True, OUTRAS: False}
 FIXED_WIDTH = (
     LEAF_INDENT
-    + 6 * len(GAP)
+    + 7 * len(GAP)
+    + TEMPO_WIDTH
     + TENTATIVA_WIDTH
     + NOTA_WIDTH
     + PESO_WIDTH
@@ -84,6 +90,7 @@ def header_text(widths: Widths) -> Text:
                 COLUMNS[4].rjust(PESO_WIDTH),
                 COLUMNS[5].rjust(CONTRIB_WIDTH),
                 COLUMNS[6].rjust(PRAZO_WIDTH),
+                COLUMNS[7].rjust(TEMPO_WIDTH),
             )
         ),
         style="dim",
@@ -112,7 +119,16 @@ def _attempt(atividade: Atividade) -> str:
     return f"{atividade.tentativa}/{atividade.tentativa_total}"
 
 
-def leaf_label(atividade: Atividade, now: datetime, widths: Widths) -> Text:
+def _elapsed_text(elapsed: timedelta | None) -> str:
+    return (format_elapsed(elapsed) if elapsed is not None else "").rjust(TEMPO_WIDTH)
+
+
+def leaf_label(
+    atividade: Atividade,
+    now: datetime,
+    widths: Widths,
+    elapsed: timedelta | None = None,
+) -> Text:
     colour = "green" if atividade.realizada else "dim"
     return Text.assemble(
         _nome(atividade, widths.nome),
@@ -128,6 +144,8 @@ def leaf_label(atividade: Atividade, now: datetime, widths: Widths) -> Text:
         format_number(atividade.contribuicao).rjust(CONTRIB_WIDTH),
         GAP,
         _deadline(atividade, now),
+        GAP,
+        _elapsed_text(elapsed),
     )
 
 
@@ -163,7 +181,7 @@ class AtividadeTree(Tree[Atividade]):
     BINDINGS = [
         Binding("left", "step_left", "materias", show=False),
         Binding("right", "step_right", "debug", show=False),
-        Binding("escape", "app.focus_materias", "back"),
+        Binding("escape", "app.focus_materias", "voltar"),
     ]
 
     class Selected(Message):
@@ -192,6 +210,8 @@ class AtividadeTree(Tree[Atividade]):
         self._leaves: dict[int, TreeNode[Atividade]] = {}
         self._groups: dict[str, TreeNode[Atividade]] = {}
         self._expanded = dict(EXPANDED_BY_DEFAULT)
+        self._started: Mapping[int, datetime] = {}
+        self._clock: Timer | None = None
 
     async def action_step_left(self) -> None:
         await step_left(self, "app.focus_materias")
@@ -220,16 +240,22 @@ class AtividadeTree(Tree[Atividade]):
                 self._expanded[title] = expanded
 
     def show(
-        self, atividades: list[Atividade], now: datetime, selected_id: int | None
+        self,
+        atividades: list[Atividade],
+        now: datetime,
+        selected_id: int | None,
+        started: Mapping[int, datetime] | None = None,
     ) -> None:
         self._atividades = atividades
         self._now = now
+        self._started = started or {}
         materia_id = atividades[0].materia_id if atividades else None
         if materia_id != self._materia_id:
             self._materia_id = materia_id
             self._expanded[OUTRAS] = needs_outras(atividades, now)
         self._rebuild()
         self.select(selected_id)
+        self._follow_clock()
 
     def on_resize(self, event: events.Resize) -> None:
         if widths_for(self._atividades, self.size.width) == self.widths:
@@ -259,9 +285,33 @@ class AtividadeTree(Tree[Atividade]):
             )
             self._groups[group.title] = node
             for atividade in group.atividades:
-                label = leaf_label(atividade, self._now, self.widths)
+                label = leaf_label(
+                    atividade, self._now, self.widths, self._elapsed(atividade)
+                )
                 self._leaves[atividade.id] = node.add_leaf(label, data=atividade)
         self.post_message(self.Refit(self.widths))
+
+    def _elapsed(self, atividade: Atividade) -> timedelta | None:
+        started = self._started.get(atividade.id)
+        return datetime.now() - started if started is not None else None
+
+    def _follow_clock(self) -> None:
+        running = any(atividade_id in self._leaves for atividade_id in self._started)
+        if running and self._clock is None:
+            self._clock = self.set_interval(TICK, self._tick)
+        elif not running and self._clock is not None:
+            self._clock.stop()
+            self._clock = None
+
+    def _tick(self) -> None:
+        for atividade_id in self._started:
+            node = self._leaves.get(atividade_id)
+            if node is not None and node.data is not None:
+                node.set_label(
+                    leaf_label(
+                        node.data, self._now, self.widths, self._elapsed(node.data)
+                    )
+                )
 
     @property
     def has_atividades(self) -> bool:
