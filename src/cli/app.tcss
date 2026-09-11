@@ -61,8 +61,27 @@ Screen.-debug DebugPanel {
     margin-top: 1;
 }
 
-Screen.-debug.-short #collections {
-    display: none;
+Screen.-debug.-short #detail {
+    padding: 0 2;
+}
+
+Screen.-debug.-short MateriaHeader {
+    margin-bottom: 0;
+}
+
+Screen.-debug.-short AtividadeTree,
+Screen.-debug.-short TrabalhoTable {
+    max-height: 6;
+}
+
+Screen.-debug.-short DebugPanel {
+    margin-top: 0;
+}
+
+Screen.-debug.-short #debug-meta {
+    margin-bottom: 0;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
 }
 
 #debug-meta {
