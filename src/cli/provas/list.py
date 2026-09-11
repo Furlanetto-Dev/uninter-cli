@@ -5,6 +5,7 @@ from textual.message import Message
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
+from ..components.sidebar import Sidebar
 from ..format import html_to_text
 
 ANSWERED = "●"
@@ -60,7 +61,7 @@ def title_row(total: int) -> Option:
     return Option(f"[dim]{TITLE} ({total})[/dim]", disabled=True)
 
 
-class QuestaoList(OptionList):
+class QuestaoList(Sidebar):
     BINDINGS = [
         Binding("right", "enter_questao", "alternativas", show=False),
         Binding("enter", "enter_questao", "alternativas", show=False),

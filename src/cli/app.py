@@ -22,7 +22,7 @@ from pydantic import ValidationError
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Header, OptionList, TabbedContent, TabPane, Tabs
@@ -35,6 +35,7 @@ from .commands.reset import ConfirmReset
 from .components.footer import Footer
 from .components.hint import NEVER_SYNCED, Hint
 from .components.loading import Loading
+from .components.pane import DetailPane
 from .debug.panel import DebugColumn, DebugPanel, FieldsTable, RawColumn
 from .materias.header import MateriaHeader
 from .materias.list import MateriaList, synced_at
@@ -115,7 +116,7 @@ class UninterApp(App[None]):
         yield Header()
         with Horizontal():
             yield MateriaList()
-            with Vertical(id="detail"):
+            with DetailPane(id="detail"):
                 yield MateriaHeader()
                 with TabbedContent(id="collections"):
                     with TabPane("1 Atividades", id=ATIVIDADES):

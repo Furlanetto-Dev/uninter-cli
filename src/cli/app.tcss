@@ -2,20 +2,6 @@ Screen {
     layers: base;
 }
 
-MateriaList {
-    width: 44;
-    height: 1fr;
-    border: none;
-    border-right: solid $panel;
-    padding: 1 1;
-    background: $surface;
-}
-
-#detail {
-    height: 1fr;
-    padding: 1 2;
-}
-
 MateriaHeader {
     margin-bottom: 1;
 }
@@ -157,20 +143,6 @@ ConfirmStart {
     border: round $foreground;
     background-tint: transparent;
     text-style: none;
-}
-
-#prova-questoes {
-    width: 44;
-    height: 1fr;
-    border: none;
-    border-right: solid $panel;
-    padding: 1 1;
-    background: $surface;
-}
-
-#prova-detail {
-    height: 1fr;
-    padding: 1 2;
 }
 
 #prova-header {

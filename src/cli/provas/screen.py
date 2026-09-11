@@ -6,7 +6,7 @@ from crawler.atividades.prova import ProvaSource
 from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Header, Static
 from textual.widgets.option_list import Option
@@ -20,6 +20,7 @@ from .list import (
     summary_row,
 )
 from ..components.footer import Footer
+from ..components.pane import DetailPane
 from ..format import format_elapsed
 
 MOCK_TAG = "[magenta]mock[/magenta]"
@@ -82,7 +83,7 @@ class ProvaScreen(Screen[None]):
         yield Header()
         with Horizontal():
             yield QuestaoList(id="prova-questoes")
-            with Vertical(id="prova-detail"):
+            with DetailPane():
                 yield Static(id="prova-header")
                 with VerticalScroll(id="prova-body", can_focus=False):
                     yield Static(id="prova-text")
