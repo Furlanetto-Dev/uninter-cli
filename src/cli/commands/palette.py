@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 
-from ..debug import command as debug
+from . import debug
 
 RESET = "Invalidate cache"
 RESET_HELP = "Deletes all cache"
@@ -17,13 +17,14 @@ class AppCommands(Provider):
         app = self.app
         if not isinstance(app, UninterApp):
             return []
+        page = app.page
         return [
             (RESET, RESET_HELP, app.action_reset),
             (RELOAD, RELOAD_HELP, app.sync_materias),
             (
-                debug.label(app.debug_mode),
-                debug.description(app.debug_mode),
-                app.toggle_debug,
+                debug.label(page.debug_mode),
+                debug.description(page.debug_mode),
+                page.toggle_debug,
             ),
         ]
 

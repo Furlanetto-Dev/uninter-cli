@@ -5,8 +5,8 @@ from textual.message import Message
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
-from ..components.sidebar import Sidebar
-from ..format import html_to_text
+from cli.components.sidebar import Sidebar
+from cli.format import html_to_text
 
 ANSWERED = "●"
 UNANSWERED = "○"
@@ -65,6 +65,7 @@ class QuestaoList(Sidebar):
     BINDINGS = [
         Binding("right", "enter_questao", "alternativas", show=False),
         Binding("enter", "enter_questao", "alternativas", show=False),
+        Binding("space", "enter_questao", "alternativas", show=False),
     ]
 
     class Moved(Message):
@@ -105,12 +106,21 @@ class QuestaoList(Sidebar):
 
 class AlternativaList(OptionList):
     BINDINGS = [
-        Binding("left", "back", "questões", show=False),
-        Binding("escape", "back", "questões"),
+        Binding("left", "back", "voltar", show=False),
+        Binding("escape", "back", "voltar"),
+        Binding("right", "forward", "próxima questão"),
+        Binding("enter", "select", "responder"),
+        Binding("space", "select", "responder", show=False),
     ]
 
     class Back(Message):
         pass
 
+    class Forward(Message):
+        pass
+
     def action_back(self) -> None:
         self.post_message(self.Back())
+
+    def action_forward(self) -> None:
+        self.post_message(self.Forward())

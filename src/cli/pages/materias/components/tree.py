@@ -12,8 +12,8 @@ from textual.timer import Timer
 from textual.widgets import Static, Tree
 from textual.widgets.tree import TreeNode
 
-from ..format import format_deadline, format_elapsed, format_number, is_overdue
-from ..components.steps import step_left, step_right
+from cli.components.steps import step_left, step_right
+from cli.format import format_deadline, format_elapsed, format_number, is_overdue
 from .groups import APOL, OUTRAS, PROVAS, group_atividades, group_of
 from .media import PASSING_GRADE
 
@@ -181,7 +181,7 @@ class AtividadeTree(Tree[Atividade]):
     BINDINGS = [
         Binding("left", "step_left", "materias", show=False),
         Binding("right", "step_right", "debug", show=False),
-        Binding("escape", "app.focus_materias", "voltar"),
+        Binding("escape", "screen.focus_materias", "voltar"),
     ]
 
     class Selected(Message):
@@ -214,10 +214,10 @@ class AtividadeTree(Tree[Atividade]):
         self._clock: Timer | None = None
 
     async def action_step_left(self) -> None:
-        await step_left(self, "app.focus_materias")
+        await step_left(self, "screen.focus_materias")
 
     async def action_step_right(self) -> None:
-        await step_right(self, "app.focus_debug")
+        await step_right(self, "screen.focus_debug")
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[Atividade]) -> None:
         event.stop()

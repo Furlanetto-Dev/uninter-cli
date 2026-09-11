@@ -7,8 +7,8 @@ from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets.data_table import RowKey
 
-from ..format import format_deadline, format_number, is_overdue
-from ..components.steps import step_left, step_right
+from cli.components.steps import step_left, step_right
+from cli.format import format_deadline, format_number, is_overdue
 
 NO_TRABALHOS = "[yellow]Esta matéria não tem trabalhos no AVA.[/yellow]"
 COLUMNS = ("Trabalho", "Entrega", "Nota", "Situação", "Prazo")
@@ -54,7 +54,7 @@ class TrabalhoTable(DataTable[Text]):
     BINDINGS = [
         Binding("left", "step_left", "materias", show=False),
         Binding("right", "step_right", "debug", show=False),
-        Binding("escape", "app.focus_materias", "voltar"),
+        Binding("escape", "screen.focus_materias", "voltar"),
     ]
 
     class Selected(Message):
@@ -92,10 +92,10 @@ class TrabalhoTable(DataTable[Text]):
         self.show_cursor = False
 
     async def action_step_left(self) -> None:
-        await step_left(self, "app.focus_materias")
+        await step_left(self, "screen.focus_materias")
 
     async def action_step_right(self) -> None:
-        await step_right(self, "app.focus_debug")
+        await step_right(self, "screen.focus_debug")
 
     def show(self, trabalhos: list[Trabalho], now: datetime) -> None:
         self._trabalhos = {str(trabalho.id): trabalho for trabalho in trabalhos}

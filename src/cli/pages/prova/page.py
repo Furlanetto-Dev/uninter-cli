@@ -11,17 +11,17 @@ from textual.screen import Screen
 from textual.widgets import Header, Static
 from textual.widgets.option_list import Option
 
-from .html import html_to_markup
-from .list import (
+from .components.html import html_to_markup
+from .components.questoes import (
     AlternativaList,
     QuestaoList,
     answered_mark,
     questao_row,
     summary_row,
 )
-from ..components.footer import Footer
-from ..components.pane import DetailPane
-from ..format import format_elapsed
+from cli.components.footer import Footer
+from cli.components.pane import DetailPane
+from cli.format import format_elapsed
 
 MOCK_TAG = "[magenta]mock[/magenta]"
 SUMMARY_TITLE = "prova finalizada"
@@ -32,7 +32,6 @@ UNANSWERED_LABEL = "não respondida"
 SEPARATOR = " · "
 PICK_KEYS = LETTERS[:8]
 JUMP_KEYS = "1234567890"
-SHADOWED = ("q", "r", "j")
 TICK = 1.0
 
 
@@ -52,15 +51,12 @@ def questao_markup(questao: Questao) -> str:
     )
 
 
-class ProvaScreen(Screen[None]):
+class ProvaPage(Screen[None]):
     AUTO_FOCUS = "#prova-questoes"
     BINDINGS = [
-        Binding("escape", "leave", "sair"),
-        Binding("pageup", "scroll_body(-1)", "rolar", priority=True),
-        Binding("pagedown", "scroll_body(1)", "rolar", priority=True, show=False),
+        Binding("escape", "leave", "voltar"),
         *[Binding(letra, f"pick('{letra}')", letra, show=False) for letra in PICK_KEYS],
         *[Binding(key, f"jump('{key}')", key, show=False) for key in JUMP_KEYS],
-        *[Binding(key, "nothing", "", show=False) for key in SHADOWED],
     ]
 
     def __init__(
@@ -208,6 +204,14 @@ class ProvaScreen(Screen[None]):
     def on_alternativa_list_back(self, event: AlternativaList.Back) -> None:
         self.query_one(QuestaoList).focus()
 
+    def on_alternativa_list_forward(self, event: AlternativaList.Forward) -> None:
+        target = self._page + 1
+        self.query_one(QuestaoList).select(target)
+        if target < len(self.questoes):
+            self.query_one(AlternativaList).focus()
+        else:
+            self.query_one(QuestaoList).focus()
+
     async def on_option_list_option_selected(
         self, event: AlternativaList.OptionSelected
     ) -> None:
@@ -226,15 +230,5 @@ class ProvaScreen(Screen[None]):
         if position < len(self.questoes):
             self.query_one(QuestaoList).select(position)
 
-    def action_scroll_body(self, direction: int) -> None:
-        body = self.query_one("#prova-body", VerticalScroll)
-        if direction > 0:
-            body.scroll_page_down()
-        else:
-            body.scroll_page_up()
-
     def action_leave(self) -> None:
         self.dismiss()
-
-    def action_nothing(self) -> None:
-        pass

@@ -1,7 +1,7 @@
 from api.atividades.media import Media
 from textual.widgets import Static
 
-from ..format import format_number
+from cli.format import format_number
 
 # The AVA publishes these cut-offs under "Critérios de aprovação (período Regular)",
 # and its table jumps from "até 66" to "de 70": we close the exam band at 69.

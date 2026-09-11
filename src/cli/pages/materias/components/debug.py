@@ -14,7 +14,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.message import Message
 from textual.widgets import DataTable, Static
 
-from ..components.steps import step_left, step_right, step_up
+from cli.components.steps import step_left, step_right, step_up
 
 NO_CAPTURA = "sem resposta gravada · r para buscar"
 NOT_IN_LIST = "matéria não está na última lista do AVA"
@@ -111,7 +111,7 @@ def meta_text(
 class DebugColumn(VerticalScroll):
     BINDINGS = [
         Binding("ctrl+c", "copy", "copiar"),
-        Binding("escape", "app.focus_pane", "voltar"),
+        Binding("escape", "screen.focus_pane", "voltar"),
     ]
 
     def __init__(self, id: str) -> None:
@@ -151,13 +151,13 @@ class RawColumn(DebugColumn):
         yield Static()
 
     async def action_step_up(self) -> None:
-        await step_up(self, "app.focus_pane")
+        await step_up(self, "screen.focus_pane")
 
     async def action_step_left(self) -> None:
-        await step_left(self, "app.focus_pane")
+        await step_left(self, "screen.focus_pane")
 
     async def action_step_right(self) -> None:
-        await step_right(self, "app.focus_stored")
+        await step_right(self, "screen.focus_stored")
 
     def show(self, view: View) -> None:
         self.query_one(Static).update(view.renderable)
@@ -167,7 +167,7 @@ class RawColumn(DebugColumn):
 class FieldsTable(DataTable[str]):
     BINDINGS = [
         Binding("ctrl+c", "copy", "copiar"),
-        Binding("escape", "app.focus_pane", "voltar"),
+        Binding("escape", "screen.focus_pane", "voltar"),
         Binding("left", "step_left", "ava", show=False),
         Binding("right", "step_right", "", show=False),
         Binding("up", "step_up", "atividades", show=False),
@@ -181,10 +181,10 @@ class FieldsTable(DataTable[str]):
         if self.cursor_row > 0:
             self.action_cursor_up()
         else:
-            await self.run_action("app.focus_pane")
+            await self.run_action("screen.focus_pane")
 
     async def action_step_left(self) -> None:
-        await step_left(self, "app.focus_raw")
+        await step_left(self, "screen.focus_raw")
 
     async def action_step_right(self) -> None:
         await step_right(self, None)

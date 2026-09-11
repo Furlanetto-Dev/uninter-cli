@@ -11,8 +11,8 @@ from textual.timer import Timer
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
-from ..components.sidebar import Sidebar
-from ..format import short_periodo
+from cli.components.sidebar import Sidebar
+from cli.format import short_periodo
 
 PENDING_MARK = "●"
 FETCH = "buscar no AVA"
@@ -70,7 +70,7 @@ def build_options(
 
 class MateriaList(Sidebar):
     BINDINGS = [
-        Binding("right", "app.focus_pane", "atividades", show=False),
+        Binding("right", "screen.focus_pane", "atividades", show=False),
         Binding("enter", "select", FETCH),
     ]
 

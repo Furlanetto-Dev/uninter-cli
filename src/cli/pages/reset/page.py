@@ -3,7 +3,7 @@ from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
-from ..components.footer import Footer
+from cli.components.footer import Footer
 
 PROMPT = (
     "[bold]Apagar o banco?[/bold]\n\n"

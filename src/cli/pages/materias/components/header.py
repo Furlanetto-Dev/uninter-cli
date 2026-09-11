@@ -3,7 +3,7 @@ from datetime import datetime
 from api.materias.entity import Materia
 from textual.widgets import Static
 
-from ..format import humanize_age, short_periodo
+from cli.format import humanize_age, short_periodo
 
 
 class MateriaHeader(Static):
