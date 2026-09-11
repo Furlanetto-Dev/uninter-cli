@@ -13,7 +13,7 @@ created_at: 2026-09-11
 - The two marks go with them: `●` and `○`, whose meaning today depends on which module you open.
 - `format.py` gains the prazo rule that `atividades/tree.py` and `trabalhos/table.py` each implement: dim once done, `PROBLEM` once late and still undone.
 - `atividades/media.py` keeps its literals — there the colour is the datum, not a state.
-- Shapes are [0016](0016-cli-components.md)'s subject; a component there takes its colours from here.
+- Shapes are [0016](../done/0016-cli-components.md)'s subject; a component there takes its colours from here.
 
 The colours agree with each other by luck rather than by construction: green means done in three modules that never met, and yellow means four different things. [0015](../done/0015-atividade-completion.md)'s prova screen picked its own before settling on the app's, and `provas/list.py` has already given up and defined `ANSWERED_STYLE` locally — the need for a name is felt, one module at a time. Context in [CONTEXT.md](../../CONTEXT.md).
 

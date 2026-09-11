@@ -2,7 +2,7 @@
 name: cli-components
 description: `cli/components/` collects the widgets no screen owns, with "imports nothing from api" as the membership test, and eight shapes that exist twice each become one module, one subspec apiece. Read before writing a screen, copying a widget out of another module, or adding a file under cli/.
 projects: [frontend]
-status: awaiting-review
+status: done
 created_at: 2026-09-11
 ---
 
@@ -11,9 +11,9 @@ created_at: 2026-09-11
 ## TL;DR
 - `src/cli/components/` holds the widgets no screen owns. A module there imports nothing from `api`, and that is the whole membership test.
 - `navigation/steps.py`, `animations/loading.py` and `hint.py` move in as they are; the two one-file directories go.
-- Eight shapes that already exist twice become one module each, a subspec apiece: [0016.1](0016.1-footer-from-bindings.md) to [0016.8](0016.8-empty-state.md).
+- Eight shapes that already exist twice become one module each, a subspec apiece: [0016.1](0016.1-footer-from-bindings.md) to [0016.8](../pending/0016.8-empty-state.md).
 - A screen picks from `components/` before inventing a widget, and a shape earns a module on its second caller, never its first.
-- Nothing changes on screen except where [0016.5](0016.5-confirmation-modal.md) says so: the four screens are rendered headless before and after and compared.
+- Nothing changes on screen except where [0016.5](../pending/0016.5-confirmation-modal.md) says so: the four screens are rendered headless before and after and compared.
 
 [0015](../done/0015-atividade-completion.md)'s prova screen was drawn three times before it looked like this app, because there was nothing to copy from except whichever module happened to be open — and then it copied the sidebar by pasting six CSS declarations. Context in [CONTEXT.md](../../CONTEXT.md); the layers in [0003](../done/0003-crawler-api-cli-layers.md).
 
@@ -39,9 +39,9 @@ A module under `src/cli/components/` may import Textual, Rich and `cli/format.py
 One caller is a guess at the next screen; two is evidence. The eight below each have two today. A ninth is added when something needs it twice, not when it looks reusable.
 
 ### The migration is behaviour-free, and the exception is named
-Matérias, atividades, trabalhos, the debug panel and the prova are rendered headless before and after and compared line by line; a difference is a bug in the migration. [0016.5](0016.5-confirmation-modal.md) is the one subspec that changes what the user sees, on purpose, and says so.
+Matérias, atividades, trabalhos, the debug panel and the prova are rendered headless before and after and compared line by line; a difference is a bug in the migration. [0016.5](../pending/0016.5-confirmation-modal.md) is the one subspec that changes what the user sees, on purpose, and says so.
 
-### Colours and marks are [0017](0017-interface-meanings.md)'s subject
+### Colours and marks are [0017](../pending/0017-interface-meanings.md)'s subject
 This spec moves shapes. A component that needs a colour takes the name from `cli/style.py`, which 0017 creates; neither spec blocks the other.
 
 ## Rejected
@@ -51,6 +51,6 @@ This spec moves shapes. A component that needs a colour takes the name from `cli
 - **A ninth subspec for the two spinners.** `Loading`'s wave and `MateriaList`'s frames are one caller each and different shapes; they move as they are.
 
 ## What execution corrected
-- The six views render byte-identically before and after the move, so the directory and the three relocations cost nothing on screen. The comparison ran from a throwaway headless harness: the repo still has no home for it, which is [0002](0002-testing-strategy.md)'s subject.
+- The six views render byte-identically before and after the move, so the directory and the three relocations cost nothing on screen. The comparison ran from a throwaway headless harness: the repo still has no home for it, which is [0002](../pending/0002-testing-strategy.md)'s subject.
 - `synced_at` left `app.py` for `materias/list.py`, which [0016.1](0016.1-footer-from-bindings.md) needed and this spec did not foresee. It is a matéria rule, not an app one, and `app.py` now imports it back.
 - Only the seven remaining subspecs are left; nothing here changed what they say.
