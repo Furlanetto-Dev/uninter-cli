@@ -11,20 +11,20 @@ created_at: 2026-09-11
 ## TL;DR
 - `cli/style.py` holds six names — `MUTED`, `DONE`, `NOTICE`, `PROBLEM`, `TAG`, `WORKING` — each a Rich style with one line saying what it marks. Modules write `DONE`, never `"green"`.
 - The two marks go with them: `●` and `○`, whose meaning today depends on which module you open.
-- `format.py` gains the prazo rule that `atividades/tree.py` and `trabalhos/table.py` each implement: dim once done, `PROBLEM` once late and still undone.
-- `atividades/media.py` keeps its literals — there the colour is the datum, not a state.
+- `format.py` gains the prazo rule that `pages/materias/components/tree.py` and `pages/materias/components/table.py` each implement: dim once done, `PROBLEM` once late and still undone.
+- `pages/materias/components/media.py` keeps its literals — there the colour is the datum, not a state.
 - Shapes are [0016](../done/0016-cli-components.md)'s subject; a component there takes its colours from here.
 
-The colours agree with each other by luck rather than by construction: green means done in three modules that never met, and yellow means four different things. [0015](../done/0015-atividade-completion.md)'s prova screen picked its own before settling on the app's, and `provas/list.py` has already given up and defined `ANSWERED_STYLE` locally — the need for a name is felt, one module at a time. Context in [CONTEXT.md](../../CONTEXT.md).
+The colours agree with each other by luck rather than by construction: green means done in three modules that never met, and yellow means four different things. [0015](../done/0015-atividade-completion.md)'s prova screen picked its own before settling on the app's, and `pages/prova/components/questoes.py` has already given up and defined `ANSWERED_STYLE` locally — the need for a name is felt, one module at a time. Context in [CONTEXT.md](../../CONTEXT.md).
 
 ## Observed behaviour
 Counted over `src/cli` today: 59 opening colour literals in 12 of the 21 modules.
 - `dim` 37, `yellow` 7, `red` 6, `green` 6, `magenta` 2, `cyan` 1.
-- Green marks a realizada in `atividades/tree.py`, an aprovado in `trabalhos/table.py` and an answered questão in `provas/list.py` — three modules, one meaning, no shared name.
+- Green marks a realizada in `pages/materias/components/tree.py`, an aprovado in `pages/materias/components/table.py` and an answered questão in `pages/prova/components/questoes.py` — three modules, one meaning, no shared name.
 - Yellow marks an empty collection in three modules, an open trabalho in a fourth, the prova's warning in a fifth, and the exam band in `media.py`. Five of those are one meaning; the sixth is a number.
 - Red marks a prazo that passed with the work undone, a reprovado, and a 4xx body in the debug panel.
-- `●` is the pending mark in `materias/list.py` and the answered mark in `provas/list.py`; `○` is the unanswered one. The glyph is shared, the meaning is carried by a colour chosen locally.
-- `atividades/tree.py::_deadline` and `trabalhos/table.py::_deadline` implement the same rule with different return types.
+- `●` is the pending mark in `pages/materias/components/list.py` and the answered mark in `pages/prova/components/questoes.py`; `○` is the unanswered one. The glyph is shared, the meaning is carried by a colour chosen locally.
+- `pages/materias/components/tree.py::_deadline` and `pages/materias/components/table.py::_deadline` implement the same rule with different return types.
 
 ## Decisions
 
