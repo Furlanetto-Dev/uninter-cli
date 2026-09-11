@@ -15,7 +15,7 @@ created_at: 2026-09-11
 - `atividades/media.py` keeps its literals — there the colour is the datum, not a state.
 - Shapes are [0016](0016-cli-components.md)'s subject; a component there takes its colours from here.
 
-The colours agree with each other by luck rather than by construction: green means done in three modules that never met, and yellow means four different things. [0015](0015-atividade-completion.md)'s prova screen picked its own before settling on the app's, and `provas/list.py` has already given up and defined `ANSWERED_STYLE` locally — the need for a name is felt, one module at a time. Context in [CONTEXT.md](../../CONTEXT.md).
+The colours agree with each other by luck rather than by construction: green means done in three modules that never met, and yellow means four different things. [0015](../done/0015-atividade-completion.md)'s prova screen picked its own before settling on the app's, and `provas/list.py` has already given up and defined `ANSWERED_STYLE` locally — the need for a name is felt, one module at a time. Context in [CONTEXT.md](../../CONTEXT.md).
 
 ## Observed behaviour
 Counted over `src/cli` today: 59 opening colour literals in 12 of the 21 modules.

@@ -2,7 +2,7 @@
 name: cli-components
 description: `cli/components/` collects the widgets no screen owns, with "imports nothing from api" as the membership test, and eight shapes that exist twice each become one module, one subspec apiece. Read before writing a screen, copying a widget out of another module, or adding a file under cli/.
 projects: [frontend]
-status: pending
+status: awaiting-review
 created_at: 2026-09-11
 ---
 
@@ -15,7 +15,7 @@ created_at: 2026-09-11
 - A screen picks from `components/` before inventing a widget, and a shape earns a module on its second caller, never its first.
 - Nothing changes on screen except where [0016.5](0016.5-confirmation-modal.md) says so: the four screens are rendered headless before and after and compared.
 
-[0015](0015-atividade-completion.md)'s prova screen was drawn three times before it looked like this app, because there was nothing to copy from except whichever module happened to be open — and then it copied the sidebar by pasting six CSS declarations. Context in [CONTEXT.md](../../CONTEXT.md); the layers in [0003](../done/0003-crawler-api-cli-layers.md).
+[0015](../done/0015-atividade-completion.md)'s prova screen was drawn three times before it looked like this app, because there was nothing to copy from except whichever module happened to be open — and then it copied the sidebar by pasting six CSS declarations. Context in [CONTEXT.md](../../CONTEXT.md); the layers in [0003](../done/0003-crawler-api-cli-layers.md).
 
 ## Observed behaviour
 Counted over `src/cli` today: 2276 lines of Python in 21 modules, 191 of CSS.
@@ -49,3 +49,8 @@ This spec moves shapes. A component that needs a colour takes the name from `cli
 - **One commit for the whole refactor.** Eight extractions in one diff cannot be checked against "nothing changed on screen".
 - **`format.py` under `components/`.** It is text, not a widget; letting it in makes the directory mean "shared", which is how `utils/` starts.
 - **A ninth subspec for the two spinners.** `Loading`'s wave and `MateriaList`'s frames are one caller each and different shapes; they move as they are.
+
+## What execution corrected
+- The six views render byte-identically before and after the move, so the directory and the three relocations cost nothing on screen. The comparison ran from a throwaway headless harness: the repo still has no home for it, which is [0002](0002-testing-strategy.md)'s subject.
+- `synced_at` left `app.py` for `materias/list.py`, which [0016.1](0016.1-footer-from-bindings.md) needed and this spec did not foresee. It is a matéria rule, not an app one, and `app.py` now imports it back.
+- Only the seven remaining subspecs are left; nothing here changed what they say.
