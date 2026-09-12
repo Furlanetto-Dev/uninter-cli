@@ -5,6 +5,7 @@ from textual.message import Message
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
+from cli.components.row import row_grid, section_title
 from cli.components.sidebar import Sidebar
 from cli.format import html_to_text
 
@@ -22,13 +23,6 @@ def preview(questao: Questao) -> str:
     return " ".join(text.split("\n")[:PREVIEW_LINES]).strip()
 
 
-def _grid() -> Table:
-    grid = Table.grid(expand=True, padding=(0, 1))
-    grid.add_column(overflow="ellipsis", no_wrap=True, ratio=1)
-    grid.add_column(justify="right", no_wrap=True)
-    return grid
-
-
 def answered_mark(chosen: Alternativa | None) -> str:
     if chosen is None:
         return f"[dim]{UNANSWERED}[/dim]"
@@ -43,7 +37,7 @@ def _answer_line(chosen: Alternativa | None) -> str:
 
 
 def questao_row(questao: Questao, chosen: Alternativa | None) -> Table:
-    grid = _grid()
+    grid = row_grid()
     grid.add_row(
         f"[dim]{questao.ordem}.[/dim] {preview(questao)}", answered_mark(chosen)
     )
@@ -52,13 +46,13 @@ def questao_row(questao: Questao, chosen: Alternativa | None) -> Table:
 
 
 def summary_row(answered: int, total: int) -> Table:
-    grid = _grid()
+    grid = row_grid()
     grid.add_row(f"[dim]{SUMMARY_LABEL}[/dim]", f"[dim]{answered}/{total}[/dim]")
     return grid
 
 
 def title_row(total: int) -> Option:
-    return Option(f"[dim]{TITLE} ({total})[/dim]", disabled=True)
+    return section_title(f"{TITLE} ({total})")
 
 
 class QuestaoList(Sidebar):

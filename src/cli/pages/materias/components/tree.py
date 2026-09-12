@@ -6,15 +6,14 @@ from api.atividades.entity import Atividade
 from api.atividades.media import FULL_WEIGHT, Media
 from rich.text import Text
 from textual import events
-from textual.binding import Binding
 from textual.message import Message
 from textual.timer import Timer
 from textual.widgets import Static, Tree
 from textual.widgets.tree import TreeNode
 
-from cli.components.steps import step_left, step_right
 from cli.format import format_deadline, format_elapsed, format_number, is_overdue
 from .groups import APOL, OUTRAS, PROVAS, group_atividades, group_of
+from cli.components.steps import STEP_BINDINGS, Steps
 from .media import PASSING_GRADE
 
 NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
@@ -177,12 +176,11 @@ class AtividadeHeader(Static):
         self.update(header_text(widths))
 
 
-class AtividadeTree(Tree[Atividade]):
-    BINDINGS = [
-        Binding("left", "step_left", "materias", show=False),
-        Binding("right", "step_right", "debug", show=False),
-        Binding("escape", "screen.focus_materias", "voltar"),
-    ]
+class AtividadeTree(Steps, Tree[Atividade]):
+    BINDINGS = STEP_BINDINGS
+    STEP_LEFT = "screen.focus_materias"
+    STEP_RIGHT = "screen.focus_debug"
+    BACK_TO = "screen.focus_materias"
 
     class Selected(Message):
         def __init__(self, atividade: Atividade | None) -> None:
@@ -212,12 +210,6 @@ class AtividadeTree(Tree[Atividade]):
         self._expanded = dict(EXPANDED_BY_DEFAULT)
         self._started: Mapping[int, datetime] = {}
         self._clock: Timer | None = None
-
-    async def action_step_left(self) -> None:
-        await step_left(self, "screen.focus_materias")
-
-    async def action_step_right(self) -> None:
-        await step_right(self, "screen.focus_debug")
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[Atividade]) -> None:
         event.stop()

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from api.atividades.entity import Atividade
+from api.capturas import lookup
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 from crawler.atividades.prova import ProvaSource
 from rich.markup import escape
@@ -19,11 +20,23 @@ from .components.questoes import (
     questao_row,
     summary_row,
 )
+from cli.components.debug.panel import DebugPanel
+from cli.components.debug.view import (
+    MISSING,
+    Fetched,
+    FetchedItem,
+    Stored,
+    stored_record,
+)
 from cli.components.footer import Footer
+from cli.components.header import DetailHeader
+from cli.components.hint import Hint
 from cli.components.pane import DetailPane
 from cli.format import format_elapsed
 
 MOCK_TAG = "[magenta]mock[/magenta]"
+MOCK_SOURCE = "mock"
+QUESTAO_LABEL = "Questão {ordem}"
 SUMMARY_TITLE = "prova finalizada"
 NOTHING_SENT = "[yellow]Nada foi enviado ao AVA.[/yellow]"
 NO_ANSWER = "—"
@@ -80,10 +93,12 @@ class ProvaPage(Screen[None]):
         with Horizontal():
             yield QuestaoList(id="prova-questoes")
             with DetailPane():
-                yield Static(id="prova-header")
+                yield DetailHeader()
                 with VerticalScroll(id="prova-body", can_focus=False):
                     yield Static(id="prova-text")
+                    yield Hint()
                     yield AlternativaList(id="prova-alternativas")
+                yield DebugPanel()
         yield Footer()
 
     async def on_mount(self) -> None:
@@ -113,22 +128,36 @@ class ProvaPage(Screen[None]):
         text = self.query_one("#prova-text", Static)
         alternativas = self.query_one(AlternativaList)
         alternativas.display = not self.finished
+        self.query_one(Hint).show_or(NOTHING_SENT if self.finished else None)
         if self.finished:
             text.update(self.summary())
         else:
             text.update(questao_markup(self.questao))
             self.fill_alternativas(alternativas, self.questao)
         self.tick()
+        self.call_later(self.query_one(DebugPanel).reload)
         self.call_after_refresh(self.scroll_top)
+
+    async def debug_view(self) -> tuple[Fetched, Stored] | None:
+        if self.finished:
+            return None
+        questao = self.questao
+        body = await self._source.raw(self._atividade)
+        item = lookup.item_with_id(body, lookup.QUESTOES, questao.id)
+        return (
+            FetchedItem(item=item, url=MOCK_SOURCE, missing=MISSING),
+            stored_record(QUESTAO_LABEL.format(ordem=questao.ordem), questao),
+        )
+
+    def on_debug_panel_left(self, event: DebugPanel.Left) -> None:
+        self.query_one(QuestaoList).focus()
 
     def scroll_top(self) -> None:
         self.query_one("#prova-body", VerticalScroll).scroll_home(animate=False)
 
     def tick(self) -> None:
-        self.query_one("#prova-header", Static).update(
-            f"[bold]{escape(self._atividade.nome)}[/bold] [dim]·[/dim] "
-            f"{escape(self._materia_nome)}\n"
-            f"[dim]{SEPARATOR.join(self.state())}[/dim] [dim]·[/dim] {MOCK_TAG}"
+        self.query_one(DetailHeader).show(
+            self._atividade.nome, self._materia_nome, self.state(), MOCK_TAG
         )
 
     def state(self) -> list[str]:
@@ -154,7 +183,7 @@ class ProvaPage(Screen[None]):
             f"[dim]{questao.ordem:>3}[/dim]  {self.answer_label(questao)}"
             for questao in self.questoes
         ]
-        return "\n".join(lines) + f"\n\n{NOTHING_SENT}"
+        return "\n".join(lines)
 
     def answer_label(self, questao: Questao) -> str:
         chosen = self.chosen(questao)

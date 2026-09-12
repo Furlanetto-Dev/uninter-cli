@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from api.atividades.entity import Atividade
 from api.atividades.media import Media
 from api.atividades.repository import AtividadeRepository
-from api.capturas.entity import ATIVIDADES, MATERIAS, TRABALHOS
+from api.capturas import lookup
+from api.capturas.entity import ATIVIDADES, MATERIAS, TRABALHOS, Captura
 from api.capturas.repository import CapturaRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
@@ -21,13 +22,22 @@ from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Header, OptionList, TabbedContent, TabPane, Tabs
 
+from cli.components.copyable import Copyable
+from cli.components.debug.panel import DebugPanel
+from cli.components.debug.view import (
+    MISSING,
+    Fetched,
+    FetchedItem,
+    Stored,
+    stored_record,
+)
 from cli.components.footer import Footer
+from cli.components.header import DetailHeader
 from cli.components.hint import NEVER_SYNCED, Hint
 from cli.components.pane import DetailPane
+from cli.format import humanize_age, short_periodo
 from cli.pages.inicio.page import ConfirmStart
 from cli.pages.prova.page import ProvaPage
-from .components.debug import DebugColumn, DebugPanel, FieldsTable, RawColumn
-from .components.header import MateriaHeader
 from .components.list import MateriaList, synced_at
 from .components.media import MediaBar
 from .components.table import NO_TRABALHOS, TrabalhoTable
@@ -36,8 +46,10 @@ from .components.tree import NO_ATIVIDADES, AtividadeHeader, AtividadeTree
 if TYPE_CHECKING:
     from cli.app import UninterApp
 
-DEBUG_OPEN = "-debug"
 LOADING = "-loading"
+CLIENT_ERROR = 400
+NOT_IN_LIST = "matéria não está na última lista do AVA"
+MATERIA_LABEL = "Materia"
 PANE = "pane"
 PRESENCIAL_TOAST = "Avaliação presencial: ainda não dá para iniciar pelo app."
 PROVA_UNAVAILABLE = "Não foi possível abrir a prova: {reason}"
@@ -50,22 +62,34 @@ NO_MATERIAS = (
 )
 
 
+def fetched(captura: Captura | None, item: object | None, missing: str) -> FetchedItem:
+    if captura is None:
+        return FetchedItem(item=item, missing=missing)
+    return FetchedItem(
+        item=item,
+        status=captura.status,
+        url=captura.url,
+        at=captura.recebida_em,
+        error=captura.corpo if captura.status >= CLIENT_ERROR else None,
+        missing=missing,
+    )
+
+
 class MateriasPage(Screen[None]):
     BINDINGS = [
         ("r", "refresh", "atualizar"),
         ("q", "app.quit", "sair"),
-        ("j", "focus_debug", "debug"),
         ("d", "home", "início"),
         Binding("1", "show_tab(1)", "atividades", show=False),
         Binding("2", "show_tab(2)", "trabalhos", show=False),
         Binding("3", "show_tab(3)", "aulas", show=False),
     ]
 
-    debug_mode: reactive[bool] = reactive(False, init=False)
     selected_atividade: reactive[Atividade | None] = reactive(None, init=False)
 
     def __init__(
         self,
+        uninter: "UninterApp",
         prova_source: ProvaSource,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
@@ -73,6 +97,7 @@ class MateriasPage(Screen[None]):
         capturas_db: CapturaRepository,
     ) -> None:
         super().__init__()
+        self._uninter = uninter
         self._prova_source = prova_source
         self._materias_db = materias_db
         self._atividades_db = atividades_db
@@ -82,18 +107,21 @@ class MateriasPage(Screen[None]):
 
     @property
     def uninter(self) -> "UninterApp":
-        return cast("UninterApp", self.app)
+        return self._uninter
 
     @property
     def materia_list(self) -> MateriaList:
         return self.query_one(MateriaList)
+
+    def hint(self, id: str) -> Hint:
+        return self.query_one(f"#{id}", Hint)
 
     def compose(self) -> ComposeResult:
         yield Header()
         with Horizontal():
             yield MateriaList()
             with DetailPane(id="detail"):
-                yield MateriaHeader()
+                yield DetailHeader()
                 with TabbedContent(id="collections"):
                     with TabPane("1 Atividades", id=ATIVIDADES):
                         yield Hint(id=ATIVIDADES_HINT)
@@ -113,45 +141,42 @@ class MateriasPage(Screen[None]):
         await self.reload_materias()
         await self.uninter.fetch_pending()
 
-    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if action == "focus_debug":
-            return self.debug_mode
-        return True
-
     @property
     def active_collection(self) -> str:
         return self.query_one(TabbedContent).active
 
-    async def watch_debug_mode(self, debug_mode: bool) -> None:
-        panel = self.query_one(DebugPanel)
-        self.set_class(debug_mode, DEBUG_OPEN)
-        if debug_mode:
-            await self.show_debug(self.materia_list.highlighted_materia)
-        else:
-            focused = self.focused
-            if focused is not None and panel in focused.ancestors_with_self:
-                self.action_focus_pane()
-        self.refresh_bindings()
-
-    def toggle_debug(self) -> None:
-        self.debug_mode = not self.debug_mode
-
     def action_focus_materias(self) -> None:
         self.materia_list.focus()
 
-    async def show_debug(self, materia: Materia | None) -> None:
+    async def show_debug(self, materia: Materia | None = None) -> None:
+        await self.query_one(DebugPanel).reload()
+
+    async def debug_view(self) -> tuple[Fetched, Stored] | None:
+        materia = self.materia_list.highlighted_materia
         if materia is None:
-            return
+            return None
         collection = self.active_collection
         selected = self.selected_for(collection)
-        self.query_one(DebugPanel).show(
-            materia,
-            await self._capturas_db.find(MATERIAS, None),
-            collection,
-            await self._capturas_db.find(collection, materia.id),
-            await self._count_rows(materia, collection),
-            selected,
-        )
+        if selected is None:
+            captura = await self._capturas_db.find(MATERIAS, None)
+            corpo = lookup.body(captura.corpo if captura else None)
+            item = lookup.item_with_id(corpo, MATERIAS, materia.id)
+            missing = NOT_IN_LIST if captura else MISSING
+            return fetched(captura, item, missing), stored_record(
+                MATERIA_LABEL, materia
+            )
+        captura = await self._capturas_db.find(collection, materia.id)
+        corpo = lookup.body(captura.corpo if captura else None)
+        if isinstance(selected, Trabalho):
+            item = lookup.item_with_id(corpo, TRABALHOS, selected.id)
+            label = f"Trabalho {selected.ordem}"
+        else:
+            item = lookup.item_at(corpo, ATIVIDADES, selected.posicao)
+            label = f"Atividade {selected.posicao}"
+        return fetched(captura, item, MISSING), stored_record(label, selected)
+
+    def on_debug_panel_left(self, event: DebugPanel.Left) -> None:
+        self.action_focus_pane()
 
     async def follow_focus(self, focused: Widget | None) -> None:
         if focused is None or self.query_one(DebugPanel) in focused.ancestors_with_self:
@@ -160,7 +185,7 @@ class MateriasPage(Screen[None]):
         if source == self._debug_source:
             return
         self._debug_source = source
-        if self.debug_mode:
+        if self.uninter.debug_mode:
             await self.show_debug(self.materia_list.highlighted_materia)
 
     def selected_for(self, collection: str) -> Atividade | Trabalho | None:
@@ -173,25 +198,23 @@ class MateriasPage(Screen[None]):
         return None
 
     async def on_trabalho_table_selected(self, event: TrabalhoTable.Selected) -> None:
-        if self.debug_mode and self.active_collection == TRABALHOS:
+        if self.uninter.debug_mode and self.active_collection == TRABALHOS:
             await self.show_debug(self.materia_list.highlighted_materia)
-
-    async def _count_rows(self, materia: Materia, collection: str) -> int:
-        if collection == TRABALHOS:
-            return len(await self._trabalhos_db.list_all(materia))
-        return len(await self._atividades_db.list_all(materia))
 
     async def reload_materias(self) -> None:
         materias = await self._materias_db.list_all()
         materia_list = self.materia_list
         materia_list.show(materias)
         if not materias:
-            self.query_one(MateriaHeader).update("")
-            self.query_one(AtividadeHeader).display = False
-            self.query_one(AtividadeTree).display = False
-            self.query_one(TrabalhoTable).display = False
-            for hint in self.query(Hint):
-                hint.show(NO_MATERIAS)
+            self.query_one(DetailHeader).update("")
+            self.hint(ATIVIDADES_HINT).show_or(
+                NO_MATERIAS,
+                self.query_one(AtividadeTree),
+                self.query_one(AtividadeHeader),
+            )
+            self.hint(TRABALHOS_HINT).show_or(
+                NO_MATERIAS, self.query_one(TrabalhoTable)
+            )
             self.query_one(MediaBar).hide()
             return
         materia_list.focus()
@@ -201,34 +224,33 @@ class MateriasPage(Screen[None]):
         if materia is None:
             return
         now = datetime.now()
-        self.query_one(MateriaHeader).show(materia, now)
+        self.query_one(DetailHeader).show(
+            materia.nome,
+            short_periodo(materia.periodo),
+            [humanize_age(materia.atividades_sincronizadas_em, now)],
+        )
         await self._show_atividades(materia, now)
         await self._show_trabalhos(materia, now)
         self.refresh_loading()
-        if self.debug_mode:
+        if self.uninter.debug_mode:
             await self.show_debug(materia)
 
     async def _show_atividades(self, materia: Materia, now: datetime) -> None:
         table = self.query_one(AtividadeTree)
         header = self.query_one(AtividadeHeader)
-        hint = self.query_one(f"#{ATIVIDADES_HINT}", Hint)
         media_bar = self.query_one(MediaBar)
         atividades: list[Atividade] = []
-        if materia.atividades_sincronizadas_em is None:
-            hint.show(NEVER_SYNCED)
-        else:
+        message: str | None = NEVER_SYNCED
+        if materia.atividades_sincronizadas_em is not None:
             atividades = await self._atividades_db.list_all(materia)
-            if atividades:
-                hint.hide()
-            else:
-                hint.show(NO_ATIVIDADES)
+            message = None if atividades else NO_ATIVIDADES
         table.show(
             atividades,
             now,
             self.selection_within(materia),
             await self.started(atividades),
         )
-        table.display = header.display = bool(atividades)
+        self.hint(ATIVIDADES_HINT).show_or(message, table, header)
         if atividades:
             media_bar.show(Media.from_atividades(atividades))
         else:
@@ -237,18 +259,13 @@ class MateriasPage(Screen[None]):
 
     async def _show_trabalhos(self, materia: Materia, now: datetime) -> None:
         table = self.query_one(TrabalhoTable)
-        hint = self.query_one(f"#{TRABALHOS_HINT}", Hint)
         trabalhos: list[Trabalho] = []
-        if materia.trabalhos_sincronizados_em is None:
-            hint.show(NEVER_SYNCED)
-        else:
+        message: str | None = NEVER_SYNCED
+        if materia.trabalhos_sincronizados_em is not None:
             trabalhos = await self._trabalhos_db.list_all(materia)
-            if trabalhos:
-                hint.hide()
-            else:
-                hint.show(NO_TRABALHOS)
+            message = None if trabalhos else NO_TRABALHOS
         table.show(trabalhos, now)
-        table.display = bool(trabalhos)
+        self.hint(TRABALHOS_HINT).show_or(message, table)
 
     def selection_within(self, materia: Materia) -> int | None:
         selected = self.selected_atividade
@@ -284,7 +301,7 @@ class MateriasPage(Screen[None]):
     @work
     async def start_prova(self, atividade: Atividade, materia: Materia) -> None:
         if await self._prova_source.started_at(atividade) is None:
-            if not await self.app.push_screen_wait(
+            if not await self.uninter.push_screen_wait(
                 ConfirmStart(atividade, materia.nome)
             ):
                 return
@@ -293,13 +310,13 @@ class MateriasPage(Screen[None]):
         except (OSError, ValidationError) as error:
             self.notify(PROVA_UNAVAILABLE.format(reason=error), severity="error")
             return
-        await self.app.push_screen_wait(
+        await self.uninter.push_screen_wait(
             ProvaPage(atividade, materia.nome, prova, self._prova_source)
         )
         await self.show_materia(materia)
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
-        if self.debug_mode:
+        if self.uninter.debug_mode:
             await self.show_debug(self.materia_list.highlighted_materia)
 
     def action_show_tab(self, number: int) -> None:
@@ -321,7 +338,7 @@ class MateriasPage(Screen[None]):
             self.fetch_missing_trabalhos(materia)
         self.materia_list.show_collection(self.active_collection)
         self.refresh_loading()
-        if self.debug_mode:
+        if self.uninter.debug_mode:
             await self.show_debug(materia)
 
     def fetch_missing_trabalhos(self, materia: Materia) -> None:
@@ -363,20 +380,8 @@ class MateriasPage(Screen[None]):
             return
         table.focus()
 
-    def on_debug_column_copy(self, event: DebugColumn.Copy) -> None:
-        self.app.copy_to_clipboard(event.json)
-
-    def action_focus_debug(self) -> None:
-        if self.debug_mode:
-            self.query_one(RawColumn).focus()
-
-    def action_focus_raw(self) -> None:
-        self.query_one(RawColumn).focus()
-
-    def action_focus_stored(self) -> None:
-        table = self.query_one(FieldsTable)
-        if table.display:
-            table.focus()
+    def on_copyable_copy(self, event: Copyable.Copy) -> None:
+        self.uninter.copy_to_clipboard(event.json)
 
     def action_home(self) -> None:
         self.query_one(AtividadeTree).select(None)

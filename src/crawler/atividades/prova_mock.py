@@ -1,5 +1,7 @@
+import json
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova
@@ -28,3 +30,7 @@ class MockProvaSource:
 
     async def started_at(self, atividade: Atividade) -> datetime | None:
         return self._started.get(atividade.id)
+
+    async def raw(self, atividade: Atividade) -> dict[str, object] | None:
+        body = cast(object, json.loads(self._capture.read_bytes()))
+        return cast(dict[str, object], body) if isinstance(body, dict) else None

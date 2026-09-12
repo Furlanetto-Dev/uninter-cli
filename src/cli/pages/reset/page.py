@@ -1,9 +1,4 @@
-from textual.app import ComposeResult
-from textual.containers import Vertical
-from textual.screen import ModalScreen
-from textual.widgets import Static
-
-from cli.components.footer import Footer
+from cli.components.confirm import Confirm
 
 PROMPT = (
     "[bold]Apagar o banco?[/bold]\n\n"
@@ -12,16 +7,6 @@ PROMPT = (
 )
 
 
-class ConfirmReset(ModalScreen[bool]):
-    BINDINGS = [("escape", "cancel", "cancelar"), ("enter", "confirm", "apagar")]
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="confirmation"):
-            yield Static(PROMPT)
-        yield Footer()
-
-    def action_confirm(self) -> None:
-        self.dismiss(True)
-
-    def action_cancel(self) -> None:
-        self.dismiss(False)
+class ConfirmReset(Confirm):
+    def __init__(self) -> None:
+        super().__init__(PROMPT)

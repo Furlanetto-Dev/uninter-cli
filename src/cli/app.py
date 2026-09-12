@@ -20,6 +20,7 @@ from textual.reactive import reactive
 from textual.widget import Widget
 
 from cli.commands.palette import AppCommands
+from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
 from cli.components.loading import Loading
 from cli.pages.materias.components.list import synced_at
 from cli.pages.materias.page import MateriasPage
@@ -35,6 +36,7 @@ class SyncItem(NamedTuple):
 
 
 class UninterApp(App[None]):
+    BINDINGS = DEBUG_BINDINGS
     CSS_PATH = "app.tcss"
     TITLE = "Uninter"
     COMMANDS = App.COMMANDS | {AppCommands}
@@ -42,6 +44,7 @@ class UninterApp(App[None]):
 
     syncing: reactive[bool] = reactive(False)
     remaining: reactive[int] = reactive(0)
+    debug_mode: reactive[bool] = reactive(False)
 
     def __init__(
         self,
@@ -60,7 +63,7 @@ class UninterApp(App[None]):
         self._trabalhos_service = trabalhos_service
         self._materias_db = materias_db
         self._page = MateriasPage(
-            prova_source, materias_db, atividades_db, trabalhos_db, capturas_db
+            self, prova_source, materias_db, atividades_db, trabalhos_db, capturas_db
         )
         self._queue: deque[SyncItem] = deque()
         self._in_flight: SyncItem | None = None
@@ -76,6 +79,24 @@ class UninterApp(App[None]):
     @property
     def page(self) -> MateriasPage:
         return self._page
+
+    def toggle_debug(self) -> None:
+        self.debug_mode = not self.debug_mode
+
+    @property
+    def panel(self) -> DebugPanel | None:
+        panels = list(self.screen.query(DebugPanel))
+        return panels[0] if panels else None
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "focus_debug":
+            return self.debug_mode and self.panel is not None
+        return True
+
+    def action_focus_debug(self) -> None:
+        panel = self.panel
+        if panel is not None:
+            panel.focus_raw()
 
     def get_loading_widget(self) -> Widget:
         return Loading()

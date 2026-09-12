@@ -2,10 +2,6 @@ Screen {
     layers: base;
 }
 
-MateriaHeader {
-    margin-bottom: 1;
-}
-
 MediaBar {
     margin-top: 1;
 }
@@ -37,12 +33,7 @@ TabPane.-loading {
     min-height: 7;
 }
 
-DebugPanel {
-    display: none;
-}
-
 Screen.-debug DebugPanel {
-    display: block;
     height: 1fr;
     margin-top: 1;
 }
@@ -51,7 +42,7 @@ Screen.-debug.-short #detail {
     padding: 0 2;
 }
 
-Screen.-debug.-short MateriaHeader {
+Screen.-debug.-short DetailHeader {
     margin-bottom: 0;
 }
 
@@ -98,7 +89,7 @@ FieldsTable > .datatable--odd-row {
     background: $foreground 8%;
 }
 
-ConfirmReset {
+Confirm {
     align: center middle;
 }
 
@@ -110,10 +101,6 @@ ConfirmReset {
     background: $surface;
 }
 
-ConfirmStart {
-    align: center middle;
-}
-
 #start-confirmation {
     width: 76;
     height: auto;
@@ -122,12 +109,12 @@ ConfirmStart {
     background: $surface;
 }
 
-#start-answers {
+#confirm-answers {
     height: auto;
     margin-top: 1;
 }
 
-#start-answers Button {
+#confirm-answers Button {
     min-width: 0;
     width: auto;
     height: 3;
@@ -139,14 +126,10 @@ ConfirmStart {
     text-style: none;
 }
 
-#start-answers Button:focus {
+#confirm-answers Button:focus {
     border: round $foreground;
     background-tint: transparent;
     text-style: none;
-}
-
-#prova-header {
-    margin-bottom: 1;
 }
 
 #prova-body {
@@ -160,4 +143,8 @@ ConfirmStart {
     padding: 0;
     border: none;
     background: transparent;
+}
+
+#prova-body Hint {
+    margin-top: 1;
 }

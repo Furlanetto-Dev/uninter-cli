@@ -11,6 +11,7 @@ from textual.timer import Timer
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
+from cli.components.row import row_grid, section_title
 from cli.components.sidebar import Sidebar
 from cli.format import short_periodo
 
@@ -37,10 +38,7 @@ def synced_at(materia: Materia, collection: str) -> datetime | None:
 
 
 def _row(materia: Materia, mark: str) -> Table:
-    grid = Table.grid(expand=True, padding=(0, 1))
-    grid.add_column(overflow="ellipsis", no_wrap=True, ratio=1)
-    grid.add_column(width=1)
-    grid.add_column(justify="right", no_wrap=True)
+    grid = row_grid(mark=True)
     grid.add_row(
         materia.nome,
         mark,
@@ -50,7 +48,7 @@ def _row(materia: Materia, mark: str) -> Table:
 
 
 def _title(aggregate: MateriaAggregate) -> Option:
-    return Option(f"[dim]{TITLES[aggregate.situacao]}[/dim]", disabled=True)
+    return section_title(TITLES[aggregate.situacao])
 
 
 def _option(materia: Materia, mark: str) -> Option:

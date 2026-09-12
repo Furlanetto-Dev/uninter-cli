@@ -17,14 +17,13 @@ class AppCommands(Provider):
         app = self.app
         if not isinstance(app, UninterApp):
             return []
-        page = app.page
         return [
             (RESET, RESET_HELP, app.action_reset),
             (RELOAD, RELOAD_HELP, app.sync_materias),
             (
-                debug.label(page.debug_mode),
-                debug.description(page.debug_mode),
-                page.toggle_debug,
+                debug.label(app.debug_mode),
+                debug.description(app.debug_mode),
+                app.toggle_debug,
             ),
         ]
 

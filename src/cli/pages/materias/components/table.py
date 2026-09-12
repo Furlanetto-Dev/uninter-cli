@@ -2,13 +2,12 @@ from datetime import datetime
 
 from api.trabalhos.entity import Trabalho
 from rich.text import Text
-from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets.data_table import RowKey
 
-from cli.components.steps import step_left, step_right
 from cli.format import format_deadline, format_number, is_overdue
+from cli.components.steps import STEP_BINDINGS, Steps
 
 NO_TRABALHOS = "[yellow]Esta matéria não tem trabalhos no AVA.[/yellow]"
 COLUMNS = ("Trabalho", "Entrega", "Nota", "Situação", "Prazo")
@@ -50,12 +49,11 @@ def row_cells(trabalho: Trabalho, now: datetime) -> tuple[Text, ...]:
     )
 
 
-class TrabalhoTable(DataTable[Text]):
-    BINDINGS = [
-        Binding("left", "step_left", "materias", show=False),
-        Binding("right", "step_right", "debug", show=False),
-        Binding("escape", "screen.focus_materias", "voltar"),
-    ]
+class TrabalhoTable(Steps, DataTable[Text]):
+    BINDINGS = STEP_BINDINGS
+    STEP_LEFT = "screen.focus_materias"
+    STEP_RIGHT = "screen.focus_debug"
+    BACK_TO = "screen.focus_materias"
 
     class Selected(Message):
         def __init__(self, trabalho: Trabalho | None) -> None:
@@ -90,12 +88,6 @@ class TrabalhoTable(DataTable[Text]):
 
     def on_blur(self) -> None:
         self.show_cursor = False
-
-    async def action_step_left(self) -> None:
-        await step_left(self, "screen.focus_materias")
-
-    async def action_step_right(self) -> None:
-        await step_right(self, "screen.focus_debug")
 
     def show(self, trabalhos: list[Trabalho], now: datetime) -> None:
         self._trabalhos = {str(trabalho.id): trabalho for trabalho in trabalhos}
