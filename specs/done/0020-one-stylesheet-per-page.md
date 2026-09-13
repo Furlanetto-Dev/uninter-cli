@@ -2,7 +2,7 @@
 name: one-stylesheet-per-page
 description: Each page gets `page.tcss` through `Screen.CSS_PATH`, written as one block nested under the page's own class — because a page stylesheet is global and loads lazily, so an unnested selector restyles another page mid-session. Read before adding a rule to app.tcss or styling a page.
 projects: [frontend]
-status: pending
+status: done
 created_at: 2026-09-12
 ---
 
@@ -44,3 +44,10 @@ Nesting adds a type selector, so a moved rule outranks the one it replaced, and 
 - **`Screen.CSS` inline strings.** Scoped for free, but the request was files, and a stylesheet inside a Python string loses its syntax highlighting and its diff.
 - **One file per component beside its module.** Components already carry `DEFAULT_CSS`; a second place for a component's look is the split this spec is undoing.
 - **Leaving `app.tcss` whole.** It grows with every page, and the next page's rules will land in the middle of another's.
+
+## What execution corrected
+- **`Screen.CSS_PATH` does not reach the default screen.** `App._init_mode` calls `_load_screen_css` only on the `MODES` branch; `get_default_screen()` registers the screen and never reads its `CSS_PATH`. The matérias page had `css_path` set and its file absent from `app.stylesheet.source` — every rule silently gone. The four files are listed on `App.CSS_PATH`, which takes a list and resolves relative to `cli/`.
+- **That also removes the hazard this spec was built around.** Listed on the app, every page file loads at startup instead of the first time its page opens, so nothing arrives mid-session. The nesting stays load-bearing for exactly the same reason as before: the files are still global.
+- **`Screen.-debug.-short DetailHeader` was never the matérias page's rule.** `Screen` matches every screen, so the prova page had been getting that squeeze since [0019](../done/0019-debug-panel-as-a-component.md) gave it a panel. Nesting it under `MateriasPage` took it away and moved the prova body down a line — caught only because the comparison was run at 30 rows as well as 45.
+- `app.tcss` keeps four rules, not one: the three `-debug.-short` ones cannot move into a widget's `DEFAULT_CSS`, because `SCOPED_CSS` is `True` and a widget's own CSS cannot select the classes on its screen.
+- Grouped selectors nest fine (`AtividadeTree, TrabalhoTable` inside the page block); splitting them was a wrong guess while the real fault was the file not loading at all.
