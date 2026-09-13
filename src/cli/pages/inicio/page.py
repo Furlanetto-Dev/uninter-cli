@@ -32,7 +32,7 @@ def build_text(atividade: Atividade, materia_nome: str) -> str:
 
 class ConfirmStart(Confirm):
     BOX_ID = "start-confirmation"
-    SAFE_ANSWER = YES_ID
+    AUTO_FOCUS = f"#{YES_ID}"
 
     def __init__(self, atividade: Atividade, materia_nome: str) -> None:
         super().__init__(build_text(atividade, materia_nome))

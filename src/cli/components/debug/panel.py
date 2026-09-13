@@ -138,8 +138,8 @@ class FieldsTable(Steps, Copyable, DataTable[str]):
         self.add_columns(*FIELD_COLUMNS)
 
     def show(self, stored: Stored) -> None:
-        self.clear()
         self._json = stored.json
+        self.clear()
         for field, value in stored.fields:
             self.add_row(field, value)
         if stored.fields:
@@ -165,6 +165,7 @@ class StoredColumn(DebugColumn):
 class DebugPanel(Vertical):
     DEFAULT_CSS = """
     DebugPanel {
+        display: none;
         height: 1fr;
         margin-top: 1;
 
@@ -196,14 +197,16 @@ class DebugPanel(Vertical):
         self.watch(self.provider, "debug_mode", self.follow_mode, init=True)
 
     async def follow_mode(self, debug_mode: bool) -> None:
-        self.display = debug_mode
         self.screen.set_class(debug_mode, OPEN)
         if debug_mode:
-            await self.reload()
+            await self.fill()
+        self.display = debug_mode
 
     async def reload(self) -> None:
-        if not self.display:
-            return
+        if self.display:
+            await self.fill()
+
+    async def fill(self) -> None:
         view = await cast(DebugSource, self.screen).debug_view()
         if view is None:
             return

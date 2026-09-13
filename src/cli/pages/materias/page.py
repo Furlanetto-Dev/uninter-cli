@@ -410,7 +410,7 @@ class MateriasPage(Screen[None]):
     async def redraw_materia(self, materia: Materia) -> None:
         materia_list = self.materia_list
         materia_list.redraw(materia.id)
-        materia_list.refresh_bindings()
+        materia_list.refresh_fetch_key()
         highlighted_materia = materia_list.highlighted_materia
         if highlighted_materia is not None and highlighted_materia.id == materia.id:
             await self.show_materia(materia)

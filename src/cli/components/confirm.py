@@ -51,7 +51,7 @@ class Confirm(ModalScreen[bool]):
     }
     """
     BOX_ID = "confirmation"
-    SAFE_ANSWER = NO_ID
+    AUTO_FOCUS = f"#{NO_ID}"
     BINDINGS = [
         Binding("escape", "cancel", BACK),
         Binding("left", "focus_previous", PREVIOUS, show=False),
@@ -69,9 +69,6 @@ class Confirm(ModalScreen[bool]):
                 yield Answer(NO, id=NO_ID)
                 yield Answer(YES, id=YES_ID)
         yield Footer()
-
-    def on_mount(self) -> None:
-        self.query_one(f"#{self.SAFE_ANSWER}", Answer).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == YES_ID)

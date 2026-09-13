@@ -8,7 +8,10 @@ DOT = "[dim]·[/dim]"
 class DetailHeader(Static):
     DEFAULT_CSS = """
     DetailHeader {
+        height: 2;
         margin-bottom: 1;
+        text-wrap: nowrap;
+        text-overflow: ellipsis;
     }
     """
 
@@ -16,4 +19,7 @@ class DetailHeader(Static):
         line = f"[dim]{SEPARATOR.join(parts)}[/dim]"
         if tag:
             line = f"{line} {DOT} {tag}"
-        self.update(f"[bold]{escape(title)}[/bold] {DOT} {escape(secondary)}\n{line}")
+        self.update(
+            f"[bold]{escape(title)}[/bold] {DOT} {escape(secondary)}\n{line}",
+            layout=False,
+        )

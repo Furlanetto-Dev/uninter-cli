@@ -76,12 +76,20 @@ class MateriaList(Sidebar):
         super().__init__()
         self._materias: dict[str, Materia] = {}
         self._collection = ATIVIDADES
+        self._awaiting = False
         self._syncing: int | None = None
         self._frame = 0
         self._animation: Timer | None = None
 
     def show_collection(self, collection: str) -> None:
         self._collection = collection
+        self.refresh_fetch_key()
+
+    def refresh_fetch_key(self) -> None:
+        awaiting = self.awaiting_fetch
+        if awaiting == self._awaiting:
+            return
+        self._awaiting = awaiting
         self.refresh_bindings()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
@@ -97,7 +105,7 @@ class MateriaList(Sidebar):
     def on_option_list_option_highlighted(
         self, event: OptionList.OptionHighlighted
     ) -> None:
-        self.refresh_bindings()
+        self.refresh_fetch_key()
 
     def show(self, materias: list[Materia]) -> None:
         with self._keeping_focus():
