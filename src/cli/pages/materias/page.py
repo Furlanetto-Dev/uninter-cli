@@ -78,7 +78,6 @@ def fetched(captura: Captura | None, item: object | None, missing: str) -> Fetch
 class MateriasPage(Screen[None]):
     BINDINGS = [
         ("r", "refresh", "atualizar"),
-        ("q", "app.quit", "sair"),
         ("d", "home", "início"),
         Binding("1", "show_tab(1)", "atividades", show=False),
         Binding("2", "show_tab(2)", "trabalhos", show=False),
