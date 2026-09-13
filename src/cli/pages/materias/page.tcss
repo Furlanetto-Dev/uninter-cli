@@ -1,0 +1,42 @@
+MateriasPage {
+    MediaBar {
+        margin-top: 1;
+    }
+
+    AtividadeTree, TrabalhoTable {
+        background: transparent;
+    }
+
+    AtividadeTree {
+        height: auto;
+        max-height: 100%;
+    }
+
+    AtividadeHeader {
+        margin-bottom: 0;
+    }
+
+    TrabalhoTable > .datatable--header {
+        text-style: none;
+        color: $text-muted;
+        background: transparent;
+    }
+
+    #collections {
+        height: auto;
+    }
+
+    TabPane.-loading {
+        min-height: 7;
+    }
+
+    &.-debug.-short {
+        #detail {
+            padding: 0 2;
+        }
+
+        AtividadeTree, TrabalhoTable {
+            max-height: 6;
+        }
+    }
+}

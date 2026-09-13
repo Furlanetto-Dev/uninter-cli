@@ -37,6 +37,17 @@ def meta_text(fetched: Fetched, stored: Stored) -> Text:
 
 
 class DebugColumn(Copyable, VerticalScroll):
+    DEFAULT_CSS = """
+    DebugColumn {
+        width: 1fr;
+        padding: 0 1;
+        border: round $panel;
+
+        &:focus, &:focus-within {
+            border: round $border;
+        }
+    }
+    """
     BINDINGS = COPY_BINDINGS
 
     class Move(Message):
@@ -89,6 +100,15 @@ class RawColumn(Steps, DebugColumn):
 
 
 class FieldsTable(Steps, Copyable, DataTable[str]):
+    DEFAULT_CSS = """
+    FieldsTable {
+        background: transparent;
+
+        & > .datatable--odd-row {
+            background: $foreground 8%;
+        }
+    }
+    """
     BINDINGS = [*STEP_BINDINGS, *COPY_BINDINGS, UP_BINDING]
 
     def __init__(self) -> None:
@@ -143,6 +163,22 @@ class StoredColumn(DebugColumn):
 
 
 class DebugPanel(Vertical):
+    DEFAULT_CSS = """
+    DebugPanel {
+        height: 1fr;
+        margin-top: 1;
+
+        #debug-meta {
+            height: auto;
+            margin-bottom: 1;
+        }
+
+        #debug-columns {
+            height: 1fr;
+        }
+    }
+    """
+
     class Left(Message):
         pass
 

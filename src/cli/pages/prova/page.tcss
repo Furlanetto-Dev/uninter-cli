@@ -1,0 +1,18 @@
+ProvaPage {
+    #prova-body {
+        height: 1fr;
+        scrollbar-size-vertical: 1;
+    }
+
+    #prova-alternativas {
+        height: auto;
+        margin-top: 1;
+        padding: 0;
+        border: none;
+        background: transparent;
+    }
+
+    #prova-body Hint {
+        margin-top: 1;
+    }
+}

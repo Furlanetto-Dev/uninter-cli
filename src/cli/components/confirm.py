@@ -22,6 +22,34 @@ class Answer(Button):
 
 
 class Confirm(ModalScreen[bool]):
+    DEFAULT_CSS = """
+    Confirm {
+        align: center middle;
+    }
+
+    #confirm-answers {
+        height: auto;
+        margin-top: 1;
+    }
+
+    #confirm-answers Button {
+        min-width: 0;
+        width: auto;
+        height: 3;
+        padding: 0 1;
+        margin-right: 1;
+        background: $surface;
+        color: $foreground;
+        border: round $foreground 15%;
+        text-style: none;
+    }
+
+    #confirm-answers Button:focus {
+        border: round $foreground;
+        background-tint: transparent;
+        text-style: none;
+    }
+    """
     BOX_ID = "confirmation"
     SAFE_ANSWER = NO_ID
     BINDINGS = [

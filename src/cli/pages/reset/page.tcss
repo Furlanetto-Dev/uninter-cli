@@ -1,0 +1,9 @@
+ConfirmReset {
+    #confirmation {
+        width: 56;
+        height: auto;
+        padding: 1 2;
+        border: round $warning;
+        background: $surface;
+    }
+}

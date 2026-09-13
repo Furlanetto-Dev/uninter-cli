@@ -2,149 +2,17 @@ Screen {
     layers: base;
 }
 
-MediaBar {
-    margin-top: 1;
-}
-
-AtividadeTree, TrabalhoTable {
-    background: transparent;
-}
-
-AtividadeTree {
-    height: auto;
-    max-height: 100%;
-}
-
-AtividadeHeader {
-    margin-bottom: 0;
-}
-
-TrabalhoTable > .datatable--header {
-    text-style: none;
-    color: $text-muted;
-    background: transparent;
-}
-
-#collections {
-    height: auto;
-}
-
-TabPane.-loading {
-    min-height: 7;
-}
-
-Screen.-debug DebugPanel {
-    height: 1fr;
-    margin-top: 1;
-}
-
-Screen.-debug.-short #detail {
-    padding: 0 2;
+/* A widget's DEFAULT_CSS is scoped to itself and cannot select its screen's classes. */
+Screen.-debug.-short DebugPanel {
+    margin-top: 0;
 }
 
 Screen.-debug.-short DetailHeader {
     margin-bottom: 0;
 }
 
-Screen.-debug.-short AtividadeTree,
-Screen.-debug.-short TrabalhoTable {
-    max-height: 6;
-}
-
-Screen.-debug.-short DebugPanel {
-    margin-top: 0;
-}
-
 Screen.-debug.-short #debug-meta {
     margin-bottom: 0;
     text-wrap: nowrap;
     text-overflow: ellipsis;
-}
-
-#debug-meta {
-    height: auto;
-    margin-bottom: 1;
-}
-
-#debug-columns {
-    height: 1fr;
-}
-
-DebugColumn {
-    width: 1fr;
-    padding: 0 1;
-    border: round $panel;
-}
-
-DebugColumn:focus,
-DebugColumn:focus-within {
-    border: round $border;
-}
-
-FieldsTable {
-    background: transparent;
-}
-
-FieldsTable > .datatable--odd-row {
-    background: $foreground 8%;
-}
-
-Confirm {
-    align: center middle;
-}
-
-#confirmation {
-    width: 56;
-    height: auto;
-    padding: 1 2;
-    border: round $warning;
-    background: $surface;
-}
-
-#start-confirmation {
-    width: 76;
-    height: auto;
-    padding: 1 2;
-    border: round $accent;
-    background: $surface;
-}
-
-#confirm-answers {
-    height: auto;
-    margin-top: 1;
-}
-
-#confirm-answers Button {
-    min-width: 0;
-    width: auto;
-    height: 3;
-    padding: 0 1;
-    margin-right: 1;
-    background: $surface;
-    color: $foreground;
-    border: round $foreground 15%;
-    text-style: none;
-}
-
-#confirm-answers Button:focus {
-    border: round $foreground;
-    background-tint: transparent;
-    text-style: none;
-}
-
-#prova-body {
-    height: 1fr;
-    scrollbar-size-vertical: 1;
-}
-
-#prova-alternativas {
-    height: auto;
-    margin-top: 1;
-    padding: 0;
-    border: none;
-    background: transparent;
-}
-
-#prova-body Hint {
-    margin-top: 1;
 }

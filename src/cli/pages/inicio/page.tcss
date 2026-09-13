@@ -1,0 +1,9 @@
+ConfirmStart {
+    #start-confirmation {
+        width: 76;
+        height: auto;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+}

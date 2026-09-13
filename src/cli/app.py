@@ -37,7 +37,13 @@ class SyncItem(NamedTuple):
 
 class UninterApp(App[None]):
     BINDINGS = DEBUG_BINDINGS
-    CSS_PATH = "app.tcss"
+    CSS_PATH = [
+        "app.tcss",
+        "pages/materias/page.tcss",
+        "pages/prova/page.tcss",
+        "pages/inicio/page.tcss",
+        "pages/reset/page.tcss",
+    ]
     TITLE = "Uninter"
     COMMANDS = App.COMMANDS | {AppCommands}
     VERTICAL_BREAKPOINTS = [(0, "-short"), (TALL_TERMINAL_ROWS, "-tall")]
