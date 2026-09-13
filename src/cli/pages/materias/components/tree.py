@@ -20,12 +20,12 @@ NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
 COLUMNS = (
     "Atividade",
     "Situação",
+    "Tempo",
     "Tentativa",
     "Nota",
     "Peso",
     "Contribuição",
     "Prazo",
-    "Tempo",
 )
 GAP = "  "
 LEAF_INDENT = 4
@@ -40,6 +40,8 @@ TEMPO_WIDTH = 7
 TICK = 1.0
 PRESENCIAL_TAG = " presencial"
 PRESENCIAL_STYLE = "magenta"
+INICIADA = "Iniciada"
+INICIADA_STYLE = "yellow"
 EXPANDED_BY_DEFAULT = {APOL: True, PROVAS: True, OUTRAS: False}
 FIXED_WIDTH = (
     LEAF_INDENT
@@ -84,12 +86,12 @@ def header_text(widths: Widths) -> Text:
             (
                 _fit(COLUMNS[0], widths.nome),
                 _fit(COLUMNS[1], widths.status),
-                COLUMNS[2].rjust(TENTATIVA_WIDTH),
-                COLUMNS[3].rjust(NOTA_WIDTH),
-                COLUMNS[4].rjust(PESO_WIDTH),
-                COLUMNS[5].rjust(CONTRIB_WIDTH),
-                COLUMNS[6].rjust(PRAZO_WIDTH),
-                COLUMNS[7].rjust(TEMPO_WIDTH),
+                COLUMNS[2].rjust(TEMPO_WIDTH),
+                COLUMNS[3].rjust(TENTATIVA_WIDTH),
+                COLUMNS[4].rjust(NOTA_WIDTH),
+                COLUMNS[5].rjust(PESO_WIDTH),
+                COLUMNS[6].rjust(CONTRIB_WIDTH),
+                COLUMNS[7].rjust(PRAZO_WIDTH),
             )
         ),
         style="dim",
@@ -114,6 +116,14 @@ def _nome(atividade: Atividade, width: int) -> Text:
     )
 
 
+def _situacao(
+    atividade: Atividade, width: int, elapsed: timedelta | None
+) -> tuple[str, str]:
+    if elapsed is not None:
+        return _fit(INICIADA, width), INICIADA_STYLE
+    return _fit(atividade.status, width), "green" if atividade.realizada else "dim"
+
+
 def _attempt(atividade: Atividade) -> str:
     return f"{atividade.tentativa}/{atividade.tentativa_total}"
 
@@ -128,11 +138,12 @@ def leaf_label(
     widths: Widths,
     elapsed: timedelta | None = None,
 ) -> Text:
-    colour = "green" if atividade.realizada else "dim"
     return Text.assemble(
         _nome(atividade, widths.nome),
         GAP,
-        (_fit(atividade.status, widths.status), colour),
+        _situacao(atividade, widths.status, elapsed),
+        GAP,
+        _elapsed_text(elapsed),
         GAP,
         _attempt(atividade).rjust(TENTATIVA_WIDTH),
         GAP,
@@ -143,8 +154,6 @@ def leaf_label(
         format_number(atividade.contribuicao).rjust(CONTRIB_WIDTH),
         GAP,
         _deadline(atividade, now),
-        GAP,
-        _elapsed_text(elapsed),
     )
 
 
@@ -283,12 +292,19 @@ class AtividadeTree(Steps, Tree[Atividade]):
                 self._leaves[atividade.id] = node.add_leaf(label, data=atividade)
         self.post_message(self.Refit(self.widths))
 
+    def _iniciada(self, atividade: Atividade) -> bool:
+        return atividade.id in self._started and atividade.aguardando_inicio
+
     def _elapsed(self, atividade: Atividade) -> timedelta | None:
-        started = self._started.get(atividade.id)
-        return datetime.now() - started if started is not None else None
+        if not self._iniciada(atividade):
+            return None
+        return datetime.now() - self._started[atividade.id]
 
     def _follow_clock(self) -> None:
-        running = any(atividade_id in self._leaves for atividade_id in self._started)
+        running = any(
+            node.data is not None and self._iniciada(node.data)
+            for node in self._leaves.values()
+        )
         if running and self._clock is None:
             self._clock = self.set_interval(TICK, self._tick)
         elif not running and self._clock is not None:
