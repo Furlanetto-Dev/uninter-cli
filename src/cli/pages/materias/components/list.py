@@ -24,6 +24,7 @@ TITLES = {
     Situacao.PRAZO_ESTENDIDO: "EM ANDAMENTO (prazo estendido)",
     Situacao.PENDENTE: "PENDENTES OU FUTURAS",
     Situacao.CONCLUIDA: "CONCLUÍDAS",
+    Situacao.MOCKADA: "MOCKADAS",
 }
 
 

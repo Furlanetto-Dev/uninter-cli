@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 
-from . import debug
+from . import debug, dev
 
 RESET = "Invalidate cache"
 RESET_HELP = "Deletes all cache"
@@ -24,6 +24,11 @@ class AppCommands(Provider):
                 debug.label(app.debug_mode),
                 debug.description(app.debug_mode),
                 app.toggle_debug,
+            ),
+            (
+                dev.label(app.dev_mode),
+                dev.description(app.dev_mode),
+                app.toggle_dev,
             ),
         ]
 

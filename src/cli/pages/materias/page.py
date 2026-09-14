@@ -137,6 +137,7 @@ class MateriasPage(Screen[None]):
         self.query_one(Tabs).can_focus = False
         self.watch(self, "focused", self.follow_focus)
         self.query_one(MediaBar).hide()
+        await self.uninter.prepare()
         await self.reload_materias()
         await self.uninter.fetch_pending()
 
@@ -306,6 +307,9 @@ class MateriasPage(Screen[None]):
                 return
         try:
             prova = await self._prova_source.fetch(atividade)
+        except NotImplementedError as missing:
+            self.notify(str(missing), severity="warning")
+            return
         except (OSError, ValidationError) as error:
             self.notify(PROVA_UNAVAILABLE.format(reason=error), severity="error")
             return
@@ -341,6 +345,8 @@ class MateriasPage(Screen[None]):
             await self.show_debug(materia)
 
     def fetch_missing_trabalhos(self, materia: Materia) -> None:
+        if materia.mockada:
+            return
         if materia.trabalhos_sincronizados_em is None:
             self.uninter.fetch(materia.id, TRABALHOS)
 
@@ -405,6 +411,8 @@ class MateriasPage(Screen[None]):
             self.refresh_materia(materia)
 
     def refresh_materia(self, materia: Materia) -> None:
+        if materia.mockada:
+            return
         self.uninter.fetch(materia.id, self.active_collection)
 
     async def redraw_materia(self, materia: Materia) -> None:

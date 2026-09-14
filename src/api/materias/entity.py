@@ -12,6 +12,7 @@ class Materia(SQLModel, table=True):
     oferta_flexivel: bool = False
     oferta_atual: int
     oferta_aproveitamento: int | None = None
+    mockada: bool = False
     atividades_sincronizadas_em: datetime | None = None
     trabalhos_sincronizados_em: datetime | None = None
 

@@ -10,9 +10,11 @@ from api.capturas.repository import CapturaRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
+from api.mock.seed import MockedMateria
 from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from crawler.atividades.prova import ProvaSource
+from config import Config
 from crawler.session import LoginRejected
 from textual import work
 from textual.app import App
@@ -51,6 +53,7 @@ class UninterApp(App[None]):
     syncing: reactive[bool] = reactive(False)
     remaining: reactive[int] = reactive(0)
     debug_mode: reactive[bool] = reactive(False)
+    dev_mode: reactive[bool] = reactive(False, init=False)
 
     def __init__(
         self,
@@ -62,8 +65,12 @@ class UninterApp(App[None]):
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
         capturas_db: CapturaRepository,
+        mocked: MockedMateria,
+        config: Config,
     ) -> None:
         super().__init__()
+        self._mocked = mocked
+        self._config = config
         self._materias_service = materias_service
         self._atividades_service = atividades_service
         self._trabalhos_service = trabalhos_service
@@ -78,9 +85,13 @@ class UninterApp(App[None]):
         self._user_request = asyncio.Event()
         self._sync_task: asyncio.Task[object] | None = None
         self.reset_requested = False
+        self.set_reactive(UninterApp.dev_mode, config.dev_mode)
 
     def get_default_screen(self) -> MateriasPage:
         return self._page
+
+    async def prepare(self) -> None:
+        await self._mocked.follow(self.dev_mode)
 
     @property
     def page(self) -> MateriasPage:
@@ -88,6 +99,15 @@ class UninterApp(App[None]):
 
     def toggle_debug(self) -> None:
         self.debug_mode = not self.debug_mode
+
+    def toggle_dev(self) -> None:
+        self.dev_mode = not self.dev_mode
+
+    async def watch_dev_mode(self, dev_mode: bool) -> None:
+        self._config.dev_mode = dev_mode
+        self._config.save()
+        await self._mocked.follow(dev_mode)
+        await self._page.reload_materias()
 
     @property
     def panel(self) -> DebugPanel | None:
@@ -120,7 +140,7 @@ class UninterApp(App[None]):
 
     async def fetch_pending(self) -> None:
         materias = await self._materias_db.list_all()
-        if materias:
+        if [materia for materia in materias if not materia.mockada]:
             self.enqueue_pending(materias)
         else:
             self.sync_materias()
@@ -139,6 +159,8 @@ class UninterApp(App[None]):
     def enqueue_pending(self, materias: list[Materia]) -> None:
         for collection in (ATIVIDADES, TRABALHOS):
             for materia in materias:
+                if materia.mockada:
+                    continue
                 if synced_at(materia, collection) is None:
                     self.enqueue(SyncItem(materia.id, collection))
 

@@ -9,9 +9,11 @@ class Situacao(Enum):
     PRAZO_ESTENDIDO = "prazo_estendido"
     PENDENTE = "pendente"
     CONCLUIDA = "concluida"
+    MOCKADA = "mockada"
 
 
 DISPLAY_ORDER = (
+    Situacao.MOCKADA,
     Situacao.OBRIGATORIA_DA_FASE,
     Situacao.PRAZO_ESTENDIDO,
     Situacao.PENDENTE,
@@ -30,6 +32,8 @@ class MateriaAggregate:
 
 
 def situacao_of(materia: Materia) -> Situacao:
+    if materia.mockada:
+        return Situacao.MOCKADA
     if materia.concluida:
         return Situacao.CONCLUIDA
     if materia.oferta_flexivel:
