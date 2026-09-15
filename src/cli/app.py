@@ -7,6 +7,7 @@ from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.capturas.entity import ATIVIDADES, TRABALHOS
 from api.capturas.repository import CapturaRepository
+from api.credenciais.repository import CredencialRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
@@ -15,7 +16,8 @@ from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from crawler.atividades.prova import ProvaSource
 from config import Config
-from crawler.session import LoginRejected
+from crawler.credenciais import Credenciais
+from crawler.session import AvaSession, AvaUnreachable, LoginRejected
 from textual import work
 from textual.app import App
 from textual.reactive import reactive
@@ -25,11 +27,14 @@ from cli.commands.palette import AppCommands
 from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
 from cli.components.loading import Loading
 from cli.pages.materias.components.list import synced_at
+from cli.pages.login.page import LoginPage
 from cli.pages.materias.page import MateriasPage
 from cli.pages.reset.page import ConfirmReset
 
 PAUSE_BETWEEN_MATERIAS = 1.0
 TALL_TERMINAL_ROWS = 40
+UNREACHABLE = "AVA fora de alcance"
+OFFLINE = "Sem resposta do AVA. O que está no banco continua aqui."
 
 
 class SyncItem(NamedTuple):
@@ -45,6 +50,8 @@ class UninterApp(App[None]):
         "pages/prova/page.tcss",
         "pages/inicio/page.tcss",
         "pages/reset/page.tcss",
+        "pages/login/page.tcss",
+        "pages/curso/page.tcss",
     ]
     TITLE = "Uninter"
     COMMANDS = App.COMMANDS | {AppCommands}
@@ -67,10 +74,16 @@ class UninterApp(App[None]):
         capturas_db: CapturaRepository,
         mocked: MockedMateria,
         config: Config,
+        ava: AvaSession,
+        credenciais: Credenciais,
+        credenciais_db: CredencialRepository,
     ) -> None:
         super().__init__()
         self._mocked = mocked
         self._config = config
+        self._ava = ava
+        self._credenciais = credenciais
+        self._credenciais_db = credenciais_db
         self._materias_service = materias_service
         self._atividades_service = atividades_service
         self._trabalhos_service = trabalhos_service
@@ -90,6 +103,40 @@ class UninterApp(App[None]):
     def get_default_screen(self) -> MateriasPage:
         return self._page
 
+    @property
+    def at_login(self) -> bool:
+        return isinstance(self.screen, LoginPage)
+
+    def ask_to_log_in(self) -> None:
+        self.push_screen(
+            LoginPage(self, self._ava, self._credenciais, self._credenciais_db),
+            self.after_login,
+        )
+
+    async def start(self) -> None:
+        if self._ava.student is None:
+            self.ask_to_log_in()
+        else:
+            await self.fetch_pending()
+
+    def after_login(self, entered: None) -> None:
+        self._after_login()
+
+    @work
+    async def _after_login(self) -> None:
+        await self._page.reload_materias()
+        await self.fetch_pending()
+
+    def action_log_out(self) -> None:
+        self._log_out()
+
+    @work
+    async def _log_out(self) -> None:
+        await self._credenciais_db.forget()
+        self._credenciais.clear()
+        self._ava.forget()
+        self.ask_to_log_in()
+
     async def prepare(self) -> None:
         await self._mocked.follow(self.dev_mode)
 
@@ -107,7 +154,8 @@ class UninterApp(App[None]):
         self._config.dev_mode = dev_mode
         self._config.save()
         await self._mocked.follow(dev_mode)
-        await self._page.reload_materias()
+        if self._page.is_mounted:
+            await self._page.reload_materias()
 
     @property
     def panel(self) -> DebugPanel | None:
@@ -230,6 +278,8 @@ class UninterApp(App[None]):
         except LoginRejected as rejection:
             self.notify(str(rejection), title="Login recusado", severity="error")
             await self._page.reload_materias()
+        except AvaUnreachable:
+            self.notify(OFFLINE, title=UNREACHABLE, severity="warning")
         finally:
             self._materias_requested = False
             materia_list.loading = False
@@ -259,6 +309,9 @@ class UninterApp(App[None]):
             self._queue.insert(1, item)
         except LoginRejected as rejection:
             self.notify(str(rejection), title="Login recusado", severity="error")
+            self._queue.clear()
+        except AvaUnreachable:
+            self.notify(OFFLINE, title=UNREACHABLE, severity="warning")
             self._queue.clear()
         else:
             await self._page.redraw_materia(materia)

@@ -3,6 +3,7 @@ import asyncio
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.capturas.repository import CapturaRepository
+from api.credenciais.repository import CredencialRepository
 from api.db import DATABASE_PATH, db_session
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
@@ -14,14 +15,34 @@ from cli.app import UninterApp
 from config import Config
 from crawler.atividades.request import AtividadeRequest
 from crawler.materias.request import MateriaRequest
+from crawler.credenciais import Credenciais
 from crawler.session import AvaSession, ava_client
 from crawler.trabalhos.request import EntregaRequest, EtiquetaRequest, TrabalhoRequest
 from settings import Settings
 
 
+def from_env(settings: Settings) -> Credenciais:
+    if settings.ru is None or settings.password is None or settings.course_id is None:
+        return Credenciais()
+    return Credenciais(settings.ru, settings.password, settings.course_id)
+
+
+async def stored(
+    credenciais: Credenciais, credenciais_db: CredencialRepository
+) -> Credenciais:
+    if credenciais.filled:
+        return credenciais
+    remembered = await credenciais_db.find()
+    if remembered is not None:
+        credenciais.fill(remembered.ru, remembered.password, remembered.course_id)
+    return credenciais
+
+
 async def run(settings: Settings) -> bool:
     async with ava_client() as http, db_session() as session:
-        ava = AvaSession(http, settings.ru, settings.password)
+        credenciais_db = CredencialRepository(session)
+        credenciais = await stored(from_env(settings), credenciais_db)
+        ava = AvaSession(http, credenciais)
         materias_db = MateriaRepository(session)
         atividades_db = AtividadeRepository(session)
         trabalhos_db = TrabalhoRepository(session)
@@ -29,7 +50,7 @@ async def run(settings: Settings) -> bool:
         materias_service = MateriaSyncService(
             session=session,
             ava=ava,
-            request=MateriaRequest(ava, settings.course_id),
+            request=MateriaRequest(ava, credenciais),
             repository=materias_db,
             capturas=capturas_db,
         )
@@ -60,6 +81,9 @@ async def run(settings: Settings) -> bool:
             capturas_db,
             MockedMateria(session),
             Config.load(),
+            ava,
+            credenciais,
+            credenciais_db,
         )
         await app.run_async()
         return app.reset_requested

@@ -57,8 +57,8 @@ ATIVIDADES_HINT = "atividades-hint"
 TRABALHOS_HINT = "trabalhos-hint"
 
 NO_MATERIAS = (
-    "[yellow]Nenhuma matéria no banco.[/yellow]\n\n"
-    "[dim]Confira UNINTER_RU, UNINTER_PASSWORD e UNINTER_COURSE_ID no .env e sincronize com s.[/dim]"
+    "[$text-warning]Nenhuma matéria no banco.[/]\n\n"
+    "[dim]Sincronize com enter, ou troque de conta pela paleta de comandos.[/dim]"
 )
 
 
@@ -139,7 +139,7 @@ class MateriasPage(Screen[None]):
         self.query_one(MediaBar).hide()
         await self.uninter.prepare()
         await self.reload_materias()
-        await self.uninter.fetch_pending()
+        await self.uninter.start()
 
     @property
     def active_collection(self) -> str:

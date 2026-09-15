@@ -5,6 +5,7 @@ import httpx
 
 from api.capturas.entity import Captura
 
+from .credenciais import Credenciais
 from .dto import LoginDTO
 
 BASE_URL = "https://univirtus.uninter.com/ava"
@@ -18,6 +19,10 @@ TIMEOUT_SECONDS = 30
 
 
 class LoginRejected(Exception):
+    pass
+
+
+class AvaUnreachable(Exception):
     pass
 
 
@@ -52,16 +57,20 @@ def ava_client() -> httpx.AsyncClient:
 
 
 class AvaSession:
-    def __init__(self, http: httpx.AsyncClient, ru: str, password: str) -> None:
+    def __init__(self, http: httpx.AsyncClient, credenciais: Credenciais) -> None:
         self._http = http
-        self._ru = ru
-        self._password = password
+        self._credenciais = credenciais
         self._stamp: str | None = None
         self._student: str | None = None
 
     @property
     def student(self) -> str | None:
         return self._student
+
+    def forget(self) -> None:
+        self._stamp = None
+        self._student = None
+        self._http.cookies.clear()
 
     async def get(self, url: str) -> AvaResponse:
         response = await self._http.get(url, headers=await self._session_headers())
@@ -75,20 +84,29 @@ class AvaSession:
         )
 
     async def _session_headers(self) -> dict[str, str]:
-        if self._stamp is None:
-            self._stamp = await self._log_in()
+        stamp = self._stamp
+        if stamp is None:
+            stamp = await self.log_in()
         # The AVA names its session cookie with a timestamp and expects x-time to echo it.
-        return {"x-time": self._stamp}
+        return {"x-time": stamp}
 
-    async def _log_in(self) -> str:
-        response = await self._http.post(
-            "/autenticacao/autenticar/false/Post",
-            data={"login": self._ru, "senha": self._password, "recaptcha": ""},
-            headers={"content-type": FORM_CONTENT_TYPE},
-        )
+    async def log_in(self) -> str:
+        try:
+            response = await self._http.post(
+                "/autenticacao/autenticar/false/Post",
+                data={
+                    "login": self._credenciais.ru,
+                    "senha": self._credenciais.password,
+                    "recaptcha": "",
+                },
+                headers={"content-type": FORM_CONTENT_TYPE},
+            )
+        except httpx.TransportError as error:
+            raise AvaUnreachable(str(error)) from error
         response.raise_for_status()
         dto = LoginDTO.model_validate(response.json())
         if dto.usuario is None:
             raise LoginRejected(dto.mensagem or "RU ou senha inválidos")
         self._student = dto.usuario.nome
+        self._stamp = dto.usuario.time
         return dto.usuario.time

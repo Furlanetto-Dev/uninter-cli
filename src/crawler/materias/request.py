@@ -1,6 +1,7 @@
 from typing import NamedTuple
 
 from api.materias.entity import Materia
+from crawler.credenciais import Credenciais
 from crawler.session import AvaResponse, AvaSession
 
 from .dto import MateriasDTO
@@ -12,13 +13,13 @@ class FetchResult(NamedTuple):
 
 
 class MateriaRequest:
-    def __init__(self, ava: AvaSession, course_id: int) -> None:
+    def __init__(self, ava: AvaSession, credenciais: Credenciais) -> None:
         self._ava = ava
-        self._course_id = course_id
+        self._credenciais = credenciais
 
     async def fetch(self) -> FetchResult:
         response = await self._ava.get(
-            f"/ava/SalaVirtual/{self._course_id}/CursoUsuarioPermissao/true/"
+            f"/ava/SalaVirtual/{self._credenciais.course_id}/CursoUsuarioPermissao/true/"
             "?emCurso=true&idUsuarioCurso=0"
         )
         if response.json is None:

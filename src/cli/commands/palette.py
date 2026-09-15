@@ -2,7 +2,7 @@ from collections.abc import Callable
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 
-from . import debug, dev
+from . import debug, dev, login
 
 RESET = "Invalidate cache"
 RESET_HELP = "Deletes all cache"
@@ -17,6 +17,8 @@ class AppCommands(Provider):
         app = self.app
         if not isinstance(app, UninterApp):
             return []
+        if app.at_login:
+            return []
         return [
             (RESET, RESET_HELP, app.action_reset),
             (RELOAD, RELOAD_HELP, app.sync_materias),
@@ -30,6 +32,7 @@ class AppCommands(Provider):
                 dev.description(app.dev_mode),
                 app.toggle_dev,
             ),
+            (login.LOG_OUT, login.LOG_OUT_HELP, app.action_log_out),
         ]
 
     async def discover(self) -> Hits:

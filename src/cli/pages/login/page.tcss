@@ -1,0 +1,37 @@
+LoginPage {
+    align: center middle;
+
+    #login-loading {
+        height: 1fr;
+    }
+
+    #login-box {
+        width: 48;
+        height: auto;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+
+    #login-box Label {
+        margin-top: 1;
+        color: $text-muted;
+    }
+
+    #login-box Checkbox {
+        margin-top: 1;
+        border: none;
+        padding: 0;
+        background: transparent;
+    }
+
+    #login-message {
+        height: auto;
+        margin-top: 1;
+    }
+
+    #login-submit {
+        margin-top: 1;
+        width: 100%;
+    }
+}

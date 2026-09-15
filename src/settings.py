@@ -12,6 +12,6 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    ru: str
-    password: str
-    course_id: int
+    ru: str | None = None
+    password: str | None = None
+    course_id: int | None = None
