@@ -3,7 +3,7 @@ name: novo-teste
 description: "How a test is written in this repo: test the outcome and never the implementation, where the file goes, driving a page with Pilot, reading what a widget actually paints, and what never to assert. Use when adding a test for a page, a component or a pure function, or when a test is asserting the wrong thing."
 ---
 
-You are writing a test for the TUI. The pages are [0018](../../../specs/done/0018-pages-and-their-components.md), how a page is built is the `nova-pagina` skill, and colour comes from [0025](../../../specs/pending/0025-global-colours.md). The eight-layer plan in [0002](../../../specs/rejected/0002-testing-strategy.md) was rejected — do not build from it.
+You are writing a test for the TUI. The pages are [0018](../../../specs/done/0018-pages-and-their-components.md), how a page is built is the `nova-pagina` skill, and colour comes from [0025](../../../specs/done/0025-global-colours.md). The eight-layer plan in [0002](../../../specs/rejected/0002-testing-strategy.md) was rejected — do not build from it.
 
 # Test the outcome, never the implementation
 
@@ -95,7 +95,7 @@ def painted_colour(bar: MediaBar) -> str:
 ```
 
 - **Never walk `widget.visual.spans`** looking for the text you expect. That reconstructs how the widget assembled its markup, so the test breaks on a rewrite that changes nothing on screen. Take the segment by position.
-- **Never assert a colour as a hex literal.** The pigment belongs to the theme ([0025](../../../specs/pending/0025-global-colours.md)). Resolve the variable off the running app and compare with that, so the assertion says *success* rather than *#8ad4a1*:
+- **Never assert a colour as a hex literal.** The pigment belongs to the theme ([0025](../../../specs/done/0025-global-colours.md)). Resolve the variable off the running app and compare with that, so the assertion says *success* rather than *#8ad4a1*:
 
 ```python
 def theme_colour(app: App[None], variable: str) -> str:

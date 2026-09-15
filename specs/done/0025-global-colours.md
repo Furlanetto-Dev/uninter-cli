@@ -2,7 +2,7 @@
 name: global-colours
 description: Every colour in the TUI comes from a theme variable, markup included, under a semantic mapping (aprovado, exame, reprovado, aviso, erro) instead of ANSI names. Read before writing a colour in markup, in a DEFAULT_CSS or in a test that asserts one.
 projects: [frontend]
-status: awaiting-review
+status: done
 created_at: 2026-09-14
 ---
 
