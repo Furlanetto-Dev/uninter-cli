@@ -9,7 +9,7 @@ from textual.widgets.data_table import RowKey
 from cli.format import format_deadline, format_number, is_overdue
 from cli.components.steps import STEP_BINDINGS, Steps
 
-NO_TRABALHOS = "[yellow]Esta matéria não tem trabalhos no AVA.[/yellow]"
+NO_TRABALHOS = "[$text-warning]Esta matéria não tem trabalhos no AVA.[/]"
 COLUMNS = ("Trabalho", "Entrega", "Nota", "Situação", "Prazo")
 APPROVED = "aprovado"
 FAILED = "reprovado"

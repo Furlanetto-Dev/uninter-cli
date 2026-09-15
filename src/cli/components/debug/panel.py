@@ -32,7 +32,7 @@ def meta_text(fetched: Fetched, stored: Stored) -> Text:
     if stored.label:
         meta.append(f"{SEPARATOR}{stored.label}", style="dim")
     if fetched.error:
-        meta.append(f"\n{fetched.error}", style="red")
+        meta.append(f"\n{fetched.error}", style="$text-error")
     return meta
 
 

@@ -8,18 +8,18 @@ from cli.format import format_number
 PASSING_GRADE = 70
 EXAM_GRADE = 30
 CRITERIA = (
-    "[green]≥ 70 aprovado[/green]  [dim]·[/dim]  "
-    "[yellow]30–69 exame[/yellow]  [dim]·[/dim]  "
-    "[red]< 30 reprovado[/red]"
+    "[$text-success]≥ 70 aprovado[/]  [dim]·[/dim]  "
+    "[$text-warning]30–69 exame[/]  [dim]·[/dim]  "
+    "[$text-error]< 30 reprovado[/]"
 )
 
 
 def media_colour(valor: float) -> str:
     if valor >= PASSING_GRADE:
-        return "green"
+        return "$text-success"
     if valor >= EXAM_GRADE:
-        return "yellow"
-    return "red"
+        return "$text-warning"
+    return "$text-error"
 
 
 class MediaBar(Static):

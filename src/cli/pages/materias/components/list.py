@@ -140,7 +140,8 @@ class MateriaList(Sidebar):
 
     def _mark(self, materia: Materia) -> str:
         if materia.id == self._syncing:
-            return f"[cyan]{SPINNER_FRAMES[self._frame % len(SPINNER_FRAMES)]}[/cyan]"
+            frame = SPINNER_FRAMES[self._frame % len(SPINNER_FRAMES)]
+            return f"[cyan]{frame}[/cyan]"
         if (
             materia.atividades_sincronizadas_em is None
             or materia.trabalhos_sincronizados_em is None

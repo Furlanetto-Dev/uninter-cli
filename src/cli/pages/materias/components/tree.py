@@ -16,7 +16,7 @@ from .groups import APOL, OUTRAS, PROVAS, group_atividades, group_of
 from cli.components.steps import STEP_BINDINGS, Steps
 from .media import PASSING_GRADE
 
-NO_ATIVIDADES = "[yellow]Esta matéria não tem atividades no AVA.[/yellow]"
+NO_ATIVIDADES = "[$text-warning]Esta matéria não tem atividades no AVA.[/]"
 COLUMNS = (
     "Atividade",
     "Situação",

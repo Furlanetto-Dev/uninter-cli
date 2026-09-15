@@ -34,11 +34,11 @@ from cli.components.hint import Hint
 from cli.components.pane import DetailPane
 from cli.format import format_elapsed
 
-MOCK_TAG = "[magenta]mock[/magenta]"
+MOCK_TAG = "[$text-secondary]mock[/]"
 MOCK_SOURCE = "mock"
 QUESTAO_LABEL = "Questão {ordem}"
 SUMMARY_TITLE = "prova finalizada"
-NOTHING_SENT = "[yellow]Nada foi enviado ao AVA.[/yellow]"
+NOTHING_SENT = "[$text-warning]Nada foi enviado ao AVA.[/]"
 NO_ANSWER = "—"
 ANSWERED_LABEL = "respondida"
 UNANSWERED_LABEL = "não respondida"
@@ -189,7 +189,7 @@ class ProvaPage(Screen[None]):
         chosen = self.chosen(questao)
         if chosen is None:
             return f"[dim]{NO_ANSWER}[/dim]"
-        return f"[green]{chosen.letra})[/green] {escape(chosen.texto)}"
+        return f"[$text-success]{chosen.letra})[/] {escape(chosen.texto)}"
 
     def chosen(self, questao: Questao) -> Alternativa | None:
         answered = self._respostas.get(questao.id)
