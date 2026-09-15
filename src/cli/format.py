@@ -33,7 +33,7 @@ def is_overdue(fim: datetime | None, now: datetime) -> bool:
 def humanize_age(moment: datetime | None, now: datetime) -> str:
     if moment is None:
         return "nunca sincronizada"
-    elapsed = now - moment
+    elapsed = max(now - moment, timedelta(0))
     if elapsed.days >= 1:
         return f"sincronizada há {elapsed.days}d"
     if elapsed.seconds >= SECONDS_PER_HOUR:
