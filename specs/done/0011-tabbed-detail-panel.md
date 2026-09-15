@@ -67,4 +67,4 @@ The pane is the wrapper `#grades` existed for. With the debug panel open on a sh
 - `focus_pane` falls back to the list whenever the active pane is not atividades, so a pane added at runtime never leaves focus on a hidden table.
 - The strip is reached with `query_one(Tabs)`, since `ContentTabs` is a `Tabs`, instead of importing Textual's private module.
 - Verified headless against a seeded temporary SQLite with stubbed services: one-pane strip, `2` and `3` as no-ops, `→`/`esc` through the debug panel and back, a digit from the table landing on the list when the target pane has nothing to focus, a digit from the list leaving focus alone, a tab click, a matéria without atividades keeping `→` on the list, and `#collections` hidden at 24 rows with debug open.
-- `run_test` cannot be reused on one App instance; the harness builds a fresh App per terminal size — worth knowing for the layer-5 tests of [0002](../pending/0002-testing-strategy.md).
+- `run_test` cannot be reused on one App instance; the harness builds a fresh App per terminal size — worth knowing for the layer-5 tests of [0002](../rejected/0002-testing-strategy.md).

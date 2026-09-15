@@ -16,7 +16,7 @@ The specs are part of the rewrite. Every spec written before this one is Portugu
 
 The same pass settles something else left half-done: the repository is shaped like a monorepo — `apps/uninter-crawler/` — with a single app in it. The `apps/` folder exists for a second app that never came, and it charges every day: each spec reaches `CONTEXT.md` through four `../`, the spec skill starts by discovering which app, and the `.venv`, the `.env` and the database live two levels below where the terminal opens. The app moves to the root.
 
-The layers these rules refer to are in [0003](0003-crawler-api-cli-layers.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](../pending/0002-testing-strategy.md) and [0005.1](../pending/0005.1-trabalhos-in-the-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](0008-building-the-materias-list.md) and [0010](0010-debug-mode.md) have already landed with Portuguese names, and the rewrite covers what they added.
+The layers these rules refer to are in [0003](0003-crawler-api-cli-layers.md); the domain vocabulary is in [CONTEXT.md](../../CONTEXT.md). The pending specs [0002](../rejected/0002-testing-strategy.md) and [0005.1](../pending/0005.1-trabalhos-in-the-interface.md) propose Portuguese names; they execute under these rules, whichever lands first. [0008](0008-building-the-materias-list.md) and [0010](0010-debug-mode.md) have already landed with Portuguese names, and the rewrite covers what they added.
 
 ## Decisions
 

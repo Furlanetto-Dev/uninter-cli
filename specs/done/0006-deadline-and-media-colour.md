@@ -10,7 +10,7 @@ created_at: 2026-09-02
 
 The matéria's table shows name, status, grade, weight and contribution. It lacks the two things the student actually wants to know on opening a matéria: **until when** each atividade counts, and whether the média **passes**. The first has been in the database from the start and was never drawn; the second needs a yardstick, and the AVA publishes its own.
 
-This spec only touches what the screen draws: no new request, no new database column, no signature changed. What the project is lives in [CONTEXT.md](../../CONTEXT.md), the interface in [0004](0004-textual-tui.md) and the tests in [0002](../pending/0002-testing-strategy.md).
+This spec only touches what the screen draws: no new request, no new database column, no signature changed. What the project is lives in [CONTEXT.md](../../CONTEXT.md), the interface in [0004](0004-textual-tui.md) and the tests in [0002](../rejected/0002-testing-strategy.md).
 
 ## Observed behaviour
 

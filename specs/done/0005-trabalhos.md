@@ -8,7 +8,7 @@ created_at: 2026-09-02
 
 # Trabalhos
 
-A matéria has atividades and trabalhos. The atividades are already mirrored; the trabalhos are not, and they are where the student's hands-on entrega lives — protocol number, attachments, grade and the grader's comment. This spec covers **crawler and api only**: no interface, and no change to the TUI of [0004](../done/0004-textual-tui.md). What the project is lives in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](../done/0001-ava-atividades-crawler.md), the layers in [0003](../done/0003-crawler-api-cli-layers.md) and the tests in [0002](../pending/0002-testing-strategy.md).
+A matéria has atividades and trabalhos. The atividades are already mirrored; the trabalhos are not, and they are where the student's hands-on entrega lives — protocol number, attachments, grade and the grader's comment. This spec covers **crawler and api only**: no interface, and no change to the TUI of [0004](../done/0004-textual-tui.md). What the project is lives in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](../done/0001-ava-atividades-crawler.md), the layers in [0003](../done/0003-crawler-api-cli-layers.md) and the tests in [0002](../rejected/0002-testing-strategy.md).
 
 ## Observed behaviour
 

@@ -14,7 +14,7 @@ created_at: 2026-09-08
 - `d` opens a table in the matéria panel: raw AVA on the left, stored row on the right, one row per object.
 - Terminal with 40 rows or more: the panel sits below the média. Fewer: it replaces the atividades table.
 
-Today the response body dies inside the `fetch`, and when a value looks wrong there is no way to tell whether the AVA, the DTO or the screen is to blame. Context in [CONTEXT.md](../../CONTEXT.md); the 404 in [0001](0001-ava-atividades-crawler.md), layers in [0003](0003-crawler-api-cli-layers.md), `check_action` in [0004](0004-textual-tui.md), the palette in [0007](0007-background-queue-and-reset.md), names in [0009](0009-english-code-portuguese-domain.md), fixtures in [0002](../pending/0002-testing-strategy.md).
+Today the response body dies inside the `fetch`, and when a value looks wrong there is no way to tell whether the AVA, the DTO or the screen is to blame. Context in [CONTEXT.md](../../CONTEXT.md); the 404 in [0001](0001-ava-atividades-crawler.md), layers in [0003](0003-crawler-api-cli-layers.md), `check_action` in [0004](0004-textual-tui.md), the palette in [0007](0007-background-queue-and-reset.md), names in [0009](0009-english-code-portuguese-domain.md), fixtures in [0002](../rejected/0002-testing-strategy.md).
 
 ## Observed behaviour
 - `AvaSession.get` returns only the parsed JSON, or `None` on a 404; URL, status and text are lost. Read in the code.

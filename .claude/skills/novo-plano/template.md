@@ -11,7 +11,7 @@ created_at: <date +%F>
 ## TL;DR
 - <One change per line. Up to five.>
 
-<Why it exists, in one or two sentences. Link [CONTEXT.md](../../CONTEXT.md) and the related specs.>
+<Why it exists, in one or two sentences. Link [CONTEXT.md](../../../CONTEXT.md) and the related specs.>
 
 ## Observed behaviour
 - <Fact, and the proof. Mark inference.>

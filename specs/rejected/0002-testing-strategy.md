@@ -1,12 +1,18 @@
 ---
 name: testing-strategy
-description: How to test the crawler — risk map, the eight test layers, synthetic and real fixtures, clock and render determinism, and the four known defects to fix with a red test first. Read before writing any test in this app.
+description: Rejected. The eight-layer test plan the project never executed — risk map, synthetic and real fixtures, clock and render determinism, and four known defects. Read only for the defect list and to follow the specs that cite it; how tests are actually written here is the novo-teste skill.
 projects: [all]
-status: pending
+status: rejected
 created_at: 2026-09-02
 ---
 
 # Testing strategy
+
+## Why this was rejected
+
+Rejected before any of it was executed. The tests that exist today were written without it: `tests/` mirrors `src/` and grows from driving widgets and pages headless, not from the eight layers laid out below. How a test gets written here is the `novo-teste` skill.
+
+The file is kept, not deleted, because eleven specs in `done/` cite it — for the four known defects, the layer numbering and the `MockTransport` findings — and those references stay readable.
 
 The project has no tests. The refactor into layers created the seams that were missing — injected HTTP transport, database by path, clock as a parameter — and [0004](../done/0004-textual-tui.md) adds the one missing at the edge: the services reach the App through the constructor, so the whole interface can be exercised with fakes. This document decides what to test, with what, and in what order.
 

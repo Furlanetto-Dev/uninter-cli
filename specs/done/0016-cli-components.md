@@ -51,6 +51,6 @@ This spec moves shapes. A component that needs a colour takes the name from `cli
 - **A ninth subspec for the two spinners.** `Loading`'s wave and `MateriaList`'s frames are one caller each and different shapes; they move as they are.
 
 ## What execution corrected
-- The six views render byte-identically before and after the move, so the directory and the three relocations cost nothing on screen. The comparison ran from a throwaway headless harness: the repo still has no home for it, which is [0002](../pending/0002-testing-strategy.md)'s subject.
+- The six views render byte-identically before and after the move, so the directory and the three relocations cost nothing on screen. The comparison ran from a throwaway headless harness: the repo still has no home for it, which is [0002](../rejected/0002-testing-strategy.md)'s subject.
 - `synced_at` left `app.py` for `materias/list.py`, which [0016.1](0016.1-footer-from-bindings.md) needed and this spec did not foresee. It is a matéria rule, not an app one, and `app.py` now imports it back.
 - Only the seven remaining subspecs are left; nothing here changed what they say.

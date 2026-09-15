@@ -12,7 +12,7 @@ Today the list of matérias disappears on every lookup: `browse_materias` asks, 
 
 Replacing `questionary` + `rich` with Textual is not a library swap: it is inversion of control. The `while True: pergunta → renderiza` of `cli/app.py` disappears and becomes widget plus handler. And since Textual runs on an event loop, every blocking I/O has to get out of the way — which drags `crawler` and `api` into async. Once this spec is executed, there is a single screen, the list never leaves it, and no synchronous call is left on the path to the network or the database.
 
-The vocabulary is in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](0001-ava-atividades-crawler.md), the layers in [0003](0003-crawler-api-cli-layers.md) and the tests in [0002](../pending/0002-testing-strategy.md).
+The vocabulary is in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](0001-ava-atividades-crawler.md), the layers in [0003](0003-crawler-api-cli-layers.md) and the tests in [0002](../rejected/0002-testing-strategy.md).
 
 ## Observed behaviour
 
@@ -155,7 +155,7 @@ Three code stages, each with the app running at the end. In the first two the `q
 3. **`cli/` in Textual.** `app.py` with the layout, the bindings and the guard; `materias.py` and `atividades.py`; `app.tcss`; `truncate` and `NAME_WIDTH` out of `format.py`; `prompts.py` and `render.py` deleted; `questionary` out of `pyproject`.
 4. **0002 rewritten**, in the stage 3 commit.
 
-Verification, instead of opening the CLI at each stage: `pyright` in `strict` over `src/` — with everything async, a missing `await` is the error that slips through silently at runtime — plus a headless script per stage, with `MockTransport` in place of the AVA and the database in a temporary directory. Stage 3 uses `App.run_test()` with Pilot, which is the same tooling layer 5 of [0002](../pending/0002-testing-strategy.md) will use. None of this becomes a committed test here: the tests are 0002's work, after this spec.
+Verification, instead of opening the CLI at each stage: `pyright` in `strict` over `src/` — with everything async, a missing `await` is the error that slips through silently at runtime — plus a headless script per stage, with `MockTransport` in place of the AVA and the database in a temporary directory. Stage 3 uses `App.run_test()` with Pilot, which is the same tooling layer 5 of [0002](../rejected/0002-testing-strategy.md) will use. None of this becomes a committed test here: the tests are 0002's work, after this spec.
 
 ## What execution corrected
 

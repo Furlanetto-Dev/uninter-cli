@@ -97,13 +97,13 @@ Every page yields `Footer`, modals included — without one, the screen undernea
 
 `app.tcss` is the only stylesheet. A component's own look goes in its `DEFAULT_CSS`; `app.tcss` keeps what one screen bends.
 
-A page may carry its own `page.tcss` through `Screen.CSS_PATH`, but **its rules are global and load the first time that page is opened** — wrap the whole file in one `PageName { … }` block or it will restyle other pages mid-session ([0020](../../../specs/pending/0020-one-stylesheet-per-page.md)).
+A page may carry its own `page.tcss` through `Screen.CSS_PATH`, but **its rules are global and load the first time that page is opened** — wrap the whole file in one `PageName { … }` block or it will restyle other pages mid-session ([0020](../../../specs/done/0020-one-stylesheet-per-page.md)).
 
 **User CSS beats every `DEFAULT_CSS` rule, whatever the specificity** — `default_rules` is the first field of the specificity tuple. So a declaration that beat `OptionList:focus` from `app.tcss` stops beating it once it becomes a component default: repeat it under `&:focus` in the component.
 
 # Proving it works
 
-There is no test home yet ([0002](../../../specs/pending/0002-testing-strategy.md)). Drive the app headless and compare the render:
+There is no test home yet ([0002](../../../specs/rejected/0002-testing-strategy.md)). Drive the app headless and compare the render:
 
 ```python
 async with app.run_test(size=(140, 45)) as pilot:

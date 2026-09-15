@@ -10,8 +10,8 @@ You are going to write a new spec. In this repo, "plan", "spec" and "decision do
 `specs/pending/NNNN-<slug>.md`
 
 - **Always `pending`.** `done` is for a spec whose work is already finished; a new spec is never born there.
-- `NNNN` is the next free number, counting `done` **and** `pending` together, with 4 digits:
-  `ls specs/done specs/pending | grep -oE '^[0-9]{4}' | sort -n | tail -1`
+- `NNNN` is the next free number, counting `done`, `pending` **and** `rejected` together, with 4 digits:
+  `ls specs/done specs/pending specs/rejected | grep -oE '^[0-9]{4}' | sort -n | tail -1`
 - **A continuation of an existing spec uses `NNNN.M`**, like `0005.1`. It is for what was left out of spec NNNN and depends on it: the number says whose child it is. A new subject gets a whole number.
 - `<slug>` is the title in kebab-case, unaccented and without the article: `testing-strategy`, not `the-testing-strategy`.
 
@@ -31,7 +31,7 @@ created_at: <today, ISO, via `date +%F`>
 
 - `name` matches the file slug. No number, no accents.
 - `projects` is an array of the parts the spec touches. Valid values: `crawler`, `api`, `frontend` and `all`. Use the order the data flows in — `crawler`, then `api`, then `frontend`. `all` is exclusive: either the spec touches everything, or you list the parts; never both.
-- `status` has three values. `pending`: not executed yet. `awaiting-review`: executed, verified, not committed; the file stays in `pending/`. `done`: implementation committed, file in `done/`. Never `aceito`/`proposto`. The directory only knows executed-and-committed from everything else, so the status carries the middle state.
+- `status` has four values. `pending`: not executed yet. `awaiting-review`: executed, verified, not committed; the file stays in `pending/`. `done`: implementation committed, file in `done/`. `rejected`: abandoned before execution, file in `rejected/`. Never `aceito`/`proposto`. The directory only knows executed-and-committed from everything else, so the status carries the middle state.
 - `created_at` comes from `date +%F`. Never guess the date.
 - **No `Status:` and no date in the body.** The header is the only source.
 
@@ -58,7 +58,7 @@ Start from the [template](./template.md). Not every section is required, but the
 
 1. `# Title` in prose, accents included — it is not the slug.
 2. `## TL;DR`, as a list: one line per change, up to five. Whoever reads only this knows what the spec does.
-3. One or two sentences saying **why the spec exists**: the problem, and what changes once it is executed. Link [CONTEXT.md](../../CONTEXT.md) and the related specs here.
+3. One or two sentences saying **why the spec exists**: the problem, and what changes once it is executed. Link [CONTEXT.md](../../../CONTEXT.md) and the related specs here.
 4. **Observed behaviour**, when an external system is involved. One line per fact, with what proves it. Mark what is inference.
 5. **Decisions**, each in a `###` whose title is the decision stated, not the subject. `### The database stores only the fields the screen uses`, not `### About the fields`.
 6. **Rejected**, as a list. One line per item: the alternative and why not.
@@ -102,6 +102,11 @@ from datetime import date
 from pathlib import Path
 
 REQUIRED = ("name", "description", "projects", "status", "created_at")
+STATUS_POR_PASTA = {
+    "pending": {"pending", "awaiting-review"},
+    "done": {"done"},
+    "rejected": {"rejected"},
+}
 PROJETOS_VALIDOS = {"crawler", "api", "frontend", "all"}
 LIMITE_DE_LINHAS = 70
 
@@ -149,7 +154,7 @@ for p in sorted(Path("specs").glob("*/*.md")):
         + ([f"name {fields.get('name')!r} != file slug"]
            if fields.get("name") != re.sub(r"^\d+(\.\d+)?-", "", p.stem) else [])
         + ([f"status {fields.get('status')!r} does not fit folder {p.parent.name!r}"]
-           if fields.get("status") not in ({"done"} if p.parent.name == "done" else {"pending", "awaiting-review"}) else [])
+           if fields.get("status") not in STATUS_POR_PASTA.get(p.parent.name, set()) else [])
         + ([f"Status:/date in the body"] if re.search(r"^Status:|^(Aceito|Proposto) em", text, re.M) else [])
         + projetos_invalidos(fields.get("projects", ""))
     ):
@@ -183,3 +188,15 @@ sed -i 's/^status: awaiting-review$/status: done/' specs/done/NNNN-<slug>.md
 ```
 
 And fix the relative links of whatever pointed at the spec in `pending`.
+
+# Rejecting
+
+A spec abandoned before execution goes to `specs/rejected/`, it is not deleted: the specs that cite it stay readable, and the number is never reused.
+
+```bash
+git mv specs/pending/NNNN-<slug>.md specs/rejected/
+sed -i 's/^status: pending$/status: rejected/' specs/rejected/NNNN-<slug>.md
+sed -i 's|\.\./pending/NNNN-<slug>\.md|../rejected/NNNN-<slug>.md|g' specs/done/*.md specs/pending/*.md
+```
+
+Add a `## Why this was rejected` section saying what replaced it. Repoint every inbound link, the skills included — the validator finds the ones you missed.

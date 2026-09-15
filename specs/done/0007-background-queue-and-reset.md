@@ -107,16 +107,16 @@ A yes-or-no modal after picking the command. Nothing is lost forever — the AVA
 - **A parallel queue, with several requests in flight.** Would cut the 13 seconds to some 3. Impossible without one session per worker: it is measured that three concurrent `sync()` on the same `AsyncSession` produce 74 failures in 25 rounds.
 - **Keeping `sincronizando` on for the whole queue.** One line fewer and no concurrency risk. Discarded because it locks `r`, `s` and `⏎` for 13 seconds and turns the background into the foreground under another name.
 - **A reset clearing only the sync stamps.** One `UPDATE`, no `DELETE`, and the old data survives a network drop right after. Loses to the file because it does not clear schema, which is what [0005](0005-trabalhos.md) makes relevant.
-- **A reset deleting the atividade rows and keeping the matérias.** Would avoid the restart and the list would stay on the screen. But it is literally defect 1 of [0002](../pending/0002-testing-strategy.md) — "404 apaga o cache" — promoted to a feature, and it would still leave the schema untouched.
+- **A reset deleting the atividade rows and keeping the matérias.** Would avoid the restart and the list would stay on the screen. But it is literally defect 1 of [0002](../rejected/0002-testing-strategy.md) — "404 apaga o cache" — promoted to a feature, and it would still leave the schema untouched.
 - **A `Banco` injected into the repositories, with `recycle()`.** Recycles the session without restarting and preserves the cursor. Costs changing today's two repositories and the three [0005](0005-trabalhos.md) is still going to write, plus an indirection on every read.
-- **The App receiving new services from a factory.** Also avoids the restart and does not touch the repositories. Discarded because it loosens the constructor injection, which is the seam the `run_test()` of layer 5 of [0002](../pending/0002-testing-strategy.md) depends on.
+- **The App receiving new services from a factory.** Also avoids the restart and does not touch the repositories. Discarded because it loosens the constructor injection, which is the seam the `run_test()` of layer 5 of [0002](../rejected/0002-testing-strategy.md) depends on.
 
 ## What execution corrected
 
 - **The consumer flag, set inside the worker, created several consumers.** `@work` only schedules, so two enqueues in a row fired two parallel queues — and parallel is exactly what cannot be. It is the same lesson [0004](0004-textual-tui.md) had already recorded for its guard: the synchronous method sets the flag, not the worker.
 - **Deduplication killed preemption.** Skipping what is already in the queue is what makes hammered `r` worth one request, but applied without exception it made the user's request be ignored when the matéria was already enqueued at the end. A user request now promotes; the rest keeps being skipped.
 - **The per-key guard was replaced by the serial consumer**, not narrowed as this spec foresaw. It is rewritten in the decision above.
-- **The loading widget does not show up in `query`.** Textual mounts it as a *cover*, outside the normal tree, so whoever tests it looks at `_cover_widget` — applies to layer 5 of [0002](../pending/0002-testing-strategy.md).
+- **The loading widget does not show up in `query`.** Textual mounts it as a *cover*, outside the normal tree, so whoever tests it looks at `_cover_widget` — applies to layer 5 of [0002](../rejected/0002-testing-strategy.md).
 - **`$accent` is not `rich` markup.** The list rows are `rich` renderables, not Textual's: a CSS variable in there becomes a `MarkupError` at the closing tag. A badge colour is a `rich` colour name.
 - **Cancelling the fetch required shielding the write.** The first attempt cancelled and did a `rollback()`, and collided with the cancellation itself (`IllegalStateChangeError`). It became `asyncio.shield`, described in the decision above.
 

@@ -153,7 +153,7 @@ There is no test file in the app today, and none covers `MateriaList`. The chang
 
 Equivalence with the previous code was measured off the screen, with Textual's `run_test()`: the two versions of `MateriaList` produced the same sequence of options, the same highlight and the same fallback in seven scenarios — a list with both groups, only one group, empty, a resync with the focused matéria kept, a resync with it removed, and a resync during an in-flight sync.
 
-`aggregate_materias`, `filter_vigentes` and `filter_finalizadas` in `api`, `index_by_id` and `build_options` in the TUI, are pure. When the strategy in [0002](../pending/0002-testing-strategy.md) reaches the TUI, they are the ones tested without bringing up a widget.
+`aggregate_materias`, `filter_vigentes` and `filter_finalizadas` in `api`, `index_by_id` and `build_options` in the TUI, are pure. When the strategy in [0002](../rejected/0002-testing-strategy.md) reaches the TUI, they are the ones tested without bringing up a widget.
 
 ## Rejected
 

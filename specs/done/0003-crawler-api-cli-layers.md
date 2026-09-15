@@ -10,7 +10,7 @@ created_at: 2026-09-02
 
 Today `src/` is organised by domain: `materias/` and `atividades/` hold side by side the entity that becomes a table, the payload that comes from the AVA and the service that stitches the two together. It works, but it erases precisely the boundary that matters most here — the one separating what Uninter returns from what we model. A JSON alias and a SQLite column should not be folder neighbours.
 
-The reorganisation swaps the axis: layer first, then domain. No behaviour changes; it is moving, renaming and repointing imports. The vocabulary is in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](0001-ava-atividades-crawler.md) and the planned tests in [0002](../pending/0002-testing-strategy.md).
+The reorganisation swaps the axis: layer first, then domain. No behaviour changes; it is moving, renaming and repointing imports. The vocabulary is in [CONTEXT.md](../../CONTEXT.md), the design decisions in [0001](0001-ava-atividades-crawler.md) and the planned tests in [0002](../rejected/0002-testing-strategy.md).
 
 ## The target structure
 
@@ -57,7 +57,7 @@ Renames that go with the change: `AvaPayload` → `AvaDTO`, `LoginPayload` → `
 
 ### DTO is the name, and it stops being private
 
-`Payload` described where the data came from; `DTO` describes the role — the object that crosses the boundary and dies right after, converted into an entity. The `_` prefix was there to mark it as private inside `gateway.py`; in a module called `dto.py` these types are the content, not a hidden detail, and the layer 2 tests of [0002](../pending/0002-testing-strategy.md) need to name them.
+`Payload` described where the data came from; `DTO` describes the role — the object that crosses the boundary and dies right after, converted into an entity. The `_` prefix was there to mark it as private inside `gateway.py`; in a module called `dto.py` these types are the content, not a hidden detail, and the layer 2 tests of [0002](../rejected/0002-testing-strategy.md) need to name them.
 
 ### Request, not gateway
 
@@ -93,7 +93,7 @@ The "Where the tests live" section mirrors `src/` and starts lying the minute af
 - **A single `crawler/dto.py` with all the payloads.** The atividade one has three nested classes and will grow when someone wants more fields; mixing it with matéria turns the file into a dumping ground.
 - **Keeping `infra/` for `db.py` and `session.py`.** Puts back together, under a vague label, exactly the two files that belong to opposite layers.
 - **Moving `settings.py` into one of the layers.** It is read by `api/db.py` (via `APP_ROOT`) and by `main.py`; at the root of `src/` it belongs to nobody, which is correct.
-- **Using the change to fix the four known defects.** They are listed in [0002](../pending/0002-testing-strategy.md) and wait for a red test first. A reorganisation in which no behaviour changes is a reorganisation reviewed by reading the imports.
+- **Using the change to fix the four known defects.** They are listed in [0002](../rejected/0002-testing-strategy.md) and wait for a red test first. A reorganisation in which no behaviour changes is a reorganisation reviewed by reading the imports.
 
 ## Execution order
 
