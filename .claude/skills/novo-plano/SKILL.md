@@ -7,11 +7,12 @@ You are going to write a new spec. In this repo, "plan", "spec" and "decision do
 
 # Where the file goes
 
-`specs/pending/NNNN-<slug>.md`
+`specs/pending/NNNN-<slug>.md`, or `specs/pending/frontend/NNNN-<slug>.md` when `projects` is exactly `[frontend]`.
 
 - **Always `pending`.** `done` is for a spec whose work is already finished; a new spec is never born there.
+- **`frontend/` is the only project folder, and it only exists under `pending`.** A spec that touches anything besides the TUI sits directly in `pending/`, and `done/` and `rejected/` stay flat. Promoting a spec out of `frontend/` moves it up a level, so its relative links lose one `../`.
 - `NNNN` is the next free number, counting `done`, `pending` **and** `rejected` together, with 4 digits:
-  `ls specs/done specs/pending specs/rejected | grep -oE '^[0-9]{4}' | sort -n | tail -1`
+  `ls specs/done specs/pending specs/pending/frontend specs/rejected | grep -oE '^[0-9]{4}' | sort -n | tail -1`
 - **A continuation of an existing spec uses `NNNN.M`**, like `0005.1`. It is for what was left out of spec NNNN and depends on it: the number says whose child it is. A new subject gets a whole number.
 - `<slug>` is the title in kebab-case, unaccented and without the article: `testing-strategy`, not `the-testing-strategy`.
 
@@ -65,10 +66,10 @@ Start from the [template](./template.md). Not every section is required, but the
 
 ## Relative links
 
-From `specs/pending/` the repo root is two levels up:
+From `specs/pending/` the repo root is two levels up, and from `specs/pending/frontend/` it is three:
 
-- project description: `[CONTEXT.md](../../CONTEXT.md)`
-- sibling spec in done: `[0001](../done/0001-<slug>.md)`
+- project description: `[CONTEXT.md](../../CONTEXT.md)`, or `../../../CONTEXT.md` from `frontend/`
+- sibling spec in done: `[0001](../done/0001-<slug>.md)`, or `../../done/0001-<slug>.md` from `frontend/`
 
 Check that they resolve before finishing.
 
@@ -138,12 +139,13 @@ def linhas_de_texto(text):
 
 
 ok = True
-for p in sorted(Path("specs").glob("*/*.md")):
+for p in sorted({*Path("specs").glob("*/*.md"), *Path("specs").glob("*/*/*.md")}):
+    pasta = p.relative_to("specs").parts[0]
     text = p.read_text()
     linhas = linhas_de_texto(text)
-    if p.parent.name == "pending" and linhas > LIMITE_DE_LINHAS:
+    if pasta == "pending" and linhas > LIMITE_DE_LINHAS:
         print(f"{p}: WARNING {linhas} lines of text, above {LIMITE_DE_LINHAS}")
-    if p.parent.name == "pending" and "## TL;DR" not in text:
+    if pasta == "pending" and "## TL;DR" not in text:
         print(f"{p}: WARNING no ## TL;DR")
     m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     if not m:
@@ -153,8 +155,8 @@ for p in sorted(Path("specs").glob("*/*.md")):
         [f"missing {k}" for k in REQUIRED if k not in fields]
         + ([f"name {fields.get('name')!r} != file slug"]
            if fields.get("name") != re.sub(r"^\d+(\.\d+)?-", "", p.stem) else [])
-        + ([f"status {fields.get('status')!r} does not fit folder {p.parent.name!r}"]
-           if fields.get("status") not in STATUS_POR_PASTA.get(p.parent.name, set()) else [])
+        + ([f"status {fields.get('status')!r} does not fit folder {pasta!r}"]
+           if fields.get("status") not in STATUS_POR_PASTA.get(pasta, set()) else [])
         + ([f"Status:/date in the body"] if re.search(r"^Status:|^(Aceito|Proposto) em", text, re.M) else [])
         + projetos_invalidos(fields.get("projects", ""))
     ):
