@@ -2,7 +2,7 @@
 name: fake-ava
 description: The mocked matéria's atividades and trabalhos stop being written into the database and start arriving over HTTP, through a FakeAva transport that answers its URLs from the fixture and delegates every other one to the network. Read before touching api/mock, ava_client, or what turning dev mode on does.
 projects: [crawler, api, frontend]
-status: awaiting-review
+status: done
 created_at: 2026-09-17
 ---
 
@@ -19,8 +19,8 @@ Dev mode writes rows straight into SQLite, so everything between the AVA and the
 the session, the requests, the DTOs — never runs against the mocked matéria. The fixture then
 fabricates the artefacts those layers would have produced, which is a second copy of the truth
 kept by hand. See [CONTEXT.md](../../CONTEXT.md), the layers of
-[0003](../done/0003-crawler-api-cli-layers.md) and the dev mode of
-[0023](../done/0023-dev-mode.md).
+[0003](0003-crawler-api-cli-layers.md) and the dev mode of
+[0023](0023-dev-mode.md).
 
 ## Observed behaviour
 - `MockedMateria.seed()` adds `Materia`, `Atividade` and `Trabalho` objects to the session and commits; no crawler code runs in dev mode — read from `seed.py`.

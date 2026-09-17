@@ -2,7 +2,7 @@
 name: request-history
 description: ctrl+l opens, in debug mode, a page listing the last fifty requests the CLI made — method, URL, status, timing, the body sent and the response as a tree of dropdowns — recorded by an httpx event hook so the login POST is caught too, with the senha and the session cookie redacted. Read before adding a request to the crawler, touching ava_client, or looking for where requests are logged.
 projects: [crawler, frontend]
-status: awaiting-review
+status: done
 created_at: 2026-09-17
 ---
 
@@ -18,7 +18,7 @@ created_at: 2026-09-17
 `captura` keeps the last response per resource, which cannot answer what this run actually
 did. Prova answering is next and writes to a real graded exam, so seeing the body that went
 out stops being a convenience. See [CONTEXT.md](../../CONTEXT.md) and
-[0010](../done/0010-debug-mode.md).
+[0010](0010-debug-mode.md).
 
 ## Observed behaviour
 - An httpx event hook sees the login POST body, `login=…&senha=…`, which `AvaSession.get()` never touches because `log_in` posts through the client directly — verified against a `MockTransport`.
@@ -42,7 +42,7 @@ refresh flushes the history; accepted, and raising the cap is one word.
 ### The senha is redacted in the hook
 The hook is where the body passes, so it is the only place the password can be caught before
 reaching a screen. `login=` keeps its value, `senha=` does not — the database holds it in
-plaintext, but [0016.7](../done/0016.7-copyable.md) puts it one keystroke from the clipboard.
+plaintext, but [0016.7](0016.7-copyable.md) puts it one keystroke from the clipboard.
 
 ### `ctrl+l` opens a page, and only in debug mode
 A `Screen[None]` of its own, because the history belongs to the run rather than to any page,
@@ -66,5 +66,5 @@ exports those two.
 ## What execution corrected
 - **`curlify2` could not be used.** It does the job straight off an `httpx.Request`, but ships no `py.typed`, so pyright strict fails the import with `reportMissingTypeStubs`. Eight lines is cheaper than an ignore or a loosened setting, and rolling it let the noise headers go and the cookie be placeheld on the way out.
 - **A mocked request says `mock`.** Once [0028](0028-fake-ava.md) routed the mocked matéria through the client, a request the fixture answered was indistinguishable from one the AVA did. `FakeAva` marks its responses through httpx's `extensions`, the response hook carries the mark onto the entry, and the row and the detail wear the tag the prova header already uses.
-- **A row and a body speak different markups.** `row_grid` renders through a rich `Table`, where `$text-success` is not a style and a bare `[/]` closes nothing, so the first list painted raised `MarkupError`. Rows use plain colour names with explicit closing tags, as [0025](../done/0025-global-colours.md) found for everything rich draws, and the tree builds `Text` directly — the AVA's JSON is full of `[` that markup would eat.
+- **A row and a body speak different markups.** `row_grid` renders through a rich `Table`, where `$text-success` is not a style and a bare `[/]` closes nothing, so the first list painted raised `MarkupError`. Rows use plain colour names with explicit closing tags, as [0025](0025-global-colours.md) found for everything rich draws, and the tree builds `Text` directly — the AVA's JSON is full of `[` that markup would eat.
 - **Two names had to move.** Textual's `App` already owns `_log` for its logger, so the app holds the history as `_history`; and a widget's own width belongs in its `DEFAULT_CSS`, not `page.tcss`, which collapses it to nothing wherever that stylesheet is not loaded — including every test.
