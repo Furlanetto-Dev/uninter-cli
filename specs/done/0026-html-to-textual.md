@@ -2,7 +2,7 @@
 name: html-to-textual
 description: The questão renderer leaves pages/prova/components and becomes cli/lib/html_to_textual, parsing with BeautifulSoup instead of a hand-driven event stream and painting through a chain of one link per tag, with its public surface and its output unchanged. Read before importing the HTML renderer, teaching it a tag, or looking for html_to_text in cli/format.py.
 projects: [frontend]
-status: awaiting-review
+status: done
 created_at: 2026-09-17
 ---
 
@@ -17,13 +17,13 @@ created_at: 2026-09-17
 
 The only reader of AVA markup in this repo is a private file under one page, and three queued
 pieces of work lean on it. Move it out, and let a parser own the tree instead of rebuilding
-it by hand. See [CONTEXT.md](../../../CONTEXT.md) and
-[0018](../../done/0018-pages-and-their-components.md).
+it by hand. See [CONTEXT.md](../../CONTEXT.md) and
+[0018](0018-pages-and-their-components.md).
 
 ## Observed behaviour
 - bs4 4.15 ships `py.typed` and the types are real, not `Any`: `find` gives `Tag | None`, `find_all("tr")` gives `ResultSet[Tag]`, `get_text()` gives `str`, `children` gives `Iterator[PageElement]`. A snippet doing the walk and the table query checks clean under pyright strict — verified.
 - A tree parser does not normalise the AVA's malformed HTML. Questão 8 of the mocked prova closes a `<p>` and leaves two lines of bare text at top level, and the `html.parser`, `html5lib` and `lxml` backends all keep them exactly where they sit — verified by parsing it with the three.
-- Reading the funcionário table of [0023](../../done/0023-dev-mode.md) off a tree takes three lines, against the 57-line accumulator and the 16-line cell guard it replaces — measured on the real payload.
+- Reading the funcionário table of [0023](0023-dev-mode.md) off a tree takes three lines, against the 57-line accumulator and the 16-line cell guard it replaces — measured on the real payload.
 - `html_to_markup` has one caller, `pages/prova/page.py`; `html_to_text` has two, `pages/prova/components/questoes.py` and `pages/inicio/page.py` — from a grep over `src/`.
 
 ## Decisions
