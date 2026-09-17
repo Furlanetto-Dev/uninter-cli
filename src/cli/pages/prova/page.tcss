@@ -4,6 +4,20 @@ ProvaPage {
         scrollbar-size-vertical: 1;
     }
 
+    #prova-blocks {
+        height: auto;
+    }
+
+    #prova-blocks Static {
+        height: auto;
+    }
+
+    QuestaoTable {
+        height: auto;
+        max-height: 16;
+        margin: 1 0;
+    }
+
     #prova-alternativas {
         height: auto;
         margin-top: 1;

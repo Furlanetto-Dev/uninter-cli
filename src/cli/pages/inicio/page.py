@@ -1,8 +1,8 @@
-from api.atividades.entity import Atividade
 from rich.markup import escape
 
+from api.atividades.entity import Atividade
 from cli.components.confirm import YES_ID, Confirm
-from cli.format import html_to_text
+from cli.lib.html_to_textual import html_to_text
 
 TITLE = "Orientações para realização da avaliação."
 HINTS_LABEL = "Dicas da coordenação:"

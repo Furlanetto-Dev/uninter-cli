@@ -7,7 +7,7 @@ from textual.widgets.option_list import Option, OptionDoesNotExist
 
 from cli.components.row import row_grid, section_title
 from cli.components.sidebar import Sidebar
-from cli.format import html_to_text
+from cli.lib.html_to_textual import Block, Prose
 
 ANSWERED = "●"
 UNANSWERED = "○"
@@ -18,9 +18,11 @@ NO_ANSWER = "sem resposta"
 PREVIEW_LINES = 1
 
 
-def preview(questao: Questao) -> str:
-    text = html_to_text(questao.enunciado) or html_to_text(questao.comando)
-    return " ".join(text.split("\n")[:PREVIEW_LINES]).strip()
+def preview(blocks: list[Block]) -> str:
+    for block in blocks:
+        if isinstance(block, Prose):
+            return " ".join(block.markup.split("\n")[:PREVIEW_LINES]).strip()
+    return ""
 
 
 def answered_mark(chosen: Alternativa | None) -> str:
@@ -36,11 +38,9 @@ def _answer_line(chosen: Alternativa | None) -> str:
     return f"{letra} [dim]{chosen.texto}[/dim]"
 
 
-def questao_row(questao: Questao, chosen: Alternativa | None) -> Table:
+def questao_row(questao: Questao, chosen: Alternativa | None, summary: str) -> Table:
     grid = row_grid()
-    grid.add_row(
-        f"[dim]{questao.ordem}.[/dim] {preview(questao)}", answered_mark(chosen)
-    )
+    grid.add_row(f"[dim]{questao.ordem}.[/dim] {summary}", answered_mark(chosen))
     grid.add_row(_answer_line(chosen), "")
     return grid
 
@@ -99,10 +99,11 @@ class QuestaoList(Sidebar):
 
 
 class AlternativaList(OptionList):
+    chosen: int | None = None
     BINDINGS = [
         Binding("left", "back", "voltar", show=False),
         Binding("escape", "back", "voltar"),
-        Binding("right", "forward", "próxima questão"),
+        Binding("up", "back_up", "", show=False),
         Binding("enter", "select", "responder"),
         Binding("space", "select", "responder", show=False),
     ]
@@ -110,11 +111,21 @@ class AlternativaList(OptionList):
     class Back(Message):
         pass
 
-    class Forward(Message):
+    class Above(Message):
         pass
+
+    def on_focus(self) -> None:
+        if self.highlighted is None and self.option_count:
+            self.highlighted = 0
+
+    def on_blur(self) -> None:
+        self.highlighted = self.chosen
 
     def action_back(self) -> None:
         self.post_message(self.Back())
 
-    def action_forward(self) -> None:
-        self.post_message(self.Forward())
+    def action_back_up(self) -> None:
+        if self.highlighted is None or self.highlighted == 0:
+            self.post_message(self.Above())
+        else:
+            self.action_cursor_up()

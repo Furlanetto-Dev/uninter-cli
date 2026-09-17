@@ -6,7 +6,6 @@ from cli.format import (
     format_deadline,
     format_elapsed,
     format_number,
-    html_to_text,
     humanize_age,
     is_overdue,
     short_periodo,
@@ -105,16 +104,3 @@ def test_humanize_age_of_a_moment_ahead_of_the_clock(moment: datetime) -> None:
 )
 def test_format_elapsed(seconds: int, expected: str) -> None:
     assert format_elapsed(timedelta(seconds=seconds)) == expected
-
-
-@pytest.mark.parametrize(
-    ("html", "expected"),
-    [
-        ("<p>Ol&aacute;</p>", "Olá"),
-        ("a<br>b", "a\nb"),
-        ("a<BR/>b", "a\nb"),
-        ("  <b>x</b>&amp;y  ", "x&y"),
-    ],
-)
-def test_html_to_text(html: str, expected: str) -> None:
-    assert html_to_text(html) == expected

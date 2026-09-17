@@ -10,7 +10,7 @@ from textual.widgets import Static
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova, Questao
 from cli.components.header import DetailHeader
-from cli.pages.prova.components.questoes import QuestaoList
+from cli.pages.prova.components.questoes import AlternativaList, QuestaoList
 from cli.pages.prova.page import (
     ANSWERED_LABEL,
     NO_ANSWER,
@@ -191,6 +191,55 @@ async def test_the_summary_lists_the_answer_given_to_each_questao() -> None:
         for _ in range(3):
             await pilot.press("down")
             await pilot.pause()
-        text = cast(Content, app.screen.query_one("#prova-text", Static).visual).plain
+        summary = app.screen.query_one("#prova-blocks").query_one(Static)
+        text = cast(Content, summary.visual).plain
         assert "b)" in text
         assert NO_ANSWER in text
+
+
+async def test_right_focuses_the_answers_when_the_questao_has_nothing_to_walk() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        assert not app.screen.query("QuestaoTable")
+        await pilot.press("right")
+        await pilot.pause()
+        assert isinstance(app.focused, AlternativaList)
+
+
+async def test_the_answers_show_no_cursor_until_they_have_focus() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        alternativas = app.screen.query_one(AlternativaList)
+        assert alternativas.highlighted is None
+        await pilot.press("right")
+        await pilot.pause()
+        assert alternativas.highlighted == 0
+
+
+async def test_the_cursor_retreats_when_the_answers_lose_focus() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("right")
+        await pilot.press("left")
+        await pilot.pause()
+        assert isinstance(app.focused, QuestaoList)
+        assert app.screen.query_one(AlternativaList).highlighted is None
+
+
+async def test_the_chosen_answer_keeps_its_cursor_when_focus_leaves() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("right")
+        await pilot.press("b")
+        await pilot.press("left")
+        await pilot.pause()
+        assert isinstance(app.focused, QuestaoList)
+        assert app.screen.query_one(AlternativaList).highlighted == 1

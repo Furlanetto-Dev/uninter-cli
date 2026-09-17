@@ -12,6 +12,7 @@ dependencies = [
     "rich>=13.7",
     "textual>=8.2.8",
     "aiosqlite>=0.22.1",
+    "beautifulsoup4>=4.15.0",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"

@@ -10,7 +10,7 @@ BACK = "voltar"
 Edge = str | Callable[[], None] | None
 
 
-async def _leave(widget: Widget, at_edge: Edge) -> None:
+async def leave(widget: Widget, at_edge: Edge) -> None:
     if isinstance(at_edge, str):
         await widget.run_action(at_edge)
     elif at_edge is not None:
@@ -21,21 +21,28 @@ async def step_left(widget: Widget, at_edge: Edge) -> None:
     if widget.scroll_x > 0:
         widget.scroll_left(animate=False)
     else:
-        await _leave(widget, at_edge)
+        await leave(widget, at_edge)
 
 
 async def step_right(widget: Widget, at_edge: Edge) -> None:
     if widget.scroll_x < widget.max_scroll_x:
         widget.scroll_right(animate=False)
     else:
-        await _leave(widget, at_edge)
+        await leave(widget, at_edge)
 
 
 async def step_up(widget: Widget, at_edge: Edge) -> None:
     if widget.scroll_y > 0:
         widget.scroll_up(animate=False)
     else:
-        await _leave(widget, at_edge)
+        await leave(widget, at_edge)
+
+
+async def step_down(widget: Widget, at_edge: Edge) -> None:
+    if widget.scroll_y < widget.max_scroll_y:
+        widget.scroll_down(animate=False)
+    else:
+        await leave(widget, at_edge)
 
 
 STEP_BINDINGS: list[BindingType] = [
@@ -44,6 +51,7 @@ STEP_BINDINGS: list[BindingType] = [
     Binding("escape", "back", BACK),
 ]
 UP_BINDING = Binding("up", "step_up", "", show=False)
+DOWN_BINDING = Binding("down", "step_down", "", show=False)
 
 
 # Not a Widget: _css_bases walks only the first DOMNode base, so a widget mixin
@@ -52,6 +60,7 @@ class Steps:
     STEP_LEFT: Edge = None
     STEP_RIGHT: Edge = None
     STEP_UP: Edge = None
+    STEP_DOWN: Edge = None
     BACK_TO: str | None = None
 
     async def action_step_left(self) -> None:
@@ -64,6 +73,10 @@ class Steps:
     async def action_step_up(self) -> None:
         if self.STEP_UP is not None:
             await step_up(cast(Widget, self), self.STEP_UP)
+
+    async def action_step_down(self) -> None:
+        if self.STEP_DOWN is not None:
+            await step_down(cast(Widget, self), self.STEP_DOWN)
 
     async def action_back(self) -> None:
         if self.BACK_TO is not None:

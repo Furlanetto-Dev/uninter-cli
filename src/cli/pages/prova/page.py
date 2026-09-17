@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime
 
 from api.atividades.entity import Atividade
@@ -7,19 +8,21 @@ from crawler.atividades.prova import ProvaSource
 from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
+from textual.widget import Widget
 from textual.widgets import Header, Static
 from textual.widgets.option_list import Option
 
-from .components.html import html_to_markup
 from .components.questoes import (
     AlternativaList,
     QuestaoList,
     answered_mark,
+    preview,
     questao_row,
     summary_row,
 )
+from .components.table import QuestaoTable
 from cli.components.debug.panel import DebugPanel
 from cli.components.debug.view import (
     MISSING,
@@ -33,6 +36,7 @@ from cli.components.header import DetailHeader
 from cli.components.hint import Hint
 from cli.components.pane import DetailPane
 from cli.format import format_elapsed
+from cli.lib.html_to_textual import Block, Prose, Table, html_to_blocks
 
 MOCK_TAG = "[$text-secondary]mock[/]"
 MOCK_SOURCE = "mock"
@@ -56,18 +60,19 @@ def alternativa_option(alternativa: Alternativa, chosen: bool) -> Option:
     )
 
 
-def questao_markup(questao: Questao) -> str:
-    enunciado = html_to_markup(questao.enunciado)
-    comando = html_to_markup(questao.comando)
-    return (
-        f"{enunciado}\n\n{comando}" if enunciado and comando else enunciado or comando
-    )
+def focus_later(widget: Widget) -> Callable[[], None]:
+    def go() -> None:
+        widget.focus()
+
+    return go
 
 
 class ProvaPage(Screen[None]):
     AUTO_FOCUS = "#prova-questoes"
     BINDINGS = [
         Binding("escape", "leave", "voltar"),
+        Binding("j", "step_questao(-1)", "questão anterior"),
+        Binding("k", "step_questao(1)", "próxima questão"),
         *[Binding(letra, f"pick('{letra}')", letra, show=False) for letra in PICK_KEYS],
         *[Binding(key, f"jump('{key}')", key, show=False) for key in JUMP_KEYS],
     ]
@@ -85,6 +90,7 @@ class ProvaPage(Screen[None]):
         self._prova = prova
         self._source = source
         self._respostas: dict[int, int] = dict(prova.respostas)
+        self._blocks: dict[int, list[Block]] = {}
         self._page = 0
         self._started_at: datetime | None = None
 
@@ -95,7 +101,7 @@ class ProvaPage(Screen[None]):
             with DetailPane():
                 yield DetailHeader()
                 with VerticalScroll(id="prova-body", can_focus=False):
-                    yield Static(id="prova-text")
+                    yield Vertical(id="prova-blocks")
                     yield Hint()
                     yield AlternativaList(id="prova-alternativas")
                 yield DebugPanel()
@@ -104,7 +110,7 @@ class ProvaPage(Screen[None]):
     async def on_mount(self) -> None:
         self._started_at = await self._source.started_at(self._atividade)
         self.fill_questoes()
-        self.show()
+        await self.show()
         self.set_interval(TICK, self.tick)
 
     @property
@@ -119,24 +125,66 @@ class ProvaPage(Screen[None]):
     def questao(self) -> Questao:
         return self.questoes[self._page]
 
+    def blocks_of(self, questao: Questao) -> list[Block]:
+        cached = self._blocks.get(questao.id)
+        if cached is None:
+            cached = html_to_blocks(questao.enunciado) + html_to_blocks(questao.comando)
+            self._blocks[questao.id] = cached
+        return cached
+
     def fill_questoes(self) -> None:
-        rows = [questao_row(questao, self.chosen(questao)) for questao in self.questoes]
+        rows = [
+            questao_row(questao, self.chosen(questao), preview(self.blocks_of(questao)))
+            for questao in self.questoes
+        ]
         rows.append(summary_row(len(self._respostas), len(self.questoes)))
         self.query_one(QuestaoList).show(rows, self._page)
 
-    def show(self) -> None:
-        text = self.query_one("#prova-text", Static)
+    async def show(self) -> None:
         alternativas = self.query_one(AlternativaList)
         alternativas.display = not self.finished
         self.query_one(Hint).show_or(NOTHING_SENT if self.finished else None)
         if self.finished:
-            text.update(self.summary())
+            await self.fill_blocks([Prose(self.summary())])
         else:
-            text.update(questao_markup(self.questao))
+            await self.fill_blocks(self.blocks_of(self.questao))
             self.fill_alternativas(alternativas, self.questao)
         self.tick()
         self.call_later(self.query_one(DebugPanel).reload)
         self.call_after_refresh(self.scroll_top)
+
+    async def fill_blocks(self, blocks: list[Block]) -> None:
+        container = self.query_one("#prova-blocks", Vertical)
+        await container.remove_children()
+        await container.mount_all(
+            [
+                QuestaoTable(block)
+                if isinstance(block, Table)
+                else Static(block.markup)
+                for block in blocks
+            ]
+        )
+        self.wire_tables()
+
+    def navigable_tables(self) -> list[QuestaoTable]:
+        return [table for table in self.query(QuestaoTable) if table.can_focus]
+
+    def wire_tables(self) -> None:
+        tables = self.navigable_tables()
+        for position, table in enumerate(tables):
+            table.STEP_LEFT = (
+                focus_later(tables[position - 1]) if position else self.focus_questoes
+            )
+            table.STEP_DOWN = self.focus_alternativas
+
+    def focus_questoes(self) -> None:
+        self.query_one(QuestaoList).focus()
+
+    def focus_alternativas(self) -> None:
+        self.query_one(AlternativaList).focus()
+
+    def action_focus_questoes(self) -> None:
+        self.focus_questoes()
 
     async def debug_view(self) -> tuple[Fetched, Stored] | None:
         if self.finished:
@@ -205,13 +253,17 @@ class ProvaPage(Screen[None]):
             alternativa_option(alternativa, alternativa.id == answered)
             for alternativa in questao.alternativas
         )
-        options.highlighted = self.position_of(questao, answered)
+        options.chosen = self.position_of(questao, answered)
+        if options.chosen is not None:
+            options.highlighted = options.chosen
+        else:
+            options.highlighted = 0 if options.has_focus else None
 
-    def position_of(self, questao: Questao, alternativa_id: int | None) -> int:
+    def position_of(self, questao: Questao, alternativa_id: int | None) -> int | None:
         for position, alternativa in enumerate(questao.alternativas):
             if alternativa.id == alternativa_id:
                 return position
-        return 0
+        return None
 
     async def answer(self, alternativa: Alternativa) -> None:
         questao = self.questao
@@ -221,25 +273,24 @@ class ProvaPage(Screen[None]):
         self.fill_questoes()
         self.tick()
 
-    def on_questao_list_moved(self, event: QuestaoList.Moved) -> None:
+    async def on_questao_list_moved(self, event: QuestaoList.Moved) -> None:
         if event.position != self._page:
             self._page = event.position
-            self.show()
+            await self.show()
 
     def on_questao_list_entered(self, event: QuestaoList.Entered) -> None:
-        if not self.finished:
-            self.query_one(AlternativaList).focus()
+        if self.finished:
+            return
+        tables = self.navigable_tables()
+        tables[0].focus() if tables else self.focus_alternativas()
 
     def on_alternativa_list_back(self, event: AlternativaList.Back) -> None:
-        self.query_one(QuestaoList).focus()
+        self.focus_questoes()
 
-    def on_alternativa_list_forward(self, event: AlternativaList.Forward) -> None:
-        target = self._page + 1
-        self.query_one(QuestaoList).select(target)
-        if target < len(self.questoes):
-            self.query_one(AlternativaList).focus()
-        else:
-            self.query_one(QuestaoList).focus()
+    def on_alternativa_list_above(self, event: AlternativaList.Above) -> None:
+        tables = self.navigable_tables()
+        if tables:
+            tables[-1].focus()
 
     async def on_option_list_option_selected(
         self, event: AlternativaList.OptionSelected
@@ -253,6 +304,17 @@ class ProvaPage(Screen[None]):
         alternativa = self.questao.alternativa(letra)
         if alternativa is not None:
             await self.answer(alternativa)
+
+    def action_step_questao(self, delta: int) -> None:
+        target = self._page + delta
+        if not 0 <= target < len(self.questoes):
+            return
+        on_answers = self.query_one(AlternativaList).has_focus
+        self.query_one(QuestaoList).select(target)
+        if on_answers:
+            self.focus_alternativas()
+        else:
+            self.focus_questoes()
 
     def action_jump(self, key: str) -> None:
         position = (int(key) - 1) % 10

@@ -1,5 +1,3 @@
-import re
-from html import unescape
 from datetime import datetime, timedelta
 
 SECONDS_PER_HOUR = 3600
@@ -48,9 +46,3 @@ def format_elapsed(elapsed: timedelta) -> str:
     if hours:
         return f"{hours}:{minutes:02d}:{seconds:02d}"
     return f"{minutes:02d}:{seconds:02d}"
-
-
-def html_to_text(html: str) -> str:
-    text = re.sub(r"<br\s*/?>", "\n", html, flags=re.IGNORECASE)
-    text = re.sub(r"<[^>]+>", "", text)
-    return unescape(text).strip()
