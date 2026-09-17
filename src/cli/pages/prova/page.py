@@ -52,7 +52,7 @@ JUMP_KEYS = "1234567890"
 TICK = 1.0
 
 
-def alternativa_option(alternativa: Alternativa, chosen: bool) -> Option:
+def alternativa_option(alternativa: Alternativa, *, chosen: bool) -> Option:
     return Option(
         f"{answered_mark(alternativa if chosen else None)} "
         f"{alternativa.letra}) {escape(alternativa.texto)}",
@@ -250,7 +250,7 @@ class ProvaPage(Screen[None]):
         answered = self._respostas.get(questao.id)
         options.clear_options()
         options.add_options(
-            alternativa_option(alternativa, alternativa.id == answered)
+            alternativa_option(alternativa, chosen=alternativa.id == answered)
             for alternativa in questao.alternativas
         )
         options.chosen = self.position_of(questao, answered)

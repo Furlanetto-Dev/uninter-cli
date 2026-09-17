@@ -1,6 +1,7 @@
 from rich.markup import escape
 
 BULLET = "-"
+FIRST = 1
 INDENT = "  "
 
 
@@ -35,8 +36,11 @@ class Lines:
         if self._lines and self._lines[-1]:
             self._lines.append("")
 
-    def open_list(self, ordered: bool) -> None:
-        self._markers.append(1 if ordered else None)
+    def open_numbered_list(self) -> None:
+        self._markers.append(FIRST)
+
+    def open_bullet_list(self) -> None:
+        self._markers.append(None)
 
     def close_list(self) -> None:
         if self._markers:

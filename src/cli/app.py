@@ -17,6 +17,7 @@ from api.trabalhos.service import TrabalhoSyncService
 from crawler.atividades.prova import ProvaSource
 from config import Config
 from crawler.credenciais import Credenciais
+from crawler.history import RequestLog
 from crawler.session import AvaSession, AvaUnreachable, LoginRejected
 from textual import work
 from textual.app import App
@@ -25,6 +26,7 @@ from textual.widget import Widget
 
 from cli.commands.palette import AppCommands
 from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
+from cli.pages.requisicoes.page import HISTORY_BINDINGS, RequisicoesPage
 from cli.components.loading import Loading
 from cli.pages.materias.components.list import synced_at
 from cli.pages.login.page import LoginPage
@@ -43,13 +45,15 @@ class SyncItem(NamedTuple):
 
 
 class UninterApp(App[None]):
-    BINDINGS = DEBUG_BINDINGS
+    BINDINGS = [*DEBUG_BINDINGS, *HISTORY_BINDINGS]
     CSS_PATH = [
         "app.tcss",
         "pages/materias/page.tcss",
         "pages/prova/page.tcss",
+        "pages/trabalho/page.tcss",
         "pages/inicio/page.tcss",
         "pages/reset/page.tcss",
+        "pages/requisicoes/page.tcss",
         "pages/login/page.tcss",
         "pages/curso/page.tcss",
     ]
@@ -77,8 +81,10 @@ class UninterApp(App[None]):
         ava: AvaSession,
         credenciais: Credenciais,
         credenciais_db: CredencialRepository,
+        log: RequestLog,
     ) -> None:
         super().__init__()
+        self._history = log
         self._mocked = mocked
         self._config = config
         self._ava = ava
@@ -137,9 +143,6 @@ class UninterApp(App[None]):
         self._ava.forget()
         self.ask_to_log_in()
 
-    async def prepare(self) -> None:
-        await self._mocked.follow(self.dev_mode)
-
     @property
     def page(self) -> MateriasPage:
         return self._page
@@ -153,9 +156,15 @@ class UninterApp(App[None]):
     async def watch_dev_mode(self, dev_mode: bool) -> None:
         self._config.dev_mode = dev_mode
         self._config.save()
-        await self._mocked.follow(dev_mode)
+        await self.prepare()
         if self._page.is_mounted:
             await self._page.reload_materias()
+
+    async def prepare(self) -> None:
+        if self.dev_mode:
+            await self._mocked.seed()
+        else:
+            await self._mocked.remove()
 
     @property
     def panel(self) -> DebugPanel | None:
@@ -165,7 +174,12 @@ class UninterApp(App[None]):
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         if action == "focus_debug":
             return self.debug_mode and self.panel is not None
+        if action == "request_history":
+            return self.debug_mode
         return True
+
+    def action_request_history(self) -> None:
+        self.push_screen(RequisicoesPage(self, self._history))
 
     def action_focus_debug(self) -> None:
         panel = self.panel
@@ -207,8 +221,6 @@ class UninterApp(App[None]):
     def enqueue_pending(self, materias: list[Materia]) -> None:
         for collection in (ATIVIDADES, TRABALHOS):
             for materia in materias:
-                if materia.mockada:
-                    continue
                 if synced_at(materia, collection) is None:
                     self.enqueue(SyncItem(materia.id, collection))
 

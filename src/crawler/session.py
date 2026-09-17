@@ -7,6 +7,7 @@ from api.capturas.entity import Captura
 
 from .credenciais import Credenciais
 from .dto import LoginDTO
+from .history import RequestLog, hooks
 
 BASE_URL = "https://univirtus.uninter.com/ava"
 USER_AGENT = (
@@ -43,8 +44,13 @@ class AvaResponse(NamedTuple):
         )
 
 
-def ava_client() -> httpx.AsyncClient:
+def ava_client(
+    transport: httpx.AsyncBaseTransport | None = None,
+    log: RequestLog | None = None,
+) -> httpx.AsyncClient:
     return httpx.AsyncClient(
+        transport=transport,
+        event_hooks=hooks(log) if log is not None else None,
         base_url=BASE_URL,
         timeout=TIMEOUT_SECONDS,
         headers={
@@ -57,9 +63,15 @@ def ava_client() -> httpx.AsyncClient:
 
 
 class AvaSession:
-    def __init__(self, http: httpx.AsyncClient, credenciais: Credenciais) -> None:
+    def __init__(
+        self,
+        http: httpx.AsyncClient,
+        credenciais: Credenciais,
+        log: RequestLog | None = None,
+    ) -> None:
         self._http = http
         self._credenciais = credenciais
+        self._log = log
         self._stamp: str | None = None
         self._student: str | None = None
 
@@ -73,7 +85,11 @@ class AvaSession:
         self._http.cookies.clear()
 
     async def get(self, url: str) -> AvaResponse:
-        response = await self._http.get(url, headers=await self._session_headers())
+        try:
+            response = await self._http.get(url, headers=await self._session_headers())
+        except httpx.TransportError as error:
+            self._note(error)
+            raise
         if response.status_code == NO_RECORDS_STATUS:
             return AvaResponse(
                 str(response.url), response.status_code, response.text, None
@@ -82,6 +98,23 @@ class AvaSession:
         return AvaResponse(
             str(response.url), response.status_code, response.text, response.json()
         )
+
+    async def put(self, url: str, data: dict[str, str]) -> AvaResponse:
+        headers = await self._session_headers()
+        headers["content-type"] = FORM_CONTENT_TYPE
+        try:
+            response = await self._http.put(url, data=data, headers=headers)
+        except httpx.TransportError as error:
+            self._note(error)
+            raise
+        response.raise_for_status()
+        return AvaResponse(
+            str(response.url), response.status_code, response.text, response.json()
+        )
+
+    def _note(self, error: httpx.TransportError) -> None:
+        if self._log is not None:
+            self._log.failed(f"{type(error).__name__}: {error}")
 
     async def _session_headers(self) -> dict[str, str]:
         stamp = self._stamp
@@ -102,6 +135,7 @@ class AvaSession:
                 headers={"content-type": FORM_CONTENT_TYPE},
             )
         except httpx.TransportError as error:
+            self._note(error)
             raise AvaUnreachable(str(error)) from error
         response.raise_for_status()
         dto = LoginDTO.model_validate(response.json())

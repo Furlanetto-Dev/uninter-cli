@@ -345,8 +345,6 @@ class MateriasPage(Screen[None]):
             await self.show_debug(materia)
 
     def fetch_missing_trabalhos(self, materia: Materia) -> None:
-        if materia.mockada:
-            return
         if materia.trabalhos_sincronizados_em is None:
             self.uninter.fetch(materia.id, TRABALHOS)
 
@@ -411,8 +409,6 @@ class MateriasPage(Screen[None]):
             self.refresh_materia(materia)
 
     def refresh_materia(self, materia: Materia) -> None:
-        if materia.mockada:
-            return
         self.uninter.fetch(materia.id, self.active_collection)
 
     async def redraw_materia(self, materia: Materia) -> None:

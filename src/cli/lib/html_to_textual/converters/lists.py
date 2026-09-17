@@ -10,7 +10,10 @@ class ListBlock:
     def convert(self, element: Element, blocks: Blocks, walk: Walk) -> bool:
         if element.tag not in LIST_TAGS:
             return False
-        blocks.lines.open_list(ordered=element.tag == ORDERED)
+        if element.tag == ORDERED:
+            blocks.lines.open_numbered_list()
+        else:
+            blocks.lines.open_bullet_list()
         blocks.lines.blank_line()
         walk(element.children, blocks)
         blocks.lines.close_list()

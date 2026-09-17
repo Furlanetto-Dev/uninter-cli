@@ -1,5 +1,7 @@
 import asyncio
 
+import httpx
+
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.capturas.repository import CapturaRepository
@@ -7,6 +9,7 @@ from api.credenciais.repository import CredencialRepository
 from api.db import DATABASE_PATH, db_session
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
+from api.mock import fixture
 from api.mock.provas import MockedProvas
 from api.mock.seed import MockedMateria
 from api.trabalhos.repository import TrabalhoRepository
@@ -14,8 +17,10 @@ from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
 from config import Config
 from crawler.atividades.request import AtividadeRequest
-from crawler.materias.request import MateriaRequest
 from crawler.credenciais import Credenciais
+from crawler.history import RequestLog
+from crawler.materias.request import MateriaRequest
+from crawler.mock import FakeAva
 from crawler.session import AvaSession, ava_client
 from crawler.trabalhos.request import EntregaRequest, EtiquetaRequest, TrabalhoRequest
 from settings import Settings
@@ -39,10 +44,12 @@ async def stored(
 
 
 async def run(settings: Settings) -> bool:
-    async with ava_client() as http, db_session() as session:
+    log = RequestLog()
+    transport = FakeAva(fixture.payload, httpx.AsyncHTTPTransport())
+    async with ava_client(transport, log) as http, db_session() as session:
         credenciais_db = CredencialRepository(session)
         credenciais = await stored(from_env(settings), credenciais_db)
-        ava = AvaSession(http, credenciais)
+        ava = AvaSession(http, credenciais, log)
         materias_db = MateriaRepository(session)
         atividades_db = AtividadeRepository(session)
         trabalhos_db = TrabalhoRepository(session)
@@ -74,7 +81,7 @@ async def run(settings: Settings) -> bool:
             materias_service,
             atividades_service,
             trabalhos_service,
-            MockedProvas(),
+            MockedProvas(ava),
             materias_db,
             atividades_db,
             trabalhos_db,
@@ -84,6 +91,7 @@ async def run(settings: Settings) -> bool:
             ava,
             credenciais,
             credenciais_db,
+            log,
         )
         await app.run_async()
         return app.reset_requested

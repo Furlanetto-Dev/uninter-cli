@@ -1,20 +1,25 @@
-import json
 from datetime import datetime, timedelta
+from typing import NamedTuple
 
-from api.atividades.entity import AWAITING_START, Atividade
-from api.capturas.entity import ATIVIDADES, TRABALHOS, Captura
-from api.capturas.lookup import KEYS
+from api.atividades.entity import AWAITING_START
 from api.materias.entity import Materia
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
-from api.trabalhos.entity import Trabalho
 
 MATERIA_ID = -1
 OFERTA = -1
 NOME = "Matéria Mockada"
 PERIODO = "M Fase I 2026 - Regular"
 FINISHED = "Finalizada"
+CATEGORIA = "Avaliação"
 STARTED = "Iniciada"
-URL = "mock://uninter/{recurso}"
+ATIVIDADES_PATH = "/bqs/AvaliacaoUsuario/"
+TRABALHOS_PATH = "/interacao/TrabalhoEtapa/"
+PROVA_PATH = "/bqs/AvaliacaoUsuarioHistorico/"
+PROVA_SUFFIX = "/Avaliacao"
+ANSWERED = {"sucesso": True}
+ENTREGAS_PATH = "/interacao/TrabalhoEntrega/-"
+ETIQUETAS_PATH = "/interacao/TrabalhoCorrecaoEtiqueta/-"
+MOMENT = "%Y-%m-%dT%H:%M:%S"
 
 DAY = timedelta(days=1)
 
@@ -24,7 +29,6 @@ def _now() -> datetime:
 
 
 def materia() -> Materia:
-    moment = _now()
     return Materia(
         id=MATERIA_ID,
         nome=NOME,
@@ -35,170 +39,7 @@ def materia() -> Materia:
         oferta_atual=OFERTA,
         oferta_aproveitamento=None,
         mockada=True,
-        atividades_sincronizadas_em=moment,
-        trabalhos_sincronizados_em=moment,
     )
-
-
-def atividades() -> list[Atividade]:
-    moment = _now()
-    return [
-        Atividade(
-            materia_id=MATERIA_ID,
-            id=-1,
-            posicao=0,
-            nome="APOL Objetiva 1 (Mockada)",
-            tipo="APOL Objetiva",
-            categoria="Avaliação",
-            periodo=PERIODO,
-            orientacao="Uma avaliação que existe só no dev mode.",
-            tempo_total=None,
-            peso=15,
-            status=AWAITING_START,
-            tentativa=1,
-            tentativa_total=3,
-            inicio=moment - 10 * DAY,
-            fim=moment + 30 * DAY,
-        ),
-        Atividade(
-            materia_id=MATERIA_ID,
-            id=-2,
-            posicao=1,
-            nome="APOL Objetiva 2 (Mockada)",
-            tipo="APOL Objetiva",
-            categoria="Avaliação",
-            periodo=PERIODO,
-            peso=15,
-            status=FINISHED,
-            nota=85.0,
-            contribuicao=12.75,
-            tentativa=2,
-            tentativa_total=3,
-            inicio=moment - 30 * DAY,
-            fim=moment - 2 * DAY,
-        ),
-        Atividade(
-            materia_id=MATERIA_ID,
-            id=-3,
-            posicao=2,
-            nome="Prova Objetiva (Mockada)",
-            tipo="Prova Objetiva",
-            categoria="Avaliação",
-            presencial=True,
-            periodo=PERIODO,
-            peso=30,
-            status=AWAITING_START,
-            tentativa=1,
-            tentativa_total=1,
-            inicio=moment - 5 * DAY,
-            fim=moment + 45 * DAY,
-        ),
-        Atividade(
-            materia_id=MATERIA_ID,
-            id=-4,
-            posicao=3,
-            nome="Prova Discursiva (Mockada)",
-            tipo="Prova Discursiva",
-            categoria="Avaliação",
-            periodo=PERIODO,
-            orientacao="Dez questões, todas respondíveis.",
-            tempo_total=60,
-            peso=30,
-            status=AWAITING_START,
-            tentativa=1,
-            tentativa_total=2,
-            inicio=moment - 5 * DAY,
-            fim=moment + 45 * DAY,
-        ),
-        Atividade(
-            materia_id=MATERIA_ID,
-            id=-5,
-            posicao=4,
-            nome="Exame Final (Mockado)",
-            tipo="Exame",
-            categoria="Avaliação",
-            periodo=PERIODO,
-            peso=10,
-            status=AWAITING_START,
-            tentativa=1,
-            tentativa_total=1,
-            inicio=moment - 40 * DAY,
-            fim=moment - 7 * DAY,
-        ),
-    ]
-
-
-def trabalhos() -> list[Trabalho]:
-    moment = _now()
-    return [
-        Trabalho(
-            materia_id=MATERIA_ID,
-            id=-1,
-            vinculado_etapa=1,
-            nome="Trabalho aprovado (Mockado)",
-            tipo="Trabalho",
-            ordem=1,
-            periodo=PERIODO,
-            inicio=moment - 30 * DAY,
-            fim=moment - 10 * DAY,
-            entregue_em=moment - 12 * DAY,
-            nota=90.0,
-            aprovado=True,
-            pode_entregar=False,
-        ),
-        Trabalho(
-            materia_id=MATERIA_ID,
-            id=-2,
-            vinculado_etapa=2,
-            nome="Trabalho reprovado (Mockado)",
-            tipo="Trabalho",
-            ordem=2,
-            periodo=PERIODO,
-            inicio=moment - 30 * DAY,
-            fim=moment - 8 * DAY,
-            entregue_em=moment - 9 * DAY,
-            nota=20.0,
-            aprovado=False,
-            pode_entregar=False,
-        ),
-        Trabalho(
-            materia_id=MATERIA_ID,
-            id=-3,
-            vinculado_etapa=3,
-            nome="Trabalho em correção (Mockado)",
-            tipo="Trabalho",
-            ordem=3,
-            periodo=PERIODO,
-            inicio=moment - 20 * DAY,
-            fim=moment - 1 * DAY,
-            entregue_em=moment - 2 * DAY,
-            pode_entregar=False,
-        ),
-        Trabalho(
-            materia_id=MATERIA_ID,
-            id=-4,
-            vinculado_etapa=4,
-            nome="Trabalho aberto (Mockado)",
-            tipo="Trabalho",
-            ordem=4,
-            periodo=PERIODO,
-            inicio=moment - 5 * DAY,
-            fim=moment + 15 * DAY,
-            pode_entregar=True,
-        ),
-        Trabalho(
-            materia_id=MATERIA_ID,
-            id=-5,
-            vinculado_etapa=5,
-            nome="Trabalho não entregue (Mockado)",
-            tipo="Trabalho",
-            ordem=5,
-            periodo=PERIODO,
-            inicio=moment - 40 * DAY,
-            fim=moment - 20 * DAY,
-            pode_entregar=False,
-        ),
-    ]
 
 
 QUESTOES = (
@@ -475,39 +316,199 @@ def prova(atividade_id: int, respostas: dict[int, int]) -> Prova:
     )
 
 
-def _atividade_item(atividade: Atividade) -> dict[str, object]:
-    return {
-        "id": atividade.id,
-        "nome": atividade.nome,
-        "status": atividade.status,
-        "peso": atividade.peso,
-        "avaliacao": {"avaliacaoPresencial": atividade.presencial},
-    }
+def _moment(moment: datetime) -> str:
+    return moment.strftime(MOMENT)
 
 
-def _trabalho_item(trabalho: Trabalho) -> dict[str, object]:
-    return {
-        "id": trabalho.id,
-        "nome": trabalho.nome,
-        "ordem": trabalho.ordem,
-        "aprovado": trabalho.aprovado,
-    }
+class Avaliacao(NamedTuple):
+    nome: str
+    tipo: str
+    status: str
+    peso: int
+    tentativa: int
+    tentativa_total: int
+    inicio: timedelta
+    fim: timedelta
+    nota: float | None = None
+    contribuicao: float | None = None
+    orientacao: str | None = None
+    tempo_total: int | None = None
+    presencial: bool = False
 
 
-def capturas() -> list[Captura]:
+AVALIACOES = (
+    Avaliacao(
+        nome="APOL Objetiva 1 (Mockada)",
+        tipo="APOL Objetiva",
+        status=AWAITING_START,
+        orientacao="Uma avaliação que existe só no dev mode.",
+        peso=15,
+        tentativa=1,
+        tentativa_total=3,
+        inicio=-10 * DAY,
+        fim=30 * DAY,
+    ),
+    Avaliacao(
+        nome="APOL Objetiva 2 (Mockada)",
+        tipo="APOL Objetiva",
+        status=FINISHED,
+        peso=15,
+        nota=85.0,
+        contribuicao=12.75,
+        tentativa=2,
+        tentativa_total=3,
+        inicio=-30 * DAY,
+        fim=-2 * DAY,
+    ),
+    Avaliacao(
+        nome="Prova Objetiva (Mockada)",
+        tipo="Prova Objetiva",
+        status=AWAITING_START,
+        presencial=True,
+        peso=30,
+        tentativa=1,
+        tentativa_total=1,
+        inicio=-5 * DAY,
+        fim=45 * DAY,
+    ),
+    Avaliacao(
+        nome="Prova Discursiva (Mockada)",
+        tipo="Prova Discursiva",
+        status=AWAITING_START,
+        orientacao="Dez questões, todas respondíveis.",
+        tempo_total=60,
+        peso=30,
+        tentativa=1,
+        tentativa_total=2,
+        inicio=-5 * DAY,
+        fim=45 * DAY,
+    ),
+    Avaliacao(
+        nome="Exame Final (Mockado)",
+        tipo="Exame",
+        status=AWAITING_START,
+        peso=10,
+        tentativa=1,
+        tentativa_total=1,
+        inicio=-40 * DAY,
+        fim=-7 * DAY,
+    ),
+)
+
+
+def atividades() -> dict[str, object]:
     moment = _now()
-    bodies = {
-        ATIVIDADES: {KEYS[ATIVIDADES]: [_atividade_item(a) for a in atividades()]},
-        TRABALHOS: {KEYS[TRABALHOS]: [_trabalho_item(t) for t in trabalhos()]},
+    return {
+        "avaliacaoUsuarios": [
+            {
+                "id": -(position + 1),
+                "status": avaliacao.status,
+                "nota": avaliacao.nota,
+                "notaMedia": avaliacao.contribuicao,
+                "tentativa": avaliacao.tentativa,
+                "tentativaTotal": avaliacao.tentativa_total,
+                "dataInicio": _moment(moment + avaliacao.inicio),
+                "dataFim": _moment(moment + avaliacao.fim),
+                "avaliacao": {
+                    "id": -(position + 1),
+                    "nome": avaliacao.nome,
+                    "nomeAvaliacaoTipo": avaliacao.tipo,
+                    "nomeAvaliacaoTipoCategoria": CATEGORIA,
+                    "pesoMedia": avaliacao.peso,
+                    "avaliacaoPresencial": avaliacao.presencial,
+                    "periodo": PERIODO,
+                    "orientacao": avaliacao.orientacao,
+                    "tempoTotal": avaliacao.tempo_total,
+                },
+            }
+            for position, avaliacao in enumerate(AVALIACOES)
+        ]
     }
-    return [
-        Captura(
-            recurso=recurso,
-            materia_id=MATERIA_ID,
-            url=URL.format(recurso=recurso),
-            status=200,
-            corpo=json.dumps(body, ensure_ascii=False, indent=2),
-            recebida_em=moment,
-        )
-        for recurso, body in bodies.items()
+
+
+def trabalhos() -> dict[str, object]:
+    moment = _now()
+    etapas = [
+        ("Trabalho aprovado (Mockado)", 30, 10, 12, 90.0, True, False),
+        ("Trabalho reprovado (Mockado)", 30, 8, 9, 20.0, False, False),
+        ("Trabalho em correção (Mockado)", 20, 1, 2, None, None, False),
+        ("Trabalho aberto (Mockado)", 5, -15, None, None, None, True),
+        ("Trabalho não entregue (Mockado)", 40, 20, None, None, None, False),
     ]
+    return {
+        "trabalhoEtapas": [
+            {
+                "id": -(ordem + 1),
+                "idTrabalhoVinculadoEtapa": ordem + 1,
+                "nome": nome,
+                "nomeTrabalhoTipo": "Trabalho",
+                "ordemTrabalho": ordem + 1,
+                "nomePeriodo": PERIODO,
+                "dataInicio": _moment(moment - inicio * DAY),
+                "dataFim": _moment(moment - fim * DAY),
+                "dataEntrega": None
+                if entrega is None
+                else _moment(moment - entrega * DAY),
+                "notaEtapa": nota,
+                "aprovadoEtapa": aprovado,
+                "podeEntregar": pode_entregar,
+            }
+            for ordem, (
+                nome,
+                inicio,
+                fim,
+                entrega,
+                nota,
+                aprovado,
+                pode_entregar,
+            ) in enumerate(etapas)
+        ]
+    }
+
+
+def questoes(atividade_id: int) -> dict[str, object]:
+    return {
+        "avaliacaoUsuarioHistoricos": [
+            {
+                "id": questao.id,
+                "ordem": questao.ordem,
+                "questao": questao.enunciado,
+                "comando": questao.comando,
+                "alternativas": [
+                    {
+                        "id": alternativa.id,
+                        "ativa": True,
+                        "questaoAlternativaAtributos": [{"valor": alternativa.texto}],
+                    }
+                    for alternativa in questao.alternativas
+                ],
+            }
+            for questao in prova(atividade_id, {}).questoes
+        ]
+    }
+
+
+def asked_prova(url: str) -> int | None:
+    _, _, tail = url.partition(PROVA_PATH)
+    path = tail.split("?")[0]
+    if not path.endswith(PROVA_SUFFIX):
+        return None
+    asked = path.removesuffix(PROVA_SUFFIX)
+    return int(asked) if asked.startswith("-") and asked[1:].isdigit() else None
+
+
+def payload(url: str) -> dict[str, object] | None:
+    if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
+        return atividades()
+    if f"{TRABALHOS_PATH}{OFERTA}/" in url:
+        return trabalhos()
+    atividade_id = asked_prova(url)
+    if atividade_id is not None:
+        return questoes(atividade_id)
+    if url.split("?")[0].endswith(PROVA_PATH):
+        return dict(ANSWERED)
+    if ENTREGAS_PATH in url:
+        return {"trabalhoEntregas": []}
+    if ETIQUETAS_PATH in url:
+        return {"trabalhoCorrecaoEtiquetas": []}
+    return None

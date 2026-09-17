@@ -1,0 +1,11 @@
+RequisicoesPage {
+    #requisicoes-corpo {
+        height: 1fr;
+    }
+
+    #requisicoes-resposta {
+        height: auto;
+        padding: 1 0;
+        background: transparent;
+    }
+}
