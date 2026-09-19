@@ -195,6 +195,9 @@ class UninterApp(App[None]):
     def get_key_display(self, binding: Binding) -> str:
         return key_display(binding)
 
+    def action_open_image(self, url: str) -> None:
+        self.open_url(url)
+
     def action_focus_debug(self) -> None:
         panel = self.panel
         if panel is not None:

@@ -1,6 +1,12 @@
 import pytest
+from textual.content import Content
 
 from cli.lib.html_to_textual import Prose, Table, html_to_blocks
+
+IMAGEM = (
+    "https://univirtus.uninter.com/ava/repositorio/"
+    "SistemaRepositorioPublico/?id=JcbQ9M+/abc=="
+)
 
 
 def prose(html: str) -> str:
@@ -64,3 +70,22 @@ def test_prose_around_a_table_becomes_separate_blocks() -> None:
 
 def test_brackets_in_the_questao_are_not_read_as_markup() -> None:
     assert prose("<p>valor [bold] literal</p>") == "valor \\[bold] literal"
+
+
+def test_an_image_becomes_a_link_that_opens_it() -> None:
+    markup = prose(f'<p>Observe:</p><p><img src="{IMAGEM}" /></p>')
+    assert markup == f"Observe:\n\n[@click=app.open_image('{IMAGEM}')]imagem[/]"
+
+
+def test_the_alt_text_names_the_image_link() -> None:
+    markup = prose('<img src="http://x/y.png" alt="Diagrama de classes">')
+    assert markup == "[@click=app.open_image('http://x/y.png')]Diagrama de classes[/]"
+
+
+def test_an_image_link_paints_a_single_word() -> None:
+    painted = Content.from_markup(prose(f'<img src="{IMAGEM}">'))
+    assert painted.plain == "imagem"
+
+
+def test_an_image_without_a_source_leaves_nothing_behind() -> None:
+    assert html_to_blocks('<p>antes<img alt="perdida"></p>') == [Prose("antes")]

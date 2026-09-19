@@ -22,14 +22,18 @@ from cli.pages.prova.page import (
 
 MATERIA = "Engenharia de Software"
 STARTED_AT = datetime(2026, 9, 14, 11, 0, 0)
+IMAGEM = (
+    "https://univirtus.uninter.com/ava/repositorio/"
+    "SistemaRepositorioPublico/?id=JcbQ9M+/abc=="
+)
 
 
-def make_prova() -> Prova:
+def make_prova(enunciado: str | None = None) -> Prova:
     questoes = tuple(
         make_questao(
             questao_id=ordem,
             ordem=ordem,
-            enunciado=f"<p>Questão {ordem}</p>",
+            enunciado=enunciado or f"<p>Questão {ordem}</p>",
             alternativas=(
                 make_alternativa(alternativa_id=ordem * 10 + 1, letra="a"),
                 make_alternativa(alternativa_id=ordem * 10 + 2, letra="b"),
@@ -66,11 +70,18 @@ class ProvaHost(App[None]):
         super().__init__()
         self.source = FakeProvaSource()
         self.left = False
+        self.opened: list[str] = []
 
-    def open(self) -> ProvaPage:
+    def open(self, enunciado: str | None = None) -> ProvaPage:
         return ProvaPage(
-            make_atividade(nome="Prova Objetiva"), MATERIA, make_prova(), self.source
+            make_atividade(nome="Prova Objetiva"),
+            MATERIA,
+            make_prova(enunciado),
+            self.source,
         )
+
+    def action_open_image(self, url: str) -> None:
+        self.opened.append(url)
 
     def record(self, _: None) -> None:
         self.left = True
@@ -273,6 +284,26 @@ async def test_the_chosen_answer_keeps_its_cursor_when_focus_leaves() -> None:
         await pilot.pause()
         assert isinstance(app.focused, QuestaoList)
         assert app.screen.query_one(AlternativaList).highlighted == 1
+
+
+async def test_an_image_in_the_enunciado_is_shown_as_a_link() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        enunciado = app.screen.query_one("#prova-blocks").query_one(Static)
+        assert cast(Content, enunciado.visual).plain == "imagem"
+
+
+async def test_clicking_the_image_link_opens_the_image() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        enunciado = app.screen.query_one("#prova-blocks").query_one(Static)
+        await pilot.click(enunciado, offset=(2, 0))
+        await pilot.pause()
+        assert app.opened == [IMAGEM]
 
 
 async def test_ctrl_enter_opens_the_next_questao() -> None:
