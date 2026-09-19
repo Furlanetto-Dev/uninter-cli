@@ -8,3 +8,5 @@ __pycache__/
 config.json
 *.db
 .venv/
+
+ignore.md
