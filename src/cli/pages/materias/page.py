@@ -36,6 +36,8 @@ from cli.components.header import DetailHeader
 from cli.components.hint import NEVER_SYNCED, Hint
 from cli.components.pane import DetailPane
 from cli.format import humanize_age, short_periodo
+from api.gabaritos.service import GabaritoSource
+from cli.pages.gabarito.page import GabaritoPage
 from cli.pages.inicio.page import ConfirmStart
 from cli.pages.prova.page import ProvaPage
 from cli.pages.trabalho.page import TrabalhoPage
@@ -95,6 +97,7 @@ class MateriasPage(Screen[None]):
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
         capturas_db: CapturaRepository,
+        gabaritos: GabaritoSource,
     ) -> None:
         super().__init__()
         self._uninter = uninter
@@ -103,6 +106,7 @@ class MateriasPage(Screen[None]):
         self._atividades_db = atividades_db
         self._trabalhos_db = trabalhos_db
         self._capturas_db = capturas_db
+        self._gabaritos = gabaritos
         self._debug_source = MATERIAS
 
     @property
@@ -287,6 +291,13 @@ class MateriasPage(Screen[None]):
 
     def on_atividade_tree_selected(self, event: AtividadeTree.Selected) -> None:
         self.selected_atividade = event.atividade
+
+    def on_atividade_tree_open(self, event: AtividadeTree.Open) -> None:
+        materia = self.materia_list.highlighted_materia
+        if materia is not None:
+            self.uninter.push_screen(
+                GabaritoPage(event.atividade, materia.nome, self._gabaritos)
+            )
 
     def on_atividade_tree_start(self, event: AtividadeTree.Start) -> None:
         atividade = event.atividade

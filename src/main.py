@@ -7,6 +7,8 @@ from api.atividades.service import AtividadeSyncService
 from api.capturas.repository import CapturaRepository
 from api.credenciais.repository import CredencialRepository
 from api.db import DATABASE_PATH, db_session
+from api.gabaritos.repository import GabaritoRepository
+from api.gabaritos.service import GabaritoService
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
 from api.mock import fixture
@@ -16,6 +18,7 @@ from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
 from config import Config
+from crawler.atividades.gabarito import GabaritoRequest
 from crawler.atividades.request import AtividadeRequest
 from crawler.credenciais import Credenciais
 from crawler.history import RequestLog
@@ -54,6 +57,11 @@ async def run(settings: Settings) -> bool:
         atividades_db = AtividadeRepository(session)
         trabalhos_db = TrabalhoRepository(session)
         capturas_db = CapturaRepository(session)
+        gabaritos_service = GabaritoService(
+            session=session,
+            request=GabaritoRequest(ava),
+            repository=GabaritoRepository(session),
+        )
         materias_service = MateriaSyncService(
             session=session,
             ava=ava,
@@ -86,6 +94,7 @@ async def run(settings: Settings) -> bool:
             atividades_db,
             trabalhos_db,
             capturas_db,
+            gabaritos_service,
             MockedMateria(session),
             Config.load(),
             ava,

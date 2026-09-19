@@ -13,6 +13,7 @@ from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
 from api.mock.seed import MockedMateria
 from api.trabalhos.repository import TrabalhoRepository
+from api.gabaritos.service import GabaritoSource
 from api.trabalhos.service import TrabalhoSyncService
 from crawler.atividades.prova import ProvaSource
 from config import Config
@@ -49,6 +50,7 @@ class UninterApp(App[None]):
     CSS_PATH = [
         "app.tcss",
         "pages/materias/page.tcss",
+        "pages/gabarito/page.tcss",
         "pages/prova/page.tcss",
         "pages/trabalho/page.tcss",
         "pages/inicio/page.tcss",
@@ -76,6 +78,7 @@ class UninterApp(App[None]):
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
         capturas_db: CapturaRepository,
+        gabaritos: GabaritoSource,
         mocked: MockedMateria,
         config: Config,
         ava: AvaSession,
@@ -95,7 +98,13 @@ class UninterApp(App[None]):
         self._trabalhos_service = trabalhos_service
         self._materias_db = materias_db
         self._page = MateriasPage(
-            self, prova_source, materias_db, atividades_db, trabalhos_db, capturas_db
+            self,
+            prova_source,
+            materias_db,
+            atividades_db,
+            trabalhos_db,
+            capturas_db,
+            gabaritos,
         )
         self._queue: deque[SyncItem] = deque()
         self._in_flight: SyncItem | None = None

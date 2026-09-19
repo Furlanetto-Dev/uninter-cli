@@ -1,0 +1,15 @@
+GabaritoPage {
+    #gabarito-body {
+        height: 1fr;
+        scrollbar-size-vertical: 1;
+    }
+
+    #gabarito-blocks {
+        height: auto;
+    }
+
+    #gabarito-blocks Static {
+        height: auto;
+        margin-bottom: 1;
+    }
+}

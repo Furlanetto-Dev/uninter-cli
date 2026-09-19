@@ -206,6 +206,11 @@ class AtividadeTree(Steps, Tree[Atividade]):
             super().__init__()
             self.atividade = atividade
 
+    class Open(Message):
+        def __init__(self, atividade: Atividade) -> None:
+            super().__init__()
+            self.atividade = atividade
+
     def __init__(self) -> None:
         super().__init__("atividades")
         self.show_root = False
@@ -226,8 +231,13 @@ class AtividadeTree(Steps, Tree[Atividade]):
 
     def on_tree_node_selected(self, event: Tree.NodeSelected[Atividade]) -> None:
         event.stop()
-        if event.node.data is not None:
-            self.post_message(self.Start(event.node.data))
+        atividade = event.node.data
+        if atividade is None:
+            return
+        if atividade.tem_gabarito:
+            self.post_message(self.Open(atividade))
+        else:
+            self.post_message(self.Start(atividade))
 
     def on_tree_node_expanded(self, event: Tree.NodeExpanded[Atividade]) -> None:
         self._remember(event.node, True)
