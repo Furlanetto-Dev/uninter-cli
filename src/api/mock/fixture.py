@@ -20,6 +20,11 @@ ANSWERED = {"sucesso": True}
 ENTREGAS_PATH = "/interacao/TrabalhoEntrega/-"
 ETIQUETAS_PATH = "/interacao/TrabalhoCorrecaoEtiqueta/-"
 MOMENT = "%Y-%m-%dT%H:%M:%S"
+USUARIO_ID_BASE = 100
+HISTORICO_ID_BASE = 1000
+FULL_NOTA = 100.0
+FULL_PERCENT = 100
+NO_PERCENT = 0
 
 DAY = timedelta(days=1)
 
@@ -320,6 +325,72 @@ def _moment(moment: datetime) -> str:
     return moment.strftime(MOMENT)
 
 
+class Correcao(NamedTuple):
+    letra: str
+    comentario: str
+
+
+CORRECOES = (
+    Correcao(
+        "c",
+        "A resposta correta é a letra C, conforme o item 1.1 do Tema 1 da Aula 1. "
+        "Java, Python e PHP são linguagens de programação, e Word e Excel são "
+        "aplicativos de escritório: nenhum deles gerencia um banco de dados.",
+    ),
+    Correcao(
+        "d",
+        "A resposta correta é a letra D, conforme o item 2.3 do Tema 2 da Aula 2. "
+        "A criação de um usuário usa create user, e a senha vem depois de "
+        "identified by; insert grava registros, não cria usuários.",
+    ),
+    Correcao(
+        "c",
+        "A resposta correta é a letra C, conforme o item 1.4 do Tema 1 da Aula 3. "
+        "Só a terceira afirmativa é falsa: as demais seguem as regras de "
+        "nomenclatura apresentadas no tema.",
+    ),
+    Correcao(
+        "c",
+        "A resposta correta é a letra C, conforme o item 3.1 do Tema 3 da Aula 2. "
+        "create, drop e alter definem objetos e não manipulam os dados guardados "
+        "neles.",
+    ),
+    Correcao(
+        "d",
+        "A resposta correta é a letra D, conforme o item 2.2 do Tema 2 da Aula 4. "
+        "A ordem acompanha as cláusulas do select apresentadas no quadro do tema.",
+    ),
+    Correcao(
+        "b",
+        "A resposta correta é a letra B, conforme o item 1.3 do Tema 1 da Aula 5. "
+        "As instruções I e III não nomeiam os campos antes de values, o que basta "
+        "para invalidá-las.",
+    ),
+    Correcao(
+        "b",
+        "A resposta correta é a letra B, conforme o item 1.2 do Tema 1 da Aula 2. "
+        "drop database apaga o banco, e create table cria uma tabela dentro dele.",
+    ),
+    Correcao(
+        "c",
+        "A resposta correta é a letra C, conforme o item 4.1 do Tema 4 da Aula 4. "
+        "A afirmativa III confunde count com sum, e a V descreve uma cláusula de "
+        "ordenação.",
+    ),
+    Correcao(
+        "c",
+        "A resposta correta é a letra C, conforme o item 1.1 do Tema 1 da Aula 1. "
+        "O ciclo de vida do dado segue da produção para o armazenamento; o descarte "
+        "é a última etapa, não a primeira.",
+    ),
+    Correcao(
+        "d",
+        "A resposta correta é a letra D, conforme o item 3.2 do Tema 3 da Aula 2. "
+        "create, drop e alter formam a DDL; a DML manipula os dados já armazenados.",
+    ),
+)
+
+
 class Avaliacao(NamedTuple):
     nome: str
     tipo: str
@@ -329,8 +400,8 @@ class Avaliacao(NamedTuple):
     tentativa_total: int
     inicio: timedelta
     fim: timedelta
-    nota: float | None = None
-    contribuicao: float | None = None
+    erros: tuple[int, ...] = ()
+    em_branco: tuple[int, ...] = ()
     orientacao: str | None = None
     tempo_total: int | None = None
     presencial: bool = False
@@ -342,7 +413,7 @@ AVALIACOES = (
         tipo="APOL Objetiva",
         status=AWAITING_START,
         orientacao="Uma avaliação que existe só no dev mode.",
-        peso=15,
+        peso=10,
         tentativa=1,
         tentativa_total=3,
         inicio=-10 * DAY,
@@ -352,24 +423,60 @@ AVALIACOES = (
         nome="APOL Objetiva 2 (Mockada)",
         tipo="APOL Objetiva",
         status=FINISHED,
-        peso=15,
-        nota=85.0,
-        contribuicao=12.75,
+        peso=10,
+        erros=(4, 9),
         tentativa=2,
         tentativa_total=3,
         inicio=-30 * DAY,
         fim=-2 * DAY,
     ),
     Avaliacao(
+        nome="APOL Objetiva 3 (Mockada)",
+        tipo="APOL Objetiva",
+        status=FINISHED,
+        orientacao="Finalizada, com tentativa e prazo de sobra.",
+        peso=10,
+        erros=(2, 5, 7),
+        em_branco=(3, 10),
+        tentativa=1,
+        tentativa_total=3,
+        inicio=-10 * DAY,
+        fim=20 * DAY,
+    ),
+    Avaliacao(
+        nome="Prova Atividade Prática (Mockada)",
+        tipo="Prova Atividade Prática",
+        status=FINISHED,
+        peso=15,
+        erros=(),
+        tentativa=1,
+        tentativa_total=1,
+        inicio=-20 * DAY,
+        fim=15 * DAY,
+    ),
+    Avaliacao(
         nome="Prova Objetiva (Mockada)",
         tipo="Prova Objetiva",
         status=AWAITING_START,
         presencial=True,
-        peso=30,
+        peso=20,
         tentativa=1,
         tentativa_total=1,
         inicio=-5 * DAY,
         fim=45 * DAY,
+    ),
+    Avaliacao(
+        nome="Prova Objetiva (Segunda Chamada) (Mockada)",
+        tipo="Prova Objetiva",
+        status=FINISHED,
+        presencial=True,
+        peso=10,
+        erros=(),
+        em_branco=(2, 3, 4, 5, 6, 7, 8, 9, 10),
+        tentativa=1,
+        tentativa_total=1,
+        inicio=-60 * DAY,
+        fim=-30 * DAY,
     ),
     Avaliacao(
         nome="Prova Discursiva (Mockada)",
@@ -377,7 +484,7 @@ AVALIACOES = (
         status=AWAITING_START,
         orientacao="Dez questões, todas respondíveis.",
         tempo_total=60,
-        peso=30,
+        peso=15,
         tentativa=1,
         tentativa_total=2,
         inicio=-5 * DAY,
@@ -396,21 +503,61 @@ AVALIACOES = (
 )
 
 
+def _avaliacao_id(position: int) -> int:
+    return -(position + 1)
+
+
+def _usuario_id(position: int) -> int:
+    return -(USUARIO_ID_BASE + position + 1)
+
+
+def _historico_id(position: int, ordem: int) -> int:
+    return -(HISTORICO_ID_BASE + (position + 1) * 100 + ordem)
+
+
+def _respondeu(avaliacao: Avaliacao, ordem: int) -> bool:
+    return ordem not in avaliacao.em_branco
+
+
+def _acertou(avaliacao: Avaliacao, ordem: int) -> bool:
+    return _respondeu(avaliacao, ordem) and ordem not in avaliacao.erros
+
+
+def _nota_da_questao() -> float:
+    return FULL_NOTA / len(QUESTOES)
+
+
+def _acertos(avaliacao: Avaliacao) -> int:
+    return sum(1 for ordem in range(1, len(QUESTOES) + 1) if _acertou(avaliacao, ordem))
+
+
+def _nota(avaliacao: Avaliacao) -> float | None:
+    if avaliacao.status != FINISHED:
+        return None
+    return _acertos(avaliacao) * _nota_da_questao()
+
+
+def _contribuicao(avaliacao: Avaliacao) -> float | None:
+    nota = _nota(avaliacao)
+    return None if nota is None else nota * avaliacao.peso / FULL_NOTA
+
+
 def atividades() -> dict[str, object]:
     moment = _now()
     return {
         "avaliacaoUsuarios": [
             {
-                "id": -(position + 1),
+                "id": _usuario_id(position),
+                "idAvaliacao": _avaliacao_id(position),
                 "status": avaliacao.status,
-                "nota": avaliacao.nota,
-                "notaMedia": avaliacao.contribuicao,
+                "nota": _nota(avaliacao),
+                "notaMedia": _contribuicao(avaliacao),
                 "tentativa": avaliacao.tentativa,
                 "tentativaTotal": avaliacao.tentativa_total,
                 "dataInicio": _moment(moment + avaliacao.inicio),
                 "dataFim": _moment(moment + avaliacao.fim),
                 "avaliacao": {
-                    "id": -(position + 1),
+                    "id": _avaliacao_id(position),
                     "nome": avaliacao.nome,
                     "nomeAvaliacaoTipo": avaliacao.tipo,
                     "nomeAvaliacaoTipoCategoria": CATEGORIA,
@@ -466,6 +613,10 @@ def trabalhos() -> dict[str, object]:
     }
 
 
+def _atributo(nome: str, valor: str) -> dict[str, object]:
+    return {"nomeAtributo": nome, "valor": valor}
+
+
 def questoes(atividade_id: int) -> dict[str, object]:
     return {
         "avaliacaoUsuarioHistoricos": [
@@ -478,7 +629,9 @@ def questoes(atividade_id: int) -> dict[str, object]:
                     {
                         "id": alternativa.id,
                         "ativa": True,
-                        "questaoAlternativaAtributos": [{"valor": alternativa.texto}],
+                        "questaoAlternativaAtributos": [
+                            _atributo("texto", alternativa.texto)
+                        ],
                     }
                     for alternativa in questao.alternativas
                 ],
@@ -486,6 +639,72 @@ def questoes(atividade_id: int) -> dict[str, object]:
             for questao in prova(atividade_id, {}).questoes
         ]
     }
+
+
+def _correta(questao: Questao, correcao: Correcao) -> Alternativa:
+    return questao.alternativas[LETTERS.index(correcao.letra)]
+
+
+def _escolhida(questao: Questao, correta: Alternativa, acertou: bool) -> Alternativa:
+    if acertou:
+        return correta
+    seguinte = (questao.alternativas.index(correta) + 1) % len(questao.alternativas)
+    return questao.alternativas[seguinte]
+
+
+def _alternativa_corrigida(
+    questao: Questao,
+    alternativa: Alternativa,
+    correta: Alternativa,
+    correcao: Correcao,
+) -> dict[str, object]:
+    atributos = [_atributo("texto", alternativa.texto)]
+    if alternativa is correta:
+        atributos = [
+            _atributo("correta", "true"),
+            *atributos,
+            _atributo("comentário", correcao.comentario),
+        ]
+    return {
+        "id": alternativa.id,
+        "idQuestao": questao.id,
+        "ativa": True,
+        "questaoAlternativaAtributos": atributos,
+    }
+
+
+def gabarito(position: int, avaliacao: Avaliacao) -> dict[str, object]:
+    questoes_da_prova = prova(_avaliacao_id(position), {}).questoes
+    corrigidas: list[dict[str, object]] = []
+    for questao, correcao in zip(questoes_da_prova, CORRECOES, strict=True):
+        acertou = _acertou(avaliacao, questao.ordem)
+        correta = _correta(questao, correcao)
+        escolhida = (
+            _escolhida(questao, correta, acertou)
+            if _respondeu(avaliacao, questao.ordem)
+            else None
+        )
+        corrigidas.append(
+            {
+                "id": _historico_id(position, questao.ordem),
+                "idAvaliacaoUsuario": _usuario_id(position),
+                "tentativa": avaliacao.tentativa,
+                "ordem": questao.ordem,
+                "idQuestao": questao.id,
+                "questao": questao.enunciado,
+                "comando": questao.comando,
+                "idQuestaoAlternativa": None if escolhida is None else escolhida.id,
+                "percentualAcerto": FULL_PERCENT if acertou else NO_PERCENT,
+                "notaQuestao": _nota_da_questao() if acertou else 0.0,
+                "anulada": False,
+                "idQuestaoTipo": 1,
+                "alternativas": [
+                    _alternativa_corrigida(questao, alternativa, correta, correcao)
+                    for alternativa in questao.alternativas
+                ],
+            }
+        )
+    return {"avaliacaoUsuarioHistoricos": corrigidas}
 
 
 def asked_prova(url: str) -> int | None:
@@ -497,14 +716,31 @@ def asked_prova(url: str) -> int | None:
     return int(asked) if asked.startswith("-") and asked[1:].isdigit() else None
 
 
+def _position_of(asked: int) -> int | None:
+    for position in range(len(AVALIACOES)):
+        if asked in (_avaliacao_id(position), _usuario_id(position)):
+            return position
+    return None
+
+
+def _prova_ou_gabarito(asked: int) -> dict[str, object] | None:
+    position = _position_of(asked)
+    if position is None:
+        return None
+    avaliacao = AVALIACOES[position]
+    if avaliacao.status == FINISHED:
+        return gabarito(position, avaliacao)
+    return questoes(_avaliacao_id(position))
+
+
 def payload(url: str) -> dict[str, object] | None:
     if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
         return atividades()
     if f"{TRABALHOS_PATH}{OFERTA}/" in url:
         return trabalhos()
-    atividade_id = asked_prova(url)
-    if atividade_id is not None:
-        return questoes(atividade_id)
+    asked = asked_prova(url)
+    if asked is not None:
+        return _prova_ou_gabarito(asked)
     if url.split("?")[0].endswith(PROVA_PATH):
         return dict(ANSWERED)
     if ENTREGAS_PATH in url:
