@@ -81,7 +81,6 @@ def fetched(captura: Captura | None, item: object | None, missing: str) -> Fetch
 class MateriasPage(Screen[None]):
     BINDINGS = [
         ("r", "refresh", "atualizar"),
-        ("d", "home", "início"),
         Binding("1", "show_tab(1)", "atividades", show=False),
         Binding("2", "show_tab(2)", "trabalhos", show=False),
         Binding("3", "show_tab(3)", "aulas", show=False),
@@ -405,13 +404,6 @@ class MateriasPage(Screen[None]):
 
     def on_copyable_copy(self, event: Copyable.Copy) -> None:
         self.uninter.copy_to_clipboard(event.json)
-
-    def action_home(self) -> None:
-        self.query_one(AtividadeTree).select(None)
-        self.selected_atividade = None
-        materia_list = self.materia_list
-        materia_list.select_first()
-        materia_list.focus()
 
     async def on_option_list_option_highlighted(
         self, event: OptionList.OptionHighlighted

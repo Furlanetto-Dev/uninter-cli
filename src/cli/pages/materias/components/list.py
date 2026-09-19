@@ -120,9 +120,6 @@ class MateriaList(Sidebar):
         yield
         self._highlight(previous)
 
-    def select_first(self) -> None:
-        self._highlight(None)
-
     def _highlight(self, materia: Materia | None) -> None:
         target = str(materia.id) if materia is not None else None
         first: int | None = None
