@@ -16,13 +16,10 @@ from textual.widgets.option_list import Option
 
 from .components.questoes import (
     AlternativaList,
-    QuestaoList,
     answered_mark,
-    preview,
     questao_row,
     summary_row,
 )
-from .components.table import QuestaoTable
 from cli.components.debug.panel import DebugPanel
 from cli.components.debug.view import (
     MISSING,
@@ -35,6 +32,8 @@ from cli.components.footer import Footer
 from cli.components.header import DetailHeader
 from cli.components.hint import Hint
 from cli.components.pane import DetailPane
+from cli.components.questoes import QuestaoList, preview
+from cli.components.table import QuestaoTable
 from cli.format import format_elapsed
 from cli.lib.html_to_textual import Block, Prose, Table, html_to_blocks
 

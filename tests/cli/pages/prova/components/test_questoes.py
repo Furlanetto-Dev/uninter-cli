@@ -2,14 +2,12 @@ from cli.lib.html_to_textual import html_to_blocks
 from factories import make_alternativa, make_questao
 from textual.app import App, ComposeResult
 
+from cli.components.questoes import TITLE, QuestaoList, preview
 from cli.pages.prova.components.questoes import (
     ANSWERED,
     NO_ANSWER,
-    TITLE,
     UNANSWERED,
-    QuestaoList,
     answered_mark,
-    preview,
     questao_row,
     summary_row,
 )

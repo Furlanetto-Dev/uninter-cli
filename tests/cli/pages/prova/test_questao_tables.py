@@ -7,8 +7,9 @@ from textual.reactive import reactive
 
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova
-from cli.pages.prova.components.questoes import AlternativaList, QuestaoList
-from cli.pages.prova.components.table import QuestaoTable
+from cli.components.questoes import QuestaoList
+from cli.pages.prova.components.questoes import AlternativaList
+from cli.components.table import QuestaoTable
 from cli.pages.prova.page import ProvaPage
 
 MATERIA = "Banco de Dados"

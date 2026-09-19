@@ -10,7 +10,8 @@ from textual.widgets import Static
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova, Questao
 from cli.components.header import DetailHeader
-from cli.pages.prova.components.questoes import AlternativaList, QuestaoList
+from cli.components.questoes import QuestaoList
+from cli.pages.prova.components.questoes import AlternativaList
 from cli.pages.prova.page import (
     ANSWERED_LABEL,
     NO_ANSWER,
