@@ -2,6 +2,7 @@ from datetime import datetime
 
 from api.trabalhos.entity import Trabalho
 from rich.text import Text
+from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import DataTable
 from textual.widgets.data_table import RowKey
@@ -16,6 +17,7 @@ FAILED = "reprovado"
 GRADING = "em correção"
 OPEN = "aberta"
 NOT_DELIVERED = "não entregue"
+OPEN_ACTION = "select_cursor"
 
 
 def status(trabalho: Trabalho) -> Text:
@@ -50,13 +52,18 @@ def row_cells(trabalho: Trabalho, now: datetime) -> tuple[Text, ...]:
 
 
 class TrabalhoTable(Steps, DataTable[Text]):
-    BINDINGS = STEP_BINDINGS
+    BINDINGS = [*STEP_BINDINGS, Binding("enter", OPEN_ACTION, "abrir")]
     STEP_LEFT = "screen.focus_materias"
     STEP_RIGHT = "screen.focus_debug"
     BACK_TO = "screen.focus_materias"
 
     class Selected(Message):
         def __init__(self, trabalho: Trabalho | None) -> None:
+            super().__init__()
+            self.trabalho = trabalho
+
+    class Open(Message):
+        def __init__(self, trabalho: Trabalho) -> None:
             super().__init__()
             self.trabalho = trabalho
 
@@ -70,6 +77,17 @@ class TrabalhoTable(Steps, DataTable[Text]):
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         event.stop()
         self.post_message(self.Selected(self.trabalho(event.row_key)))
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        event.stop()
+        trabalho = self.trabalho(event.row_key)
+        if trabalho is not None:
+            self.post_message(self.Open(trabalho))
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == OPEN_ACTION:
+            return self.row_count > 0
+        return True
 
     def trabalho(self, row_key: RowKey | str) -> Trabalho | None:
         key = row_key.value if isinstance(row_key, RowKey) else row_key

@@ -1,0 +1,15 @@
+TrabalhoPage {
+    #trabalho-body {
+        height: 1fr;
+        scrollbar-size-vertical: 1;
+    }
+
+    #trabalho-entregas {
+        height: auto;
+    }
+
+    #trabalho-entregas Static {
+        height: auto;
+        margin-bottom: 1;
+    }
+}

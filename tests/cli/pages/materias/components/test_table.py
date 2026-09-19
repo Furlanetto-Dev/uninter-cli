@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 from factories import make_trabalho
+from textual.app import App, ComposeResult
 
 from api.trabalhos.entity import Trabalho
 from cli.pages.materias.components.table import (
@@ -10,6 +11,7 @@ from cli.pages.materias.components.table import (
     GRADING,
     NOT_DELIVERED,
     OPEN,
+    TrabalhoTable,
     row_cells,
     status,
 )
@@ -78,3 +80,50 @@ def test_the_row_reads_left_to_right_as_the_columns_do() -> None:
     cells = row_cells(trabalho, NOW)
     assert cells[0].plain == "Trabalho 2"
     assert cells[2].plain == "8,5"
+
+
+class TableHost(App[None]):
+    def __init__(self, trabalhos: list[Trabalho]) -> None:
+        super().__init__()
+        self._trabalhos = trabalhos
+        self.opened: Trabalho | None = None
+
+    def compose(self) -> ComposeResult:
+        yield TrabalhoTable()
+
+    def on_mount(self) -> None:
+        table = self.query_one(TrabalhoTable)
+        table.show(self._trabalhos, NOW)
+        table.focus()
+
+    def on_trabalho_table_open(self, event: TrabalhoTable.Open) -> None:
+        self.opened = event.trabalho
+
+
+async def test_enter_opens_the_trabalho_under_the_cursor() -> None:
+    app = TableHost(
+        [
+            make_trabalho(trabalho_id=1, nome="Trabalho 1", ordem=1),
+            make_trabalho(trabalho_id=2, nome="Trabalho 2", ordem=2),
+        ]
+    )
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.press("down")
+        await pilot.press("enter")
+        await pilot.pause()
+        assert app.opened is not None
+        assert app.opened.nome == "Trabalho 2"
+
+
+async def test_the_table_announces_abrir_while_it_has_rows() -> None:
+    app = TableHost([make_trabalho()])
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        assert app.screen.active_bindings["enter"].binding.description == "abrir"
+
+
+async def test_an_empty_table_does_not_announce_abrir() -> None:
+    app = TableHost([])
+    async with app.run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        assert "enter" not in app.screen.active_bindings

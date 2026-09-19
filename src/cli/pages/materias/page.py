@@ -38,6 +38,7 @@ from cli.components.pane import DetailPane
 from cli.format import humanize_age, short_periodo
 from cli.pages.inicio.page import ConfirmStart
 from cli.pages.prova.page import ProvaPage
+from cli.pages.trabalho.page import TrabalhoPage
 from .components.list import MateriaList, synced_at
 from .components.media import MediaBar
 from .components.table import NO_TRABALHOS, TrabalhoTable
@@ -196,6 +197,14 @@ class MateriasPage(Screen[None]):
         if collection == ATIVIDADES:
             return self.selected_atividade
         return None
+
+    def on_trabalho_table_open(self, event: TrabalhoTable.Open) -> None:
+        materia = self.materia_list.highlighted_materia
+        if materia is None:
+            return
+        self.uninter.push_screen(
+            TrabalhoPage(event.trabalho, materia.nome, self._trabalhos_db)
+        )
 
     async def on_trabalho_table_selected(self, event: TrabalhoTable.Selected) -> None:
         if self.uninter.debug_mode and self.active_collection == TRABALHOS:
