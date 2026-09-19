@@ -1,8 +1,9 @@
+import pytest
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.screen import Screen
 
-from cli.components.footer import Footer
+from cli.components.footer import Footer, key_display
 
 
 class Page(Screen[None]):
@@ -79,3 +80,23 @@ async def test_a_page_without_escape_is_left_alone() -> None:
             if (key := getattr(child, "key", None))
         ]
         assert keys.index("a") < keys.index("z")
+
+
+@pytest.mark.parametrize(
+    ("key", "shown"),
+    [
+        ("ctrl+right", "ctrl+→"),
+        ("ctrl+left", "ctrl+←"),
+        ("ctrl+enter", "ctrl+⏎"),
+        ("ctrl+shift+right", "ctrl+shift+→"),
+        ("escape", "esc"),
+        ("a", "a"),
+    ],
+)
+def test_ctrl_is_spelled_out(key: str, shown: str) -> None:
+    assert key_display(Binding(key, "act", "faz")) == shown
+
+
+def test_a_binding_that_names_its_own_key_keeps_it() -> None:
+    binding = Binding("ctrl+right", "act", "faz", key_display="avançar")
+    assert key_display(binding) == "avançar"

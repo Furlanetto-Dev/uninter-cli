@@ -209,6 +209,35 @@ async def test_right_focuses_the_answers_when_the_questao_has_nothing_to_walk() 
         assert isinstance(app.focused, AlternativaList)
 
 
+async def test_right_on_the_answers_opens_the_next_questao() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("right")
+        await pilot.pause()
+        assert isinstance(app.focused, AlternativaList)
+        await pilot.press("right")
+        await pilot.pause()
+        assert "questão 2 de 3" in header_lines(app)[1]
+        assert isinstance(app.focused, AlternativaList)
+
+
+async def test_right_on_the_answers_of_the_last_questao_stays_there() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("3")
+        await pilot.press("right")
+        await pilot.pause()
+        assert isinstance(app.focused, AlternativaList)
+        await pilot.press("right")
+        await pilot.pause()
+        assert "questão 3 de 3" in header_lines(app)[1]
+        assert isinstance(app.focused, AlternativaList)
+
+
 async def test_the_answers_show_no_cursor_until_they_have_focus() -> None:
     app = ProvaHost()
     async with app.run_test(size=(120, 40)) as pilot:
@@ -244,3 +273,26 @@ async def test_the_chosen_answer_keeps_its_cursor_when_focus_leaves() -> None:
         await pilot.pause()
         assert isinstance(app.focused, QuestaoList)
         assert app.screen.query_one(AlternativaList).highlighted == 1
+
+
+async def test_ctrl_enter_opens_the_next_questao() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        await pilot.pause()
+        assert "questão 2 de 3" in header_lines(app)[1]
+
+
+async def test_ctrl_enter_on_the_answers_keeps_them_focused() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("right")
+        await pilot.pause()
+        await pilot.press("ctrl+enter")
+        await pilot.pause()
+        assert "questão 2 de 3" in header_lines(app)[1]
+        assert isinstance(app.focused, AlternativaList)

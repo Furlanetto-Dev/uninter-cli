@@ -22,10 +22,12 @@ from crawler.history import RequestLog
 from crawler.session import AvaSession, AvaUnreachable, LoginRejected
 from textual import work
 from textual.app import App
+from textual.binding import Binding
 from textual.reactive import reactive
 from textual.widget import Widget
 
 from cli.commands.palette import AppCommands
+from cli.components.footer import key_display
 from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
 from cli.pages.requisicoes.page import HISTORY_BINDINGS, RequisicoesPage
 from cli.components.loading import Loading
@@ -189,6 +191,9 @@ class UninterApp(App[None]):
 
     def action_request_history(self) -> None:
         self.push_screen(RequisicoesPage(self, self._history))
+
+    def get_key_display(self, binding: Binding) -> str:
+        return key_display(binding)
 
     def action_focus_debug(self) -> None:
         panel = self.panel

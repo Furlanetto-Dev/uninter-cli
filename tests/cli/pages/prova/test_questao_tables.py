@@ -258,7 +258,7 @@ async def test_up_inside_the_answers_moves_the_cursor_instead_of_leaving() -> No
         assert alternativas.highlighted == 0
 
 
-async def test_k_opens_the_next_questao_without_leaving_the_answers() -> None:
+async def test_ctrl_right_opens_the_next_questao_without_leaving_the_answers() -> None:
     app = TableHost()
     async with app.run_test(size=(120, 40)) as pilot:
         page = app.open()
@@ -266,47 +266,47 @@ async def test_k_opens_the_next_questao_without_leaving_the_answers() -> None:
         await pilot.pause()
         await reach_answers(pilot)
         assert page.questao.ordem == 1
-        await pilot.press("k")
+        await pilot.press("ctrl+right")
         await pilot.pause()
         assert page.questao.ordem == 2
         assert isinstance(app.focused, AlternativaList)
 
 
-async def test_j_goes_back_to_the_previous_questao() -> None:
+async def test_ctrl_left_goes_back_to_the_previous_questao() -> None:
     app = TableHost()
     async with app.run_test(size=(120, 40)) as pilot:
         page = app.open()
         app.push_screen(page, app.record)
         await pilot.pause()
-        await pilot.press("k")
-        await pilot.press("k")
+        await pilot.press("ctrl+right")
+        await pilot.press("ctrl+right")
         await pilot.pause()
         assert page.questao.ordem == 3
-        await pilot.press("j")
+        await pilot.press("ctrl+left")
         await pilot.pause()
         assert page.questao.ordem == 2
 
 
-async def test_j_stops_at_the_first_questao() -> None:
+async def test_ctrl_left_stops_at_the_first_questao() -> None:
     app = TableHost()
     async with app.run_test(size=(120, 40)) as pilot:
         page = app.open()
         app.push_screen(page, app.record)
         await pilot.pause()
         for _ in range(3):
-            await pilot.press("j")
+            await pilot.press("ctrl+left")
             await pilot.pause()
         assert page.questao.ordem == 1
 
 
-async def test_k_stops_at_the_last_questao() -> None:
+async def test_ctrl_right_stops_at_the_last_questao() -> None:
     app = TableHost()
     async with app.run_test(size=(120, 40)) as pilot:
         page = app.open()
         app.push_screen(page, app.record)
         await pilot.pause()
         for _ in range(6):
-            await pilot.press("k")
+            await pilot.press("ctrl+right")
             await pilot.pause()
         assert page.questao.ordem == len(page.questoes)
         assert not page.finished

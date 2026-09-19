@@ -70,8 +70,9 @@ class ProvaPage(Screen[None]):
     AUTO_FOCUS = "#prova-questoes"
     BINDINGS = [
         Binding("escape", "leave", "voltar"),
-        Binding("j", "step_questao(-1)", "questão anterior"),
-        Binding("k", "step_questao(1)", "próxima questão"),
+        Binding("ctrl+left", "step_questao(-1)", "questão anterior"),
+        Binding("ctrl+right", "step_questao(1)", "próxima questão"),
+        Binding("ctrl+enter", "step_questao(1)", "próxima questão", show=False),
         *[Binding(letra, f"pick('{letra}')", letra, show=False) for letra in PICK_KEYS],
         *[Binding(key, f"jump('{key}')", key, show=False) for key in JUMP_KEYS],
     ]
@@ -285,6 +286,11 @@ class ProvaPage(Screen[None]):
 
     def on_alternativa_list_back(self, event: AlternativaList.Back) -> None:
         self.focus_questoes()
+
+    def on_alternativa_list_next_questao(
+        self, event: AlternativaList.NextQuestao
+    ) -> None:
+        self.action_step_questao(1)
 
     def on_alternativa_list_above(self, event: AlternativaList.Above) -> None:
         tables = self.navigable_tables()

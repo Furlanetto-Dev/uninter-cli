@@ -43,6 +43,7 @@ class AlternativaList(OptionList):
     chosen: int | None = None
     BINDINGS = [
         Binding("left", "back", "voltar", show=False),
+        Binding("right", "next_questao", "próxima questão", show=False),
         Binding("escape", "back", "voltar"),
         Binding("up", "back_up", "", show=False),
         Binding("enter", "select", "responder"),
@@ -55,6 +56,9 @@ class AlternativaList(OptionList):
     class Above(Message):
         pass
 
+    class NextQuestao(Message):
+        pass
+
     def on_focus(self) -> None:
         if self.highlighted is None and self.option_count:
             self.highlighted = 0
@@ -64,6 +68,9 @@ class AlternativaList(OptionList):
 
     def action_back(self) -> None:
         self.post_message(self.Back())
+
+    def action_next_questao(self) -> None:
+        self.post_message(self.NextQuestao())
 
     def action_back_up(self) -> None:
         if self.highlighted is None or self.highlighted == 0:
