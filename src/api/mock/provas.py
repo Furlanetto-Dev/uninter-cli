@@ -3,12 +3,12 @@ from datetime import datetime
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova
 from crawler.atividades.dto import QuestoesDTO
+from crawler.atividades.prova import AVALIACAO_URL
 from crawler.session import AvaSession
 
 from . import fixture
 
 NOT_IMPLEMENTED = "Iniciar uma prova no AVA ainda não está implementado."
-QUESTOES_URL = "/bqs/AvaliacaoUsuarioHistorico/{atividade_id}/Avaliacao?autorizacao="
 ANSWER_URL = "/bqs/AvaliacaoUsuarioHistorico/"
 
 
@@ -27,7 +27,9 @@ class MockedProvas:
         if not mocked(atividade):
             raise NotImplementedError(NOT_IMPLEMENTED)
         self._started.setdefault(atividade.id, datetime.now())
-        response = await self._ava.get(QUESTOES_URL.format(atividade_id=atividade.id))
+        response = await self._ava.get(
+            AVALIACAO_URL.format(avaliacao_usuario_id=atividade.id)
+        )
         body = response.json
         if not isinstance(body, dict):
             return Prova(atividade_id=atividade.id, questoes=())
