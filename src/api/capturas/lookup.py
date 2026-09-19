@@ -1,10 +1,11 @@
 import json
 from typing import cast
 
+from pydantic import BaseModel
+
 from crawler.atividades.dto import AtividadesDTO, QuestoesDTO
 from crawler.materias.dto import MateriasDTO
 from crawler.trabalhos.dto import TrabalhoEtapasDTO
-from pydantic import BaseModel
 
 from .entity import ATIVIDADES, MATERIAS, TRABALHOS
 
