@@ -8,7 +8,7 @@ ProvaPage {
         height: auto;
     }
 
-    #prova-blocks Static {
+    #prova-blocks > Static {
         height: auto;
     }
 

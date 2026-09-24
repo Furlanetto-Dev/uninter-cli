@@ -5,6 +5,15 @@ FIRST = 1
 INDENT = "  "
 
 
+def without_blank_ends(lines: list[str]) -> list[str]:
+    start, end = 0, len(lines)
+    while start < end and not lines[start]:
+        start += 1
+    while end > start and not lines[end - 1]:
+        end -= 1
+    return lines[start:end]
+
+
 class Lines:
     def __init__(self) -> None:
         self._lines: list[str] = []
@@ -56,6 +65,4 @@ class Lines:
 
     def result(self) -> str:
         self.end_line()
-        while self._lines and not self._lines[-1]:
-            self._lines.pop()
-        return "\n".join(self._lines)
+        return "\n".join(without_blank_ends(self._lines))

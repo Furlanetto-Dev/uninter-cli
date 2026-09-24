@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from typing import NamedTuple
 
@@ -74,6 +75,7 @@ class AvaSession:
         self._log = log
         self._stamp: str | None = None
         self._student: str | None = None
+        self._logging_in = asyncio.Lock()
 
     @property
     def student(self) -> str | None:
@@ -99,6 +101,17 @@ class AvaSession:
             str(response.url), response.status_code, response.text, response.json()
         )
 
+    async def get_bytes(self, url: str) -> bytes | None:
+        try:
+            response = await self._http.get(url, headers=await self._session_headers())
+        except httpx.TransportError as error:
+            self._note(error)
+            raise
+        if response.status_code == NO_RECORDS_STATUS:
+            return None
+        response.raise_for_status()
+        return response.content
+
     async def put(self, url: str, data: dict[str, str]) -> AvaResponse:
         headers = await self._session_headers()
         headers["content-type"] = FORM_CONTENT_TYPE
@@ -119,7 +132,8 @@ class AvaSession:
     async def _session_headers(self) -> dict[str, str]:
         stamp = self._stamp
         if stamp is None:
-            stamp = await self.log_in()
+            async with self._logging_in:
+                stamp = self._stamp or await self.log_in()
         # The AVA names its session cookie with a timestamp and expects x-time to echo it.
         return {"x-time": stamp}
 

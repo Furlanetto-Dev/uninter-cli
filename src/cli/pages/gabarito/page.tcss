@@ -8,7 +8,7 @@ GabaritoPage {
         height: auto;
     }
 
-    #gabarito-blocks Static {
+    #gabarito-blocks > Static {
         height: auto;
         margin-bottom: 1;
     }

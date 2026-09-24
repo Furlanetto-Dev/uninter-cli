@@ -10,6 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from api.atividades.entity import Atividade
 from api.capturas.entity import Captura
 from api.credenciais.entity import Credencial
+from api.figures.entity import Figure
 from api.gabaritos.entity import GabaritoAlternativa, GabaritoQuestao
 from api.materias.entity import Materia
 from api.trabalhos.entity import Trabalho, TrabalhoEntrega, TrabalhoEtiqueta
@@ -26,6 +27,7 @@ MAPPED_TABLES: tuple[type[SQLModel], ...] = (
     GabaritoAlternativa,
     Captura,
     Credencial,
+    Figure,
 )
 
 

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from doubles import make_figures
 from factories import make_alternativa, make_atividade, make_questao
 from textual.app import App
 from textual.pilot import Pilot
@@ -71,7 +72,11 @@ class TableHost(App[None]):
 
     def open(self) -> ProvaPage:
         return ProvaPage(
-            make_atividade(nome="Prova Objetiva"), MATERIA, make_prova(), self.source
+            make_atividade(nome="Prova Objetiva"),
+            MATERIA,
+            make_prova(),
+            self.source,
+            make_figures(),
         )
 
     def record(self, _: None) -> None:

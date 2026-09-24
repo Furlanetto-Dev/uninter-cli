@@ -16,6 +16,9 @@ X_TIME = "x-time"
 TOKEN_PLACEHOLDER = "$UNINTER_TIME=$UNINTER_TOKEN"
 TIME_PLACEHOLDER = "$UNINTER_TIME"
 NOISE = ("host", "content-length", "accept-encoding", "connection")
+READABLE_TYPES = ("text/", "application/json", "application/javascript")
+CONTENT_TYPE = "content-type"
+NOT_READABLE = "<{kind}, {size} bytes>"
 
 
 @dataclass
@@ -43,6 +46,13 @@ class Request:
     @property
     def answered(self) -> bool:
         return self.status is not None or self.error is not None
+
+
+def body_of(response: httpx.Response) -> str:
+    kind = response.headers.get(CONTENT_TYPE, "")
+    if not kind or kind.startswith(READABLE_TYPES):
+        return response.text
+    return NOT_READABLE.format(kind=kind, size=len(response.content))
 
 
 def redact(body: str) -> str:
@@ -130,6 +140,6 @@ def hooks(log: RequestLog) -> dict[str, list[Callable[..., object]]]:
             return
         await response.aread()
         mocked = bool(response.extensions.get(MOCKED))
-        log.closed(entry, response.status_code, response.text, mocked)
+        log.closed(entry, response.status_code, body_of(response), mocked)
 
     return {"request": [on_request], "response": [on_response]}

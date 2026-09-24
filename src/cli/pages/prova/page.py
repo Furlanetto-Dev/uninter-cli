@@ -5,18 +5,17 @@ from api.atividades.entity import Atividade
 from api.capturas import lookup
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 from crawler.atividades.prova import ProvaSource
-from rich.markup import escape
+from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Header, Static
-from textual.widgets.option_list import Option
+from textual.widgets import Header
 
 from .components.questoes import (
     AlternativaList,
-    answered_mark,
+    alternativa_option,
     questao_row,
     summary_row,
 )
@@ -28,14 +27,16 @@ from cli.components.debug.view import (
     Stored,
     stored_record,
 )
+from cli.components.blocks import block_widget
 from cli.components.footer import Footer
 from cli.components.header import DetailHeader
 from cli.components.hint import Hint
 from cli.components.pane import DetailPane
-from cli.components.questoes import QuestaoList, preview
+from cli.components.questoes import QuestaoList, html_summary, preview
 from cli.components.table import QuestaoTable
+from cli.figures import Figures
 from cli.format import format_elapsed
-from cli.lib.html_to_textual import Block, Prose, Table, html_to_blocks
+from cli.lib.html_to_textual import Block, Prose, html_to_blocks
 
 MOCK_TAG = "[$text-secondary]mock[/]"
 MOCK_SOURCE = "mock"
@@ -49,14 +50,7 @@ SEPARATOR = " · "
 PICK_KEYS = LETTERS[:8]
 JUMP_KEYS = "1234567890"
 TICK = 1.0
-
-
-def alternativa_option(alternativa: Alternativa, *, chosen: bool) -> Option:
-    return Option(
-        f"{answered_mark(alternativa if chosen else None)} "
-        f"{alternativa.letra}) {escape(alternativa.texto)}",
-        id=str(alternativa.id),
-    )
+FALLBACK_COLUMNS = 60
 
 
 def focus_later(widget: Widget) -> Callable[[], None]:
@@ -83,12 +77,14 @@ class ProvaPage(Screen[None]):
         materia_nome: str,
         prova: Prova,
         source: ProvaSource,
+        figures: Figures,
     ) -> None:
         super().__init__()
         self._atividade = atividade
         self._materia_nome = materia_nome
         self._prova = prova
         self._source = source
+        self._figures = figures
         self._respostas: dict[int, int] = dict(prova.respostas)
         self._blocks: dict[int, list[Block]] = {}
         self._page = 0
@@ -111,6 +107,7 @@ class ProvaPage(Screen[None]):
         self._started_at = await self._source.started_at(self._atividade)
         self.fill_questoes()
         await self.show()
+        self.fetch_figures()
         self.set_interval(TICK, self.tick)
 
     @property
@@ -132,6 +129,13 @@ class ProvaPage(Screen[None]):
             self._blocks[questao.id] = cached
         return cached
 
+    def everything_painted(self, questao: Questao) -> list[Block]:
+        return self.blocks_of(questao) + [
+            block
+            for alternativa in questao.alternativas
+            for block in html_to_blocks(alternativa.texto)
+        ]
+
     def fill_questoes(self) -> None:
         rows = [
             questao_row(questao, self.chosen(questao), preview(self.blocks_of(questao)))
@@ -147,22 +151,39 @@ class ProvaPage(Screen[None]):
         if self.finished:
             await self.fill_blocks([Prose(self.summary())])
         else:
+            painted = self.everything_painted(self.questao)
+            await self._figures.load(painted)
             await self.fill_blocks(self.blocks_of(self.questao))
             self.fill_alternativas(alternativas, self.questao)
+            if self._figures.wanted(painted):
+                self.fetch_figures()
         self.tick()
         self.call_later(self.query_one(DebugPanel).reload)
         self.call_after_refresh(self.scroll_top)
+
+    @work(exclusive=True)
+    async def fetch_figures(self) -> None:
+        for questao in self.from_current():
+            painted = self.everything_painted(questao)
+            if await self._figures.fetch_missing(painted) and self.showing(questao):
+                await self.repaint()
+
+    def from_current(self) -> list[Questao]:
+        questoes = list(self.questoes)
+        return questoes[self._page :] + questoes[: self._page]
+
+    def showing(self, questao: Questao) -> bool:
+        return not self.finished and self.questao is questao
+
+    async def repaint(self) -> None:
+        await self.fill_blocks(self.blocks_of(self.questao))
+        self.fill_alternativas(self.query_one(AlternativaList), self.questao)
 
     async def fill_blocks(self, blocks: list[Block]) -> None:
         container = self.query_one("#prova-blocks", Vertical)
         await container.remove_children()
         await container.mount_all(
-            [
-                QuestaoTable(block)
-                if isinstance(block, Table)
-                else Static(block.markup)
-                for block in blocks
-            ]
+            [block_widget(block, self._figures) for block in blocks]
         )
         self.wire_tables()
 
@@ -237,7 +258,7 @@ class ProvaPage(Screen[None]):
         chosen = self.chosen(questao)
         if chosen is None:
             return f"[dim]{NO_ANSWER}[/dim]"
-        return f"[$text-success]{chosen.letra})[/] {escape(chosen.texto)}"
+        return f"[$text-success]{chosen.letra})[/] {html_summary(chosen.texto)}"
 
     def chosen(self, questao: Questao) -> Alternativa | None:
         answered = self._respostas.get(questao.id)
@@ -248,9 +269,12 @@ class ProvaPage(Screen[None]):
 
     def fill_alternativas(self, options: AlternativaList, questao: Questao) -> None:
         answered = self._respostas.get(questao.id)
+        columns = options.content_size.width or FALLBACK_COLUMNS
         options.clear_options()
         options.add_options(
-            alternativa_option(alternativa, chosen=alternativa.id == answered)
+            alternativa_option(
+                alternativa, alternativa.id == answered, self._figures, columns
+            )
             for alternativa in questao.alternativas
         )
         options.chosen = self.position_of(questao, answered)

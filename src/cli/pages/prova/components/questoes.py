@@ -1,10 +1,18 @@
 from api.provas.entity import Alternativa, Questao
+from rich.console import Group, RenderableType
+from rich.markup import escape
 from rich.table import Table
+from rich.text import Text
 from textual.binding import Binding
 from textual.message import Message
+from textual.visual import VisualType
 from textual.widgets import OptionList
+from textual.widgets.option_list import Option
 
+from cli.components.questoes import html_summary
 from cli.components.row import row_grid
+from cli.figures import Figures, figure_link, figures_in
+from cli.lib.html_to_textual import Block, Figure, Prose, html_to_blocks
 
 ANSWERED = "●"
 UNANSWERED = "○"
@@ -23,7 +31,58 @@ def _answer_line(chosen: Alternativa | None) -> str:
     if chosen is None:
         return f"[dim]{NO_ANSWER}[/dim]"
     letra = f"[{ANSWERED_STYLE}]{chosen.letra})[/{ANSWERED_STYLE}]"
-    return f"{letra} [dim]{chosen.texto}[/dim]"
+    return f"{letra} [dim]{html_summary(chosen.texto)}[/dim]"
+
+
+def markup_prompt(head: str, blocks: list[Block]) -> str:
+    parts = [head]
+    for block in blocks:
+        if isinstance(block, Prose):
+            parts.append(block.markup)
+        elif isinstance(block, Figure):
+            parts.append(figure_link(block))
+    return " ".join(parts)
+
+
+def rich_prompt(
+    head: str, blocks: list[Block], drawn: dict[str, RenderableType]
+) -> Group:
+    line = head
+    drawings: list[RenderableType] = []
+    for block in blocks:
+        if isinstance(block, Prose):
+            line = f"{line} {block.markup}"
+        elif isinstance(block, Figure):
+            drawing = drawn.get(block.source)
+            if drawing is None:
+                line = f"{line} {escape(block.label)}"
+            else:
+                drawings.append(drawing)
+    return Group(Text.from_markup(line), *drawings)
+
+
+def alternativa_prompt(
+    alternativa: Alternativa, chosen: bool, figures: Figures, columns: int
+) -> VisualType:
+    head = f"{answered_mark(alternativa if chosen else None)} {alternativa.letra})"
+    blocks = html_to_blocks(alternativa.texto)
+    drawn = {
+        figure.source: drawing
+        for figure in figures_in(blocks)
+        if (drawing := figures.option(figure, columns)) is not None
+    }
+    if not drawn:
+        return markup_prompt(head, blocks)
+    return rich_prompt(head, blocks, drawn)
+
+
+def alternativa_option(
+    alternativa: Alternativa, chosen: bool, figures: Figures, columns: int
+) -> Option:
+    return Option(
+        alternativa_prompt(alternativa, chosen, figures, columns),
+        id=str(alternativa.id),
+    )
 
 
 def questao_row(questao: Questao, chosen: Alternativa | None, summary: str) -> Table:

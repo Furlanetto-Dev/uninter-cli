@@ -1,10 +1,11 @@
+from rich.markup import escape
 from rich.table import Table
 from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option, OptionDoesNotExist
 
-from cli.lib.html_to_textual import Block, Prose
+from cli.lib.html_to_textual import Block, Figure, Prose, html_to_blocks
 
 from .row import section_title
 from .sidebar import Sidebar
@@ -17,7 +18,19 @@ def preview(blocks: list[Block]) -> str:
     for block in blocks:
         if isinstance(block, Prose):
             return " ".join(block.markup.split("\n")[:PREVIEW_LINES]).strip()
+        if isinstance(block, Figure):
+            return escape(block.label)
     return ""
+
+
+def html_summary(html: str) -> str:
+    said: list[str] = []
+    for block in html_to_blocks(html):
+        if isinstance(block, Prose):
+            said.append(block.markup.replace("\n", " "))
+        elif isinstance(block, Figure):
+            said.append(escape(block.label))
+    return " ".join(said)
 
 
 def title_row(total: int) -> Option:

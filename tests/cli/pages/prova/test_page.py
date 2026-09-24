@@ -1,15 +1,26 @@
 from datetime import datetime
 from typing import cast
 
+from doubles import (
+    DRAWING,
+    DrawingPainter,
+    DrawnFigure,
+    FakeFigureSource,
+    make_figures,
+    make_png,
+)
 from factories import make_alternativa, make_atividade, make_questao
 from textual.app import App
 from textual.content import Content
+from textual.pilot import Pilot
 from textual.reactive import reactive
 from textual.widgets import Static
 
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova, Questao
 from cli.components.header import DetailHeader
+from cli.figures import Figures, LinkPainter
+from cli.pixels import FigureView, PixelPainter
 from cli.components.questoes import QuestaoList
 from cli.pages.prova.components.questoes import AlternativaList
 from cli.pages.prova.page import (
@@ -26,16 +37,21 @@ IMAGEM = (
     "https://univirtus.uninter.com/ava/repositorio/"
     "SistemaRepositorioPublico/?id=JcbQ9M+/abc=="
 )
+PNG = b"\x89PNG\r\n\x1a\n"
 
 
-def make_prova(enunciado: str | None = None) -> Prova:
+def make_prova(enunciado: str | None = None, alternativa: str | None = None) -> Prova:
     questoes = tuple(
         make_questao(
             questao_id=ordem,
             ordem=ordem,
             enunciado=enunciado or f"<p>Questão {ordem}</p>",
             alternativas=(
-                make_alternativa(alternativa_id=ordem * 10 + 1, letra="a"),
+                make_alternativa(
+                    alternativa_id=ordem * 10 + 1,
+                    letra="a",
+                    texto=alternativa or "Primeira",
+                ),
                 make_alternativa(alternativa_id=ordem * 10 + 2, letra="b"),
             ),
         )
@@ -66,18 +82,25 @@ class FakeProvaSource:
 class ProvaHost(App[None]):
     debug_mode: reactive[bool] = reactive(False)
 
-    def __init__(self) -> None:
+    def __init__(self, figures: Figures | None = None) -> None:
         super().__init__()
         self.source = FakeProvaSource()
+        self.figures = figures or make_figures()
         self.left = False
         self.opened: list[str] = []
 
-    def open(self, enunciado: str | None = None) -> ProvaPage:
+    def open(
+        self,
+        enunciado: str | None = None,
+        alternativa: str | None = None,
+        prova: Prova | None = None,
+    ) -> ProvaPage:
         return ProvaPage(
             make_atividade(nome="Prova Objetiva"),
             MATERIA,
-            make_prova(enunciado),
+            prova or make_prova(enunciado, alternativa),
             self.source,
+            self.figures,
         )
 
     def action_open_image(self, url: str) -> None:
@@ -284,6 +307,120 @@ async def test_the_chosen_answer_keeps_its_cursor_when_focus_leaves() -> None:
         await pilot.pause()
         assert isinstance(app.focused, QuestaoList)
         assert app.screen.query_one(AlternativaList).highlighted == 1
+
+
+def alternativas_text(app: ProvaHost) -> str:
+    listing = app.screen.query_one(AlternativaList)
+    return "\n".join(listing.render_line(y).text for y in range(listing.size.height))
+
+
+async def test_a_figure_in_the_enunciado_is_drawn_where_the_terminal_draws() -> None:
+    app = ProvaHost(make_figures({IMAGEM: PNG}, DrawingPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        drawn = app.screen.query_one(DrawnFigure)
+        assert drawn.image == PNG
+        assert drawn.figure.source == IMAGEM
+
+
+async def test_a_figure_the_ava_never_answered_stays_a_link() -> None:
+    app = ProvaHost(make_figures({}, DrawingPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        enunciado = app.screen.query_one("#prova-blocks").query_one(Static)
+        assert not app.screen.query(DrawnFigure)
+        assert cast(Content, enunciado.visual).plain == "imagem"
+
+
+async def test_an_alternativa_that_is_a_figure_is_drawn_in_the_list() -> None:
+    app = ProvaHost(make_figures({IMAGEM: PNG}, DrawingPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(alternativa=f'<img src="{IMAGEM}" />'), app.record)
+        await pilot.pause()
+        assert DRAWING in alternativas_text(app)
+
+
+async def test_an_alternativa_figure_keeps_its_label_where_nothing_is_drawn() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(alternativa=f'<img src="{IMAGEM}" />'), app.record)
+        await pilot.pause()
+        assert "a) imagem" in alternativas_text(app)
+
+
+def prova_of_figures() -> Prova:
+    return Prova(
+        atividade_id=10,
+        questoes=tuple(
+            make_questao(
+                questao_id=ordem,
+                ordem=ordem,
+                enunciado=f'<p><img src="{IMAGEM}{ordem}" /></p>',
+                alternativas=(make_alternativa(alternativa_id=ordem, letra="a"),),
+            )
+            for ordem in (1, 2, 3)
+        ),
+    )
+
+
+async def settled(pilot: Pilot[None]) -> None:
+    for _ in range(6):
+        await pilot.pause()
+
+
+async def test_entering_the_prova_fetches_the_figures_of_every_questao() -> None:
+    source = FakeFigureSource({f"{IMAGEM}{ordem}": PNG for ordem in (1, 2, 3)})
+    app = ProvaHost(Figures(source, DrawingPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(prova=prova_of_figures()), app.record)
+        await settled(pilot)
+        assert sorted(source.fetched) == [f"{IMAGEM}{ordem}" for ordem in (1, 2, 3)]
+
+
+async def test_clicking_a_drawn_figure_opens_the_original() -> None:
+    source = FakeFigureSource(stored={IMAGEM: make_png()})
+    app = ProvaHost(Figures(source, PixelPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await settled(pilot)
+        await pilot.click(app.screen.query_one(FigureView))
+        await pilot.pause()
+        assert app.opened == [IMAGEM]
+
+
+async def test_the_same_figure_is_fetched_once_for_the_whole_prova() -> None:
+    source = FakeFigureSource({IMAGEM: PNG})
+    app = ProvaHost(Figures(source, DrawingPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        await pilot.press("ctrl+right")
+        await pilot.pause()
+        await pilot.press("ctrl+left")
+        await pilot.pause()
+        assert source.fetched == [IMAGEM]
+
+
+async def test_a_stored_figure_is_drawn_without_asking_the_ava() -> None:
+    source = FakeFigureSource(stored={IMAGEM: PNG})
+    app = ProvaHost(Figures(source, DrawingPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        assert app.screen.query_one(DrawnFigure).image == PNG
+        assert source.fetched == []
+
+
+async def test_nothing_is_downloaded_for_a_terminal_that_only_links() -> None:
+    source = FakeFigureSource({IMAGEM: PNG})
+    app = ProvaHost(Figures(source, LinkPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await pilot.pause()
+        assert source.fetched == []
+        assert source.read == []
 
 
 async def test_an_image_in_the_enunciado_is_shown_as_a_link() -> None:

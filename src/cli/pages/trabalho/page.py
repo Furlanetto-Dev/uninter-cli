@@ -12,7 +12,8 @@ from cli.components.header import DetailHeader
 from cli.components.hint import Hint
 from cli.components.pane import DetailPane
 from cli.format import format_deadline, format_number
-from cli.lib.html_to_textual import Block, Prose, html_to_blocks
+from cli.figures import figure_link
+from cli.lib.html_to_textual import Block, Figure, Prose, html_to_blocks
 
 NO_ENTREGAS = "[$text-warning]Nada foi entregue neste trabalho.[/]"
 NO_FEEDBACK = "[dim]Sem comentário do corretor.[/dim]"
@@ -104,6 +105,8 @@ def entrega_markup(entrega: TrabalhoEntrega) -> str:
 def prose_of(block: Block) -> str:
     if isinstance(block, Prose):
         return block.markup
+    if isinstance(block, Figure):
+        return figure_link(block)
     return "\n".join(SEPARATOR.join(row) for row in (block.header, *block.rows))
 
 

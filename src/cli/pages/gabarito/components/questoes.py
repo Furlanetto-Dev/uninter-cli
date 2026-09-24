@@ -1,11 +1,11 @@
 from typing import NamedTuple
 
 from api.gabaritos.entity import GabaritoAlternativa, QuestaoGabaritada
-from rich.markup import escape
 from rich.table import Table
 
+from cli.components.questoes import html_summary
 from cli.components.row import row_grid
-from cli.lib.html_to_textual import html_to_text
+from cli.lib.html_to_textual import Block, Prose, html_to_blocks
 
 CORRECT = "✓"
 WRONG = "✗"
@@ -46,20 +46,51 @@ def is_marked(alternativa: GabaritoAlternativa, questao: QuestaoGabaritada) -> b
     return alternativa.correta or questao.escolhida is alternativa
 
 
-def alternativa_markup(
+def shaded_prose(said: list[str], dim: bool) -> list[Block]:
+    if not said:
+        return []
+    line = " ".join(said)
+    return [Prose(f"[dim]{line}[/dim]" if dim else line)]
+
+
+def alternativa_blocks(
     alternativa: GabaritoAlternativa,
     questao: QuestaoGabaritada,
     palette: Palette = THEME,
-) -> str:
+) -> list[Block]:
+    dim = not is_marked(alternativa, questao)
     mark = alternativa_mark(alternativa, questao, palette)
-    line = f"{mark} {alternativa.letra}) {escape(html_to_text(alternativa.texto))}"
-    return line if is_marked(alternativa, questao) else f"[dim]{line}[/dim]"
+    said = [f"{mark} {alternativa.letra})"]
+    blocks: list[Block] = []
+    for block in html_to_blocks(alternativa.texto):
+        if isinstance(block, Prose):
+            said = said + [block.markup]
+        else:
+            blocks = blocks + shaded_prose(said, dim) + [block]
+            said = []
+    return blocks + shaded_prose(said, dim)
 
 
-def alternativas_markup(questao: QuestaoGabaritada, palette: Palette = THEME) -> str:
-    return "\n".join(
-        alternativa_markup(alternativa, questao, palette)
-        for alternativa in questao.alternativas
+def merged_prose(blocks: list[Block]) -> list[Block]:
+    merged: list[Block] = []
+    for block in blocks:
+        last = merged[-1] if merged else None
+        if isinstance(block, Prose) and isinstance(last, Prose):
+            merged[-1] = Prose(f"{last.markup}\n{block.markup}")
+        else:
+            merged.append(block)
+    return merged
+
+
+def alternativas_blocks(
+    questao: QuestaoGabaritada, palette: Palette = THEME
+) -> list[Block]:
+    return merged_prose(
+        [
+            block
+            for alternativa in questao.alternativas
+            for block in alternativa_blocks(alternativa, questao, palette)
+        ]
     )
 
 
@@ -72,8 +103,7 @@ def answer_line(questao: QuestaoGabaritada, palette: Palette = ANSI) -> str:
     if escolhida is None:
         return f"[{palette.wrong}]{NO_ANSWER}[/]"
     style = palette.correct if questao.acertou else palette.wrong
-    texto = escape(html_to_text(escolhida.texto))
-    return f"[{style}]{escolhida.letra})[/] [dim]{texto}[/dim]"
+    return f"[{style}]{escolhida.letra})[/] [dim]{html_summary(escolhida.texto)}[/dim]"
 
 
 def resumo_line(questao: QuestaoGabaritada) -> str:

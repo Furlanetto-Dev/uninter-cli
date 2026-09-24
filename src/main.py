@@ -7,6 +7,8 @@ from api.atividades.service import AtividadeSyncService
 from api.capturas.repository import CapturaRepository
 from api.credenciais.repository import CredencialRepository
 from api.db import DATABASE_PATH, db_session
+from api.figures.repository import FigureRepository
+from api.figures.service import FigureService
 from api.gabaritos.repository import GabaritoRepository
 from api.gabaritos.service import GabaritoService
 from api.materias.repository import MateriaRepository
@@ -17,10 +19,12 @@ from api.mock.seed import MockedMateria
 from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
+from cli.figures import Figures, painter
 from config import Config
 from crawler.atividades.gabarito import GabaritoRequest
 from crawler.atividades.request import AtividadeRequest
 from crawler.credenciais import Credenciais
+from crawler.figures.request import FigureRequest
 from crawler.history import RequestLog
 from crawler.materias.request import MateriaRequest
 from crawler.mock import FakeAva
@@ -48,7 +52,7 @@ async def stored(
 
 async def run(settings: Settings) -> bool:
     log = RequestLog()
-    transport = FakeAva(fixture.payload, httpx.AsyncHTTPTransport())
+    transport = FakeAva(fixture.payload, fixture.figure, httpx.AsyncHTTPTransport())
     async with ava_client(transport, log) as http, db_session() as session:
         credenciais_db = CredencialRepository(session)
         credenciais = await stored(from_env(settings), credenciais_db)
@@ -62,6 +66,13 @@ async def run(settings: Settings) -> bool:
             request=GabaritoRequest(ava),
             repository=GabaritoRepository(session),
         )
+        figure_service = FigureService(
+            session=session,
+            request=FigureRequest(ava),
+            repository=FigureRepository(session),
+        )
+        await figure_service.forget_stale()
+        figures = Figures(figure_service, painter())
         materias_service = MateriaSyncService(
             session=session,
             ava=ava,
@@ -95,6 +106,7 @@ async def run(settings: Settings) -> bool:
             trabalhos_db,
             capturas_db,
             gabaritos_service,
+            figures,
             MockedMateria(session),
             Config.load(),
             ava,

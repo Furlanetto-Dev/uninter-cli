@@ -1,7 +1,6 @@
 import pytest
-from textual.content import Content
 
-from cli.lib.html_to_textual import Prose, Table, html_to_blocks
+from cli.lib.html_to_textual import Figure, Prose, Table, html_to_blocks
 
 IMAGEM = (
     "https://univirtus.uninter.com/ava/repositorio/"
@@ -72,19 +71,24 @@ def test_brackets_in_the_questao_are_not_read_as_markup() -> None:
     assert prose("<p>valor [bold] literal</p>") == "valor \\[bold] literal"
 
 
-def test_an_image_becomes_a_link_that_opens_it() -> None:
-    markup = prose(f'<p>Observe:</p><p><img src="{IMAGEM}" /></p>')
-    assert markup == f"Observe:\n\n[@click=app.open_image('{IMAGEM}')]imagem[/]"
+def test_an_image_becomes_a_figure_block() -> None:
+    blocks = html_to_blocks(f'<p>Observe:</p><p><img src="{IMAGEM}" /></p>')
+    assert blocks == [Prose("Observe:"), Figure(IMAGEM, "imagem")]
 
 
-def test_the_alt_text_names_the_image_link() -> None:
-    markup = prose('<img src="http://x/y.png" alt="Diagrama de classes">')
-    assert markup == "[@click=app.open_image('http://x/y.png')]Diagrama de classes[/]"
+def test_the_alt_text_names_the_figure() -> None:
+    blocks = html_to_blocks('<img src="http://x/y.png" alt="Diagrama de classes">')
+    assert blocks == [Figure("http://x/y.png", "Diagrama de classes")]
 
 
-def test_an_image_link_paints_a_single_word() -> None:
-    painted = Content.from_markup(prose(f'<img src="{IMAGEM}">'))
-    assert painted.plain == "imagem"
+def test_an_image_inside_a_paragraph_cuts_the_prose_in_two() -> None:
+    blocks = html_to_blocks(f'<p>antes <img src="{IMAGEM}"> depois</p>')
+    assert blocks == [Prose("antes"), Figure(IMAGEM, "imagem"), Prose("depois")]
+
+
+def test_the_prose_after_a_figure_starts_at_its_first_word() -> None:
+    blocks = html_to_blocks(f'<p><img src="{IMAGEM}"></p><p>depois</p>')
+    assert blocks == [Figure(IMAGEM, "imagem"), Prose("depois")]
 
 
 def test_an_image_without_a_source_leaves_nothing_behind() -> None:

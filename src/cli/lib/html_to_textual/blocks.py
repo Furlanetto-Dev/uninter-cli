@@ -14,7 +14,13 @@ class Table:
     rows: tuple[tuple[str, ...], ...]
 
 
-type Block = Prose | Table
+@dataclass(frozen=True)
+class Figure:
+    source: str
+    label: str
+
+
+type Block = Prose | Table | Figure
 
 
 class Blocks:
@@ -25,6 +31,10 @@ class Blocks:
     def table(self, header: tuple[str, ...], rows: tuple[tuple[str, ...], ...]) -> None:
         self._close_prose()
         self._blocks.append(Table(header, rows))
+
+    def figure(self, source: str, label: str) -> None:
+        self._close_prose()
+        self._blocks.append(Figure(source, label))
 
     def result(self) -> list[Block]:
         self._close_prose()

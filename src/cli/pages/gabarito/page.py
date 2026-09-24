@@ -9,8 +9,9 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Header, Static
+from textual.widgets import Header
 
+from cli.components.blocks import block_widget
 from cli.components.footer import Footer
 from cli.components.header import DetailHeader
 from cli.components.hint import Hint
@@ -18,11 +19,12 @@ from cli.components.loading import Loading
 from cli.components.pane import DetailPane
 from cli.components.questoes import QuestaoList, preview
 from cli.components.table import QuestaoTable
+from cli.figures import Figures
 from cli.format import format_number
-from cli.lib.html_to_textual import Block, Prose, Table, html_to_blocks
+from cli.lib.html_to_textual import Block, Prose, html_to_blocks
 
 from .components.questoes import (
-    alternativas_markup,
+    alternativas_blocks,
     questao_row,
     resumo_markup,
     summary_row,
@@ -67,11 +69,13 @@ class GabaritoPage(Screen[None]):
         atividade: Atividade,
         materia_nome: str,
         gabaritos: GabaritoSource,
+        figures: Figures,
     ) -> None:
         super().__init__()
         self._atividade = atividade
         self._materia_nome = materia_nome
         self._gabaritos = gabaritos
+        self._figures = figures
         self._gabarito: Gabarito | None = None
         self._blocks: dict[int, list[Block]] = {}
         self._page = 0
@@ -105,6 +109,7 @@ class GabaritoPage(Screen[None]):
         self.query_one(f"#{BODY_ID}", VerticalScroll).display = True
         self.fill_questoes()
         await self.show()
+        self.fetch_figures()
 
     @property
     def questoes(self) -> tuple[QuestaoGabaritada, ...]:
@@ -121,7 +126,12 @@ class GabaritoPage(Screen[None]):
     def blocks_of(self, questao: QuestaoGabaritada) -> list[Block]:
         cached = self._blocks.get(questao.questao.id)
         if cached is None:
-            cached = html_to_blocks(questao.enunciado) + html_to_blocks(questao.comando)
+            cached = (
+                html_to_blocks(questao.enunciado)
+                + html_to_blocks(questao.comando)
+                + alternativas_blocks(questao)
+                + self.comentario_blocks(questao)
+            )
             self._blocks[questao.questao.id] = cached
         return cached
 
@@ -140,13 +150,26 @@ class GabaritoPage(Screen[None]):
         if self.finished:
             await self.fill_blocks([Prose(resumo_markup(self.questoes))])
         else:
-            questao = self.questao
-            await self.fill_blocks(
-                self.blocks_of(questao)
-                + [Prose(alternativas_markup(questao))]
-                + self.comentario_blocks(questao)
-            )
+            blocks = self.blocks_of(self.questao)
+            await self._figures.load(blocks)
+            await self.fill_blocks(blocks)
+            if self._figures.wanted(blocks):
+                self.fetch_figures()
         self.call_after_refresh(self.scroll_top)
+
+    @work(exclusive=True)
+    async def fetch_figures(self) -> None:
+        for questao in self.from_current():
+            blocks = self.blocks_of(questao)
+            if await self._figures.fetch_missing(blocks) and self.showing(questao):
+                await self.fill_blocks(blocks)
+
+    def from_current(self) -> list[QuestaoGabaritada]:
+        questoes = list(self.questoes)
+        return questoes[self._page :] + questoes[: self._page]
+
+    def showing(self, questao: QuestaoGabaritada) -> bool:
+        return not self.finished and self.questao is questao
 
     def comentario_blocks(self, questao: QuestaoGabaritada) -> list[Block]:
         comentario = questao.comentario
@@ -158,12 +181,7 @@ class GabaritoPage(Screen[None]):
         container = self.query_one(f"#{BLOCKS_ID}", Vertical)
         await container.remove_children()
         await container.mount_all(
-            [
-                QuestaoTable(block)
-                if isinstance(block, Table)
-                else Static(block.markup)
-                for block in blocks
-            ]
+            [block_widget(block, self._figures) for block in blocks]
         )
         self.wire_tables()
 

@@ -1,3 +1,4 @@
+from doubles import DRAWING, DrawingPainter, DrawnFigure, make_figures
 from factories import (
     make_atividade,
     make_gabarito,
@@ -11,12 +12,41 @@ from api.atividades.entity import FINISHED, Atividade
 from api.gabaritos.entity import Gabarito
 from cli.components.header import DetailHeader
 from cli.components.questoes import QuestaoList
+from cli.figures import Figures
 from cli.pages.gabarito.page import GabaritoPage
 from crawler.atividades.dto import QuestoesDTO
 
 MATERIA = "Engenharia de Software"
 FULL = 100
 NONE = 0
+FIGURA = "https://univirtus.uninter.com/ava/repositorio/x.png"
+PNG = b"\x89PNG\r\n\x1a\n"
+
+
+def make_com_figura() -> Gabarito:
+    questao = make_gabarito_questao(
+        questao_id=1,
+        ordem=1,
+        enunciado=f'<p>Observe:</p><p><img src="{FIGURA}"></p>',
+        escolhida_id=2,
+        percentual=FULL,
+        alternativas=(
+            make_gabarito_alternativa(
+                alternativa_id=1,
+                questao_id=1,
+                letra="a",
+                texto=f'<img src="{FIGURA}" alt="primeira figura">',
+            ),
+            make_gabarito_alternativa(
+                alternativa_id=2,
+                questao_id=1,
+                letra="b",
+                texto="<p>Certa</p>",
+                correta=True,
+            ),
+        ),
+    )
+    return make_gabarito(tentativa=1, questoes=(questao,))
 
 
 def make_questoes() -> Gabarito:
@@ -64,14 +94,17 @@ class FakeGabaritos:
 
 
 class GabaritoHost(App[None]):
-    def __init__(self, gabarito: Gabarito | None) -> None:
+    def __init__(
+        self, gabarito: Gabarito | None, figures: Figures | None = None
+    ) -> None:
         super().__init__()
         self.gabaritos = FakeGabaritos(gabarito)
+        self.figures = figures or make_figures()
         self.left = False
         self.toasts: list[str] = []
 
     def open(self) -> GabaritoPage:
-        page = GabaritoPage(make_finalizada(), MATERIA, self.gabaritos)
+        page = GabaritoPage(make_finalizada(), MATERIA, self.gabaritos, self.figures)
         self.push_screen(page, self.record)
         return page
 
@@ -341,3 +374,34 @@ async def test_an_unanswered_questao_does_not_count_as_correct() -> None:
             await pilot.press("k")
             await settled(app, pilot)
         assert "1 de 2 corretas" in header_text(app)
+
+
+async def test_a_figure_in_the_enunciado_is_drawn_where_the_terminal_draws() -> None:
+    app = GabaritoHost(make_com_figura(), make_figures({FIGURA: PNG}, DrawingPainter()))
+    async with app.run_test(size=(140, 40)) as pilot:
+        app.open()
+        await settled(app, pilot)
+        drawn = app.screen.query(DrawnFigure)
+        assert len(drawn) == 2
+        assert {figure.image for figure in drawn} == {PNG}
+        assert DRAWING in body_text(app)
+
+
+async def test_a_figure_alternativa_keeps_its_letter_above_the_drawing() -> None:
+    app = GabaritoHost(make_com_figura(), make_figures({FIGURA: PNG}, DrawingPainter()))
+    async with app.run_test(size=(140, 40)) as pilot:
+        app.open()
+        await settled(app, pilot)
+        body = body_text(app)
+        assert "a)" in body
+        assert "✓ b) Certa" in body
+
+
+async def test_a_figure_falls_back_to_its_label_where_nothing_is_drawn() -> None:
+    app = GabaritoHost(make_com_figura())
+    async with app.run_test(size=(140, 40)) as pilot:
+        app.open()
+        await settled(app, pilot)
+        body = body_text(app)
+        assert not app.screen.query(DrawnFigure)
+        assert "primeira figura" in body

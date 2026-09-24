@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.1"
-content_hash = "sha256:12624589b2d5e1bccccb5cf8dc6230151433a9baafd3f0a1249ed0fdef2dd56f"
+content_hash = "sha256:6009e72b5db96e6e699fdfa81fe214ecd663aadf04f279638145548c7b9c0992"
 
 [[metadata.targets]]
 requires_python = "==3.12.*"
@@ -250,6 +250,25 @@ files = [
 ]
 
 [[package]]
+name = "pillow"
+version = "12.3.0"
+requires_python = ">=3.10"
+summary = "Python Imaging Library (fork)"
+groups = ["default"]
+files = [
+    {file = "pillow-12.3.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ba09209fbe443b4acccebe845d8a138b89a8f4fbaeedd44953490b5315d5e965"},
+    {file = "pillow-12.3.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:ffd0c5368496f41b0944be820fcb7a838aa6e623d250b01acf2643939c3f99d7"},
+    {file = "pillow-12.3.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:d9c7f76c0673154f044e9d78c8655fb4213f6ca31a836df48b40fe5d187717b9"},
+    {file = "pillow-12.3.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:78cb2c6865a35ab8ff8b75fd122f6033b92a62c82801110e48ddd6c936a45d91"},
+    {file = "pillow-12.3.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:e491916b378fba47242221bb9ead245211b70d504f495d105d17b14a24b4907c"},
+    {file = "pillow-12.3.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:0dd2064cbc55aaec028ef5fbb60fa47bb6c3e7918e07ff17935284b227a9d2df"},
+    {file = "pillow-12.3.0-cp312-cp312-win32.whl", hash = "sha256:dbce0b29841537a2fa4a214c2bbf14de3587c9680caa9b4e217568472490b28f"},
+    {file = "pillow-12.3.0-cp312-cp312-win_amd64.whl", hash = "sha256:a2b55dd6b2a4c4b7d87ffa56bdb33fdc5fdb9a462173861a7bc097f17d91cb09"},
+    {file = "pillow-12.3.0-cp312-cp312-win_arm64.whl", hash = "sha256:331b624368d4f1d069149002f25f44bc61c8919ce8ddb3c45bdad8f6e2d89510"},
+    {file = "pillow-12.3.0.tar.gz", hash = "sha256:3b8182a766685eaa002637e28b4ec8d6b18819a0c71f579bf0dbaa5830297cce"},
+]
+
+[[package]]
 name = "platformdirs"
 version = "4.11.7"
 requires_python = ">=3.10"
@@ -472,6 +491,21 @@ dependencies = [
 files = [
     {file = "textual-8.2.8-py3-none-any.whl", hash = "sha256:267375fd402dc8d981457212efa71f0e3365fd17bba144ba9bb3ed7563cb374a"},
     {file = "textual-8.2.8.tar.gz", hash = "sha256:3f106a9fbc73e39dd266c9712432087de78a6d644084c7c241d6a25c3169115b"},
+]
+
+[[package]]
+name = "textual-image"
+version = "0.14.0"
+requires_python = ">=3.12"
+summary = "Render images via Kitty's Terminal Graphics Protocol with Rich and Textual"
+groups = ["default"]
+dependencies = [
+    "pillow>=10.3.0",
+    "rich>=13.4.0",
+]
+files = [
+    {file = "textual_image-0.14.0-py3-none-any.whl", hash = "sha256:7af0d29edf02c917416230528dfe77c0d6e93bc6bbcbf21236622082defb0415"},
+    {file = "textual_image-0.14.0.tar.gz", hash = "sha256:230e2c38738a3d96ca3bcf99c6680b898917003bb21bd5fa7e22cbb16e843235"},
 ]
 
 [[package]]

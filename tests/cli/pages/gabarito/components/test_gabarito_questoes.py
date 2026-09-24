@@ -1,8 +1,9 @@
 from api.gabaritos.entity import GabaritoAlternativa, QuestaoGabaritada
 from factories import make_gabarito_alternativa, make_gabarito_questao
 
+from cli.lib.html_to_textual import Figure, Prose
 from cli.pages.gabarito.components.questoes import (
-    alternativas_markup,
+    alternativas_blocks,
     answer_line,
     resumo_line,
     resumo_markup,
@@ -11,6 +12,15 @@ from cli.pages.gabarito.components.questoes import (
 
 FULL = 100
 NONE = 0
+FIGURA = "https://univirtus.uninter.com/ava/repositorio/x.png"
+
+
+def alternativas_markup(questao: QuestaoGabaritada) -> str:
+    return "\n".join(
+        block.markup
+        for block in alternativas_blocks(questao)
+        if isinstance(block, Prose)
+    )
 
 
 def alternativas() -> tuple[GabaritoAlternativa, ...]:
@@ -159,3 +169,22 @@ def test_an_alternativa_that_is_neither_correct_nor_chosen_is_dimmed() -> None:
     )
     outra = alternativas_markup(questao).split("\n")[2]
     assert outra.startswith("[dim]")
+
+
+def test_an_alternativa_that_is_a_figure_becomes_a_block_under_its_letter() -> None:
+    questao = make_gabarito_questao(
+        escolhida_id=1,
+        percentual=NONE,
+        alternativas=(
+            make_gabarito_alternativa(
+                alternativa_id=1, letra="a", texto=f'<img src="{FIGURA}">'
+            ),
+            make_gabarito_alternativa(
+                alternativa_id=2, letra="b", texto="<p>Certa</p>", correta=True
+            ),
+        ),
+    )
+    primeira, figura, segunda = alternativas_blocks(questao)
+    assert isinstance(primeira, Prose) and "a)" in primeira.markup
+    assert figura == Figure(FIGURA, "imagem")
+    assert isinstance(segunda, Prose) and "b) Certa" in segunda.markup

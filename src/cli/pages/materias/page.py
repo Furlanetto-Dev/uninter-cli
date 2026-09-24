@@ -35,6 +35,7 @@ from cli.components.footer import Footer
 from cli.components.header import DetailHeader
 from cli.components.hint import NEVER_SYNCED, Hint
 from cli.components.pane import DetailPane
+from cli.figures import Figures
 from cli.format import humanize_age, short_periodo
 from api.gabaritos.service import GabaritoSource
 from cli.pages.gabarito.page import GabaritoPage
@@ -97,6 +98,7 @@ class MateriasPage(Screen[None]):
         trabalhos_db: TrabalhoRepository,
         capturas_db: CapturaRepository,
         gabaritos: GabaritoSource,
+        figures: Figures,
     ) -> None:
         super().__init__()
         self._uninter = uninter
@@ -106,6 +108,7 @@ class MateriasPage(Screen[None]):
         self._trabalhos_db = trabalhos_db
         self._capturas_db = capturas_db
         self._gabaritos = gabaritos
+        self._figures = figures
         self._debug_source = MATERIAS
 
     @property
@@ -295,7 +298,9 @@ class MateriasPage(Screen[None]):
         materia = self.materia_list.highlighted_materia
         if materia is not None:
             self.uninter.push_screen(
-                GabaritoPage(event.atividade, materia.nome, self._gabaritos)
+                GabaritoPage(
+                    event.atividade, materia.nome, self._gabaritos, self._figures
+                )
             )
 
     def on_atividade_tree_start(self, event: AtividadeTree.Start) -> None:
@@ -333,7 +338,7 @@ class MateriasPage(Screen[None]):
             self.notify(PROVA_UNAVAILABLE.format(reason=error), severity="error")
             return
         await self.uninter.push_screen_wait(
-            ProvaPage(atividade, materia.nome, prova, self._prova_source)
+            ProvaPage(atividade, materia.nome, prova, self._prova_source, self._figures)
         )
         await self.show_materia(materia)
 

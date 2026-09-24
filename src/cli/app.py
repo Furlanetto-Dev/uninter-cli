@@ -28,6 +28,7 @@ from textual.widget import Widget
 
 from cli.commands.palette import AppCommands
 from cli.components.footer import key_display
+from cli.figures import Figures
 from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
 from cli.pages.requisicoes.page import HISTORY_BINDINGS, RequisicoesPage
 from cli.components.loading import Loading
@@ -81,6 +82,7 @@ class UninterApp(App[None]):
         trabalhos_db: TrabalhoRepository,
         capturas_db: CapturaRepository,
         gabaritos: GabaritoSource,
+        figures: Figures,
         mocked: MockedMateria,
         config: Config,
         ava: AvaSession,
@@ -107,6 +109,7 @@ class UninterApp(App[None]):
             trabalhos_db,
             capturas_db,
             gabaritos,
+            figures,
         )
         self._queue: deque[SyncItem] = deque()
         self._in_flight: SyncItem | None = None

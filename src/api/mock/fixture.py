@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import NamedTuple
 
 from api.atividades.entity import AWAITING_START
@@ -19,6 +20,8 @@ PROVA_SUFFIX = "/Avaliacao"
 ANSWERED = {"sucesso": True}
 ENTREGAS_PATH = "/interacao/TrabalhoEntrega/-"
 ETIQUETAS_PATH = "/interacao/TrabalhoCorrecaoEtiqueta/-"
+FIGURES_URL = "https://ava.uninter.com/conteudo/questoes/"
+FIGURES_ROOT: Path = Path(__file__).resolve().parent
 MOMENT = "%Y-%m-%dT%H:%M:%S"
 USUARIO_ID_BASE = 100
 HISTORICO_ID_BASE = 1000
@@ -272,7 +275,8 @@ QUESTOES = (
         (
             "Descartado pois já cumpriu o seu papel.",
             "Copiado para outro servidor.",
-            "Armazenado para posterior consulta.",
+            '<img src="https://ava.uninter.com/conteudo/questoes/'
+            'alternativa-armazenada.png" alt="Armazenado para posterior consulta" />',
             "Enviado para o usuário para verificação.",
         ),
     ),
@@ -731,6 +735,14 @@ def _prova_ou_gabarito(asked: int) -> dict[str, object] | None:
     if avaliacao.status == FINISHED:
         return gabarito(position, avaliacao)
     return questoes(_avaliacao_id(position))
+
+
+def figure(url: str) -> bytes | None:
+    prefix, _, name = url.partition(FIGURES_URL)
+    path = FIGURES_ROOT / name
+    if prefix or not name or "/" in name or not path.is_file():
+        return None
+    return path.read_bytes()
 
 
 def payload(url: str) -> dict[str, object] | None:
