@@ -3,6 +3,7 @@ from io import BytesIO
 from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
 from rich.console import RenderableType
+from textual.events import Click
 from textual.widget import Widget
 from textual.widgets import Static
 from textual_image._terminal import get_cell_size
@@ -12,6 +13,7 @@ from cli.figures import OPEN_ACTION, Cells, LinkPainter, figure_box
 from cli.lib.html_to_textual import Figure
 
 FALLBACK_COLUMNS = 60
+DOUBLE_CLICK = 2
 
 
 def pixels_of(image: bytes) -> Cells | None:
@@ -64,8 +66,9 @@ class FigureView(Static):
             self._drawings.of(self._figure, self._image, self._pixels, self.size.width)
         )
 
-    async def on_click(self) -> None:
-        await self.run_action(f"{OPEN_ACTION}({self._figure.source!r})")
+    async def on_click(self, event: Click) -> None:
+        if event.chain == DOUBLE_CLICK:
+            await self.run_action(f"{OPEN_ACTION}({self._figure.source!r})")
 
 
 class PixelPainter:

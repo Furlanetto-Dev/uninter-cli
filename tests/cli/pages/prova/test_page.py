@@ -400,7 +400,18 @@ async def test_entering_the_prova_fetches_the_figures_of_every_questao() -> None
         assert sorted(source.fetched) == [f"{IMAGEM}{ordem}" for ordem in (1, 2, 3)]
 
 
-async def test_clicking_a_drawn_figure_opens_the_original() -> None:
+async def test_double_clicking_a_drawn_figure_opens_the_original() -> None:
+    source = FakeFigureSource(stored={IMAGEM: make_png()})
+    app = ProvaHost(Figures(source, PixelPainter()))
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(f'<p><img src="{IMAGEM}" /></p>'), app.record)
+        await settled(pilot)
+        await pilot.click(app.screen.query_one(FigureView), times=2)
+        await pilot.pause()
+        assert app.opened == [IMAGEM]
+
+
+async def test_one_click_on_a_drawn_figure_opens_nothing() -> None:
     source = FakeFigureSource(stored={IMAGEM: make_png()})
     app = ProvaHost(Figures(source, PixelPainter()))
     async with app.run_test(size=(120, 40)) as pilot:
@@ -408,7 +419,7 @@ async def test_clicking_a_drawn_figure_opens_the_original() -> None:
         await settled(pilot)
         await pilot.click(app.screen.query_one(FigureView))
         await pilot.pause()
-        assert app.opened == [IMAGEM]
+        assert app.opened == []
 
 
 async def test_the_same_figure_is_fetched_once_for_the_whole_prova() -> None:
