@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from doubles import make_figures
 from factories import make_alternativa, make_atividade, make_questao
 from textual.app import App
@@ -12,9 +10,9 @@ from cli.components.questoes import QuestaoList
 from cli.pages.prova.components.questoes import AlternativaList
 from cli.components.table import QuestaoTable
 from cli.pages.prova.page import ProvaPage
+from crawler.session import AvaResponse
 
 MATERIA = "Banco de Dados"
-STARTED_AT = datetime(2026, 9, 14, 11, 0, 0)
 COM_TABELA = (
     "<p>Considere a tabela:</p>"
     "<table>"
@@ -56,10 +54,7 @@ class FakeProvaSource:
     ) -> None:
         self.answered.append((questao_id, alternativa_id))
 
-    async def started_at(self, atividade: Atividade) -> datetime | None:
-        return STARTED_AT
-
-    async def raw(self, atividade: Atividade) -> dict[str, object] | None:
+    async def raw(self, atividade: Atividade) -> AvaResponse | None:
         return None
 
 

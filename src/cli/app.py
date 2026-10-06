@@ -12,10 +12,10 @@ from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
 from api.mock.seed import MockedMateria
+from api.provas.service import ProvaService
 from api.trabalhos.repository import TrabalhoRepository
 from api.gabaritos.service import GabaritoSource
 from api.trabalhos.service import TrabalhoSyncService
-from crawler.atividades.prova import ProvaSource
 from config import Config
 from crawler.credenciais import Credenciais
 from crawler.history import RequestLog
@@ -76,7 +76,7 @@ class UninterApp(App[None]):
         materias_service: MateriaSyncService,
         atividades_service: AtividadeSyncService,
         trabalhos_service: TrabalhoSyncService,
-        prova_source: ProvaSource,
+        provas: ProvaService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
@@ -103,7 +103,7 @@ class UninterApp(App[None]):
         self._materias_db = materias_db
         self._page = MateriasPage(
             self,
-            prova_source,
+            provas,
             materias_db,
             atividades_db,
             trabalhos_db,

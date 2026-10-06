@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
@@ -211,6 +210,11 @@ class AtividadeTree(Steps, Tree[Atividade]):
             super().__init__()
             self.atividade = atividade
 
+    class Resume(Message):
+        def __init__(self, atividade: Atividade) -> None:
+            super().__init__()
+            self.atividade = atividade
+
     def __init__(self) -> None:
         super().__init__("atividades")
         self.show_root = False
@@ -222,7 +226,6 @@ class AtividadeTree(Steps, Tree[Atividade]):
         self._leaves: dict[int, TreeNode[Atividade]] = {}
         self._groups: dict[str, TreeNode[Atividade]] = {}
         self._expanded = dict(EXPANDED_BY_DEFAULT)
-        self._started: Mapping[int, datetime] = {}
         self._clock: Timer | None = None
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[Atividade]) -> None:
@@ -236,7 +239,9 @@ class AtividadeTree(Steps, Tree[Atividade]):
             return
         if atividade.tem_gabarito:
             self.post_message(self.Open(atividade))
-        else:
+        elif atividade.iniciada:
+            self.post_message(self.Resume(atividade))
+        elif not is_overdue(atividade.fim, self._now):
             self.post_message(self.Start(atividade))
 
     def on_tree_node_expanded(self, event: Tree.NodeExpanded[Atividade]) -> None:
@@ -255,11 +260,9 @@ class AtividadeTree(Steps, Tree[Atividade]):
         atividades: list[Atividade],
         now: datetime,
         selected_id: int | None,
-        started: Mapping[int, datetime] | None = None,
     ) -> None:
         self._atividades = atividades
         self._now = now
-        self._started = started or {}
         materia_id = atividades[0].materia_id if atividades else None
         if materia_id != self._materia_id:
             self._materia_id = materia_id
@@ -302,17 +305,14 @@ class AtividadeTree(Steps, Tree[Atividade]):
                 self._leaves[atividade.id] = node.add_leaf(label, data=atividade)
         self.post_message(self.Refit(self.widths))
 
-    def _iniciada(self, atividade: Atividade) -> bool:
-        return atividade.id in self._started and atividade.aguardando_inicio
-
     def _elapsed(self, atividade: Atividade) -> timedelta | None:
-        if not self._iniciada(atividade):
+        if not atividade.iniciada or atividade.iniciada_em is None:
             return None
-        return datetime.now() - self._started[atividade.id]
+        return datetime.now() - atividade.iniciada_em
 
     def _follow_clock(self) -> None:
         running = any(
-            node.data is not None and self._iniciada(node.data)
+            node.data is not None and node.data.iniciada
             for node in self._leaves.values()
         )
         if running and self._clock is None:
@@ -322,9 +322,8 @@ class AtividadeTree(Steps, Tree[Atividade]):
             self._clock = None
 
     def _tick(self) -> None:
-        for atividade_id in self._started:
-            node = self._leaves.get(atividade_id)
-            if node is not None and node.data is not None:
+        for node in self._leaves.values():
+            if node.data is not None and node.data.iniciada:
                 node.set_label(
                     leaf_label(
                         node.data, self._now, self.widths, self._elapsed(node.data)

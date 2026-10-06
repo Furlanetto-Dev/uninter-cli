@@ -4,7 +4,8 @@ from datetime import datetime
 from api.atividades.entity import Atividade
 from api.capturas import lookup
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
-from crawler.atividades.prova import ProvaSource
+from api.provas.service import ProvaAnswers
+from crawler.atividades.prova import ProvaFailed
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -38,11 +39,10 @@ from cli.figures import Figures
 from cli.format import format_elapsed
 from cli.lib.html_to_textual import Block, Prose, html_to_blocks
 
-MOCK_TAG = "[$text-secondary]mock[/]"
-MOCK_SOURCE = "mock"
 QUESTAO_LABEL = "Questão {ordem}"
 SUMMARY_TITLE = "prova finalizada"
-NOTHING_SENT = "[$text-warning]Nada foi enviado ao AVA.[/]"
+NOT_SUBMITTED = "[$text-warning]Respostas salvas no AVA. A prova não foi entregue.[/]"
+ANSWER_NOT_SAVED = "Resposta não salva no AVA: {reason}"
 NO_ANSWER = "—"
 ANSWERED_LABEL = "respondida"
 UNANSWERED_LABEL = "não respondida"
@@ -76,7 +76,7 @@ class ProvaPage(Screen[None]):
         atividade: Atividade,
         materia_nome: str,
         prova: Prova,
-        source: ProvaSource,
+        source: ProvaAnswers,
         figures: Figures,
     ) -> None:
         super().__init__()
@@ -88,7 +88,6 @@ class ProvaPage(Screen[None]):
         self._respostas: dict[int, int] = dict(prova.respostas)
         self._blocks: dict[int, list[Block]] = {}
         self._page = 0
-        self._started_at: datetime | None = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -104,7 +103,6 @@ class ProvaPage(Screen[None]):
         yield Footer()
 
     async def on_mount(self) -> None:
-        self._started_at = await self._source.started_at(self._atividade)
         self.fill_questoes()
         await self.show()
         self.fetch_figures()
@@ -147,7 +145,7 @@ class ProvaPage(Screen[None]):
     async def show(self) -> None:
         alternativas = self.query_one(AlternativaList)
         alternativas.display = not self.finished
-        self.query_one(Hint).show_or(NOTHING_SENT if self.finished else None)
+        self.query_one(Hint).show_or(NOT_SUBMITTED if self.finished else None)
         if self.finished:
             await self.fill_blocks([Prose(self.summary())])
         else:
@@ -211,10 +209,17 @@ class ProvaPage(Screen[None]):
         if self.finished:
             return None
         questao = self.questao
-        body = await self._source.raw(self._atividade)
-        item = lookup.item_with_id(body, lookup.QUESTOES, questao.id)
+        response = await self._source.raw(self._atividade)
+        if response is None:
+            fetched = FetchedItem(missing=MISSING)
+        else:
+            corpo = lookup.body(response.text)
+            item = lookup.item_with_id(corpo, lookup.QUESTOES, questao.id)
+            fetched = FetchedItem(
+                item=item, status=response.status, url=response.url, missing=MISSING
+            )
         return (
-            FetchedItem(item=item, url=MOCK_SOURCE, missing=MISSING),
+            fetched,
             stored_record(QUESTAO_LABEL.format(ordem=questao.ordem), questao),
         )
 
@@ -226,7 +231,7 @@ class ProvaPage(Screen[None]):
 
     def tick(self) -> None:
         self.query_one(DetailHeader).show(
-            self._atividade.nome, self._materia_nome, self.state(), MOCK_TAG
+            self._atividade.nome, self._materia_nome, self.state()
         )
 
     def state(self) -> list[str]:
@@ -243,9 +248,10 @@ class ProvaPage(Screen[None]):
         ]
 
     def clock(self) -> str:
-        if self._started_at is None:
+        started_at = self._prova.iniciada_em
+        if started_at is None:
             return NO_ANSWER
-        return format_elapsed(datetime.now() - self._started_at)
+        return format_elapsed(datetime.now() - started_at)
 
     def summary(self) -> str:
         lines = [
@@ -291,8 +297,12 @@ class ProvaPage(Screen[None]):
 
     async def answer(self, alternativa: Alternativa) -> None:
         questao = self.questao
+        try:
+            await self._source.answer(self._atividade, questao.id, alternativa.id)
+        except ProvaFailed as failure:
+            self.notify(ANSWER_NOT_SAVED.format(reason=failure), severity="error")
+            return
         self._respostas[questao.id] = alternativa.id
-        await self._source.answer(self._atividade, questao.id, alternativa.id)
         self.fill_alternativas(self.query_one(AlternativaList), questao)
         self.fill_questoes()
         self.tick()

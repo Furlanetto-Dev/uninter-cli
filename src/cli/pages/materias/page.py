@@ -11,8 +11,8 @@ from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
 from api.trabalhos.entity import Trabalho
 from api.trabalhos.repository import TrabalhoRepository
-from crawler.atividades.prova import ProvaSource
-from pydantic import ValidationError
+from api.provas.service import ProvaService
+from crawler.atividades.prova import ProvaFailed
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -92,7 +92,7 @@ class MateriasPage(Screen[None]):
     def __init__(
         self,
         uninter: "UninterApp",
-        prova_source: ProvaSource,
+        provas: ProvaService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
@@ -102,7 +102,7 @@ class MateriasPage(Screen[None]):
     ) -> None:
         super().__init__()
         self._uninter = uninter
-        self._prova_source = prova_source
+        self._provas = provas
         self._materias_db = materias_db
         self._atividades_db = atividades_db
         self._trabalhos_db = trabalhos_db
@@ -259,12 +259,7 @@ class MateriasPage(Screen[None]):
         if materia.atividades_sincronizadas_em is not None:
             atividades = await self._atividades_db.list_all(materia)
             message = None if atividades else NO_ATIVIDADES
-        table.show(
-            atividades,
-            now,
-            self.selection_within(materia),
-            await self.started(atividades),
-        )
+        table.show(atividades, now, self.selection_within(materia))
         self.hint(ATIVIDADES_HINT).show_or(message, table, header)
         if atividades:
             media_bar.show(Media.from_atividades(atividades))
@@ -312,35 +307,38 @@ class MateriasPage(Screen[None]):
             return
         materia = self.materia_list.highlighted_materia
         if materia is not None:
-            self.start_prova(atividade, materia)
+            self.confirm_start(atividade, materia)
 
-    async def started(self, atividades: list[Atividade]) -> dict[int, datetime]:
-        started: dict[int, datetime] = {}
-        for atividade in atividades:
-            moment = await self._prova_source.started_at(atividade)
-            if moment is not None:
-                started[atividade.id] = moment
-        return started
+    def on_atividade_tree_resume(self, event: AtividadeTree.Resume) -> None:
+        materia = self.materia_list.highlighted_materia
+        if materia is not None:
+            self.resume_prova(event.atividade, materia)
 
     @work
-    async def start_prova(self, atividade: Atividade, materia: Materia) -> None:
-        if await self._prova_source.started_at(atividade) is None:
-            if not await self.uninter.push_screen_wait(
-                ConfirmStart(atividade, materia.nome)
-            ):
-                return
+    async def confirm_start(self, atividade: Atividade, materia: Materia) -> None:
+        if await self.uninter.push_screen_wait(ConfirmStart(atividade, materia.nome)):
+            await self.open_prova(atividade, materia)
+
+    @work
+    async def resume_prova(self, atividade: Atividade, materia: Materia) -> None:
+        await self.open_prova(atividade, materia)
+
+    async def open_prova(self, atividade: Atividade, materia: Materia) -> None:
         try:
-            prova = await self._prova_source.fetch(atividade)
-        except NotImplementedError as missing:
-            self.notify(str(missing), severity="warning")
-            return
-        except (OSError, ValidationError) as error:
-            self.notify(PROVA_UNAVAILABLE.format(reason=error), severity="error")
-            return
-        await self.uninter.push_screen_wait(
-            ProvaPage(atividade, materia.nome, prova, self._prova_source, self._figures)
-        )
-        await self.show_materia(materia)
+            opened = await self._provas.open(atividade, materia)
+        except ProvaFailed as failure:
+            self.notify(PROVA_UNAVAILABLE.format(reason=failure), severity="error")
+        else:
+            await self.uninter.push_screen_wait(
+                ProvaPage(
+                    opened.atividade,
+                    materia.nome,
+                    opened.prova,
+                    self._provas,
+                    self._figures,
+                )
+            )
+        self.uninter.fetch(materia.id, ATIVIDADES)
 
     async def watch_selected_atividade(self, selected: Atividade | None) -> None:
         if self.uninter.debug_mode:

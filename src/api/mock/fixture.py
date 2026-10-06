@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
+from urllib.parse import parse_qs, urlsplit
 
 from api.atividades.entity import AWAITING_START
 from api.materias.entity import Materia
@@ -12,12 +13,14 @@ NOME = "Matéria Mockada"
 PERIODO = "M Fase I 2026 - Regular"
 FINISHED = "Finalizada"
 CATEGORIA = "Avaliação"
-STARTED = "Iniciada"
 ATIVIDADES_PATH = "/bqs/AvaliacaoUsuario/"
+CREATE_PATH = "/bqs/AvaliacaoUsuario/0/tentativa/"
 TRABALHOS_PATH = "/interacao/TrabalhoEtapa/"
 PROVA_PATH = "/bqs/AvaliacaoUsuarioHistorico/"
 PROVA_SUFFIX = "/Avaliacao"
-ANSWERED = {"sucesso": True}
+ACCEPTED: dict[str, object] = {"exception": None, "mensagens": []}
+NO_ATTEMPT = 0
+STARTED_AGO = timedelta(minutes=25)
 ENTREGAS_PATH = "/interacao/TrabalhoEntrega/-"
 ETIQUETAS_PATH = "/interacao/TrabalhoCorrecaoEtiqueta/-"
 FIGURES_URL = "https://ava.uninter.com/conteudo/questoes/"
@@ -409,6 +412,8 @@ class Avaliacao(NamedTuple):
     orientacao: str | None = None
     tempo_total: int | None = None
     presencial: bool = False
+    criada: bool = False
+    iniciada: bool = False
 
 
 AVALIACOES = (
@@ -422,6 +427,8 @@ AVALIACOES = (
         tentativa_total=3,
         inicio=-10 * DAY,
         fim=30 * DAY,
+        criada=True,
+        iniciada=True,
     ),
     Avaliacao(
         nome="APOL Objetiva 2 (Mockada)",
@@ -504,6 +511,18 @@ AVALIACOES = (
         inicio=-40 * DAY,
         fim=-7 * DAY,
     ),
+    Avaliacao(
+        nome="APOL Objetiva 4 (Mockada)",
+        tipo="APOL Objetiva",
+        status=AWAITING_START,
+        orientacao="Tentativa criada no AVA, ainda não iniciada.",
+        peso=10,
+        tentativa=1,
+        tentativa_total=3,
+        inicio=-3 * DAY,
+        fim=30 * DAY,
+        criada=True,
+    ),
 )
 
 
@@ -513,6 +532,14 @@ def _avaliacao_id(position: int) -> int:
 
 def _usuario_id(position: int) -> int:
     return -(USUARIO_ID_BASE + position + 1)
+
+
+def _avaliacao_cid(position: int) -> str:
+    return f"mockada+{position + 1}/=="
+
+
+def _vinculada_cid(position: int) -> str:
+    return f"vinculada+{position + 1}/=="
 
 
 def _historico_id(position: int, ordem: int) -> int:
@@ -546,13 +573,18 @@ def _contribuicao(avaliacao: Avaliacao) -> float | None:
     return None if nota is None else nota * avaliacao.peso / FULL_NOTA
 
 
-def atividades() -> dict[str, object]:
+def atividades(criadas: set[int], iniciadas: dict[int, datetime]) -> dict[str, object]:
     moment = _now()
     return {
         "avaliacaoUsuarios": [
             {
-                "id": _usuario_id(position),
+                "id": _usuario_id(position) if position in criadas else NO_ATTEMPT,
                 "idAvaliacao": _avaliacao_id(position),
+                "cIdAvaliacao": _avaliacao_cid(position),
+                "cIdAvaliacaoVinculada": _vinculada_cid(position),
+                "horarioInicio": _moment(iniciadas[position])
+                if position in iniciadas
+                else None,
                 "status": avaliacao.status,
                 "nota": _nota(avaliacao),
                 "notaMedia": _contribuicao(avaliacao),
@@ -621,12 +653,17 @@ def _atributo(nome: str, valor: str) -> dict[str, object]:
     return {"nomeAtributo": nome, "valor": valor}
 
 
-def questoes(atividade_id: int) -> dict[str, object]:
+def questoes(
+    position: int, iniciada_em: datetime, respostas: dict[int, int]
+) -> dict[str, object]:
     return {
         "avaliacaoUsuarioHistoricos": [
             {
                 "id": questao.id,
+                "idAvaliacaoUsuario": _usuario_id(position),
                 "ordem": questao.ordem,
+                "dataCriacao": _moment(iniciada_em),
+                "idQuestaoAlternativa": respostas.get(questao.id),
                 "questao": questao.enunciado,
                 "comando": questao.comando,
                 "alternativas": [
@@ -640,7 +677,7 @@ def questoes(atividade_id: int) -> dict[str, object]:
                     for alternativa in questao.alternativas
                 ],
             }
-            for questao in prova(atividade_id, {}).questoes
+            for questao in prova(_avaliacao_id(position), {}).questoes
         ]
     }
 
@@ -720,23 +757,6 @@ def asked_prova(url: str) -> int | None:
     return int(asked) if asked.startswith("-") and asked[1:].isdigit() else None
 
 
-def _position_of(asked: int) -> int | None:
-    for position in range(len(AVALIACOES)):
-        if asked in (_avaliacao_id(position), _usuario_id(position)):
-            return position
-    return None
-
-
-def _prova_ou_gabarito(asked: int) -> dict[str, object] | None:
-    position = _position_of(asked)
-    if position is None:
-        return None
-    avaliacao = AVALIACOES[position]
-    if avaliacao.status == FINISHED:
-        return gabarito(position, avaliacao)
-    return questoes(_avaliacao_id(position))
-
-
 def figure(url: str) -> bytes | None:
     prefix, _, name = url.partition(FIGURES_URL)
     path = FIGURES_ROOT / name
@@ -745,18 +765,87 @@ def figure(url: str) -> bytes | None:
     return path.read_bytes()
 
 
-def payload(url: str) -> dict[str, object] | None:
-    if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
-        return atividades()
-    if f"{TRABALHOS_PATH}{OFERTA}/" in url:
-        return trabalhos()
-    asked = asked_prova(url)
-    if asked is not None:
-        return _prova_ou_gabarito(asked)
-    if url.split("?")[0].endswith(PROVA_PATH):
-        return dict(ANSWERED)
-    if ENTREGAS_PATH in url:
-        return {"trabalhoEntregas": []}
-    if ETIQUETAS_PATH in url:
-        return {"trabalhoCorrecaoEtiquetas": []}
+def _position_of_usuario(usuario_id: int) -> int | None:
+    for position in range(len(AVALIACOES)):
+        if usuario_id == _usuario_id(position):
+            return position
     return None
+
+
+def _position_of_cid(cid: str) -> int | None:
+    for position in range(len(AVALIACOES)):
+        if cid == _avaliacao_cid(position):
+            return position
+    return None
+
+
+def _first(values: dict[str, list[str]], key: str) -> str:
+    found = values.get(key)
+    return found[0] if found else ""
+
+
+def _integer(text: str) -> int | None:
+    return int(text) if text.lstrip("-").isdigit() else None
+
+
+class MockedAva:
+    def __init__(self) -> None:
+        started_at = _now() - STARTED_AGO
+        self._criadas = {
+            position
+            for position, avaliacao in enumerate(AVALIACOES)
+            if avaliacao.criada or avaliacao.status == FINISHED
+        }
+        self._iniciadas = {
+            position: started_at
+            for position, avaliacao in enumerate(AVALIACOES)
+            if avaliacao.iniciada
+        }
+        self._respostas: dict[int, dict[int, int]] = {}
+
+    def payload(self, url: str, body: str) -> dict[str, object] | None:
+        if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
+            return atividades(self._criadas, self._iniciadas)
+        if f"{TRABALHOS_PATH}{OFERTA}/" in url:
+            return trabalhos()
+        if CREATE_PATH in url:
+            return self._create(url)
+        asked = asked_prova(url)
+        if asked is not None:
+            return self._prova_ou_gabarito(asked)
+        if url.split("?")[0].endswith(PROVA_PATH):
+            return self._answer(body)
+        if ENTREGAS_PATH in url:
+            return {"trabalhoEntregas": []}
+        if ETIQUETAS_PATH in url:
+            return {"trabalhoCorrecaoEtiquetas": []}
+        return None
+
+    def _create(self, url: str) -> dict[str, object] | None:
+        query = parse_qs(urlsplit(url).query)
+        position = _position_of_cid(_first(query, "cIdAvaliacao"))
+        if position is None:
+            return None
+        self._criadas.add(position)
+        return dict(ACCEPTED)
+
+    def _prova_ou_gabarito(self, usuario_id: int) -> dict[str, object] | None:
+        position = _position_of_usuario(usuario_id)
+        if position is None or position not in self._criadas:
+            return None
+        avaliacao = AVALIACOES[position]
+        if avaliacao.status == FINISHED:
+            return gabarito(position, avaliacao)
+        iniciada_em = self._iniciadas.setdefault(position, _now())
+        return questoes(position, iniciada_em, self._respostas.get(position, {}))
+
+    def _answer(self, body: str) -> dict[str, object] | None:
+        form = parse_qs(body)
+        usuario_id = _integer(_first(form, "idAvaliacaoUsuario"))
+        questao_id = _integer(_first(form, "id"))
+        alternativa_id = _integer(_first(form, "idQuestaoAlternativa"))
+        position = None if usuario_id is None else _position_of_usuario(usuario_id)
+        if position is None or questao_id is None or alternativa_id is None:
+            return None
+        self._respostas.setdefault(position, {})[questao_id] = alternativa_id
+        return dict(ACCEPTED)

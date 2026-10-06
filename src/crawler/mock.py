@@ -3,7 +3,7 @@ from typing import cast
 
 import httpx
 
-Payload = Callable[[str], dict[str, object] | None]
+Payload = Callable[[str, str], dict[str, object] | None]
 Figure = Callable[[str], bytes | None]
 MOCK_STATUS = 200
 MOCKED = "mocked"
@@ -19,7 +19,7 @@ class FakeAva(httpx.AsyncBaseTransport):
         self._real = real
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        answer = self._payload(str(request.url))
+        answer = self._payload(str(request.url), request.content.decode())
         if answer is not None:
             return httpx.Response(
                 MOCK_STATUS,

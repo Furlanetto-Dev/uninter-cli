@@ -85,6 +85,7 @@ class TreeHost(App[None]):
         super().__init__()
         self._atividades = atividades
         self.started: list[Atividade] = []
+        self.resumed: list[Atividade] = []
         self.opened: list[Atividade] = []
 
     def compose(self) -> ComposeResult:
@@ -98,8 +99,24 @@ class TreeHost(App[None]):
     def on_atividade_tree_start(self, event: AtividadeTree.Start) -> None:
         self.started.append(event.atividade)
 
+    def on_atividade_tree_resume(self, event: AtividadeTree.Resume) -> None:
+        self.resumed.append(event.atividade)
+
     def on_atividade_tree_open(self, event: AtividadeTree.Open) -> None:
         self.opened.append(event.atividade)
+
+
+def make_iniciada() -> Atividade:
+    return make_atividade(
+        atividade_id=10,
+        nome="APOL Objetiva 1",
+        fim=FUTURE,
+        iniciada_em=NOW - timedelta(minutes=5),
+    )
+
+
+def painted_rows(tree: AtividadeTree) -> list[str]:
+    return [tree.render_line(y).text for y in range(tree.size.height)]
 
 
 def make_finalizada(
@@ -167,3 +184,42 @@ async def test_enter_on_a_group_row_still_collapses_it() -> None:
         await pilot.pause()
         assert group.is_expanded is False
         assert app.opened == []
+
+
+async def test_enter_resumes_an_atividade_the_ava_already_started() -> None:
+    app = TreeHost([make_iniciada()])
+    async with app.run_test(size=(140, 30)) as pilot:
+        await pilot.press("enter")
+        await pilot.pause()
+        assert [atividade.nome for atividade in app.resumed] == ["APOL Objetiva 1"]
+        assert app.started == []
+
+
+@pytest.mark.parametrize(("fim", "starts"), [(FUTURE, True), (PAST, False)])
+async def test_enter_starts_an_unstarted_atividade_only_within_its_prazo(
+    fim: datetime, starts: bool
+) -> None:
+    app = TreeHost([make_atividade(atividade_id=10, fim=fim)])
+    async with app.run_test(size=(140, 30)) as pilot:
+        await pilot.press("enter")
+        await pilot.pause()
+        assert bool(app.started) is starts
+        assert app.resumed == []
+
+
+async def test_an_atividade_the_ava_started_reads_iniciada() -> None:
+    app = TreeHost([make_iniciada()])
+    async with app.run_test(size=(140, 30)) as pilot:
+        await pilot.pause()
+        assert any(
+            "Iniciada" in row for row in painted_rows(app.query_one(AtividadeTree))
+        )
+
+
+async def test_an_atividade_nobody_started_keeps_the_avas_situacao() -> None:
+    app = TreeHost([make_atividade(atividade_id=10, fim=FUTURE)])
+    async with app.run_test(size=(140, 30)) as pilot:
+        await pilot.pause()
+        rows = painted_rows(app.query_one(AtividadeTree))
+        assert not any("Iniciada" in row for row in rows)
+        assert any("Aguardando início" in row for row in rows)

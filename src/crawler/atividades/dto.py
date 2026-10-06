@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from datetime import datetime
 from typing import Annotated
 
@@ -54,6 +53,11 @@ class AtividadeDTO(AvaDTO):
     inicio: datetime | None = Field(default=None, alias="dataInicio")
     fim: datetime | None = Field(default=None, alias="dataFim")
     avaliacao_usuario_id: int = Field(alias="id")
+    avaliacao_cid: str | None = Field(default=None, alias="cIdAvaliacao")
+    avaliacao_vinculada_cid: str | None = Field(
+        default=None, alias="cIdAvaliacaoVinculada"
+    )
+    iniciada_em: datetime | None = Field(default=None, alias="horarioInicio")
 
     def to_atividade(self, materia_id: int, posicao: int) -> Atividade:
         return Atividade(
@@ -76,6 +80,9 @@ class AtividadeDTO(AvaDTO):
             tentativa_total=self.tentativa_total,
             inicio=self.inicio,
             fim=self.fim,
+            avaliacao_cid=self.avaliacao_cid,
+            avaliacao_vinculada_cid=self.avaliacao_vinculada_cid,
+            iniciada_em=self.iniciada_em,
         )
 
 
@@ -83,6 +90,10 @@ class AtividadesDTO(AvaDTO):
     atividades: list[AtividadeDTO] = Field(
         default_factory=list[AtividadeDTO], alias="avaliacaoUsuarios"
     )
+
+
+class ReplyDTO(AvaDTO):
+    exception: object | None = None
 
 
 class AtributoDTO(AvaDTO):
@@ -140,6 +151,7 @@ class QuestaoDTO(AvaDTO):
     tentativa: AvaCount = 1
     escolhida_id: int | None = Field(default=None, alias="idQuestaoAlternativa")
     percentual: AvaCount = Field(default=0, alias="percentualAcerto")
+    criada_em: datetime | None = Field(default=None, alias="dataCriacao")
     alternativas: list[AlternativaDTO] = Field(default_factory=list[AlternativaDTO])
 
     @property
@@ -188,11 +200,27 @@ class QuestoesDTO(AvaDTO):
     def ordenadas(self) -> list[QuestaoDTO]:
         return sorted(self.questoes, key=lambda questao: questao.ordem)
 
-    def to_prova(self, atividade_id: int, respostas: Mapping[int, int]) -> Prova:
+    @property
+    def respostas(self) -> dict[int, int]:
+        return {
+            questao.id: questao.escolhida_id
+            for questao in self.questoes
+            if questao.escolhida_id is not None
+        }
+
+    @property
+    def iniciada_em(self) -> datetime | None:
+        return min(
+            (questao.criada_em for questao in self.questoes if questao.criada_em),
+            default=None,
+        )
+
+    def to_prova(self, atividade_id: int) -> Prova:
         return Prova(
             atividade_id=atividade_id,
             questoes=tuple(questao.to_questao() for questao in self.ordenadas),
-            respostas=dict(respostas),
+            respostas=self.respostas,
+            iniciada_em=self.iniciada_em,
         )
 
     def to_gabarito(self, atividade_id: int) -> Gabarito:

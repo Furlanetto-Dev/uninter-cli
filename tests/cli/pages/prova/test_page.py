@@ -1,4 +1,5 @@
-from datetime import datetime
+from dataclasses import replace
+from datetime import datetime, timedelta
 from typing import cast
 
 from doubles import (
@@ -19,6 +20,7 @@ from textual.widgets import Static
 from api.atividades.entity import Atividade
 from api.provas.entity import Prova, Questao
 from cli.components.header import DetailHeader
+from cli.components.hint import Hint
 from cli.figures import Figures, LinkPainter
 from cli.pixels import FigureView, PixelPainter
 from cli.components.questoes import QuestaoList
@@ -30,9 +32,10 @@ from cli.pages.prova.page import (
     UNANSWERED_LABEL,
     ProvaPage,
 )
+from crawler.atividades.prova import ProvaFailed
+from crawler.session import AvaResponse
 
 MATERIA = "Engenharia de Software"
-STARTED_AT = datetime(2026, 9, 14, 11, 0, 0)
 IMAGEM = (
     "https://univirtus.uninter.com/ava/repositorio/"
     "SistemaRepositorioPublico/?id=JcbQ9M+/abc=="
@@ -72,19 +75,27 @@ class FakeProvaSource:
     ) -> None:
         self.answered.append((questao_id, alternativa_id))
 
-    async def started_at(self, atividade: Atividade) -> datetime | None:
-        return STARTED_AT
-
-    async def raw(self, atividade: Atividade) -> dict[str, object] | None:
+    async def raw(self, atividade: Atividade) -> AvaResponse | None:
         return None
+
+
+class RefusingProvaSource(FakeProvaSource):
+    async def answer(
+        self, atividade: Atividade, questao_id: int, alternativa_id: int
+    ) -> None:
+        raise ProvaFailed("o AVA recusou")
 
 
 class ProvaHost(App[None]):
     debug_mode: reactive[bool] = reactive(False)
 
-    def __init__(self, figures: Figures | None = None) -> None:
+    def __init__(
+        self,
+        figures: Figures | None = None,
+        source: FakeProvaSource | None = None,
+    ) -> None:
         super().__init__()
-        self.source = FakeProvaSource()
+        self.source = source or FakeProvaSource()
         self.figures = figures or make_figures()
         self.left = False
         self.opened: list[str] = []
@@ -115,6 +126,16 @@ def header_lines(app: ProvaHost) -> list[str]:
     return cast(Content, header.visual).plain.splitlines()
 
 
+def header_parts(app: ProvaHost) -> list[str]:
+    return header_lines(app)[1].split(" · ")
+
+
+async def walk_to_summary(pilot: Pilot[None]) -> None:
+    for _ in range(3):
+        await pilot.press("down")
+        await pilot.pause()
+
+
 def questao_of(page: ProvaPage) -> Questao:
     return page.questao
 
@@ -125,7 +146,7 @@ async def test_the_prova_opens_on_the_first_questao() -> None:
         app.push_screen(app.open(), app.record)
         await pilot.pause()
         assert "questão 1 de 3" in header_lines(app)[1]
-        assert UNANSWERED_LABEL in header_lines(app)[1]
+        assert UNANSWERED_LABEL in header_parts(app)
 
 
 async def test_picking_a_letter_answers_and_tells_the_ava() -> None:
@@ -137,7 +158,7 @@ async def test_picking_a_letter_answers_and_tells_the_ava() -> None:
         await pilot.press("b")
         await pilot.pause()
         assert app.source.answered == [(1, 12)]
-        assert ANSWERED_LABEL in header_lines(app)[1]
+        assert ANSWERED_LABEL in header_parts(app)
 
 
 async def test_a_letter_without_an_alternativa_answers_nothing() -> None:
@@ -464,3 +485,47 @@ async def test_ctrl_enter_on_the_answers_keeps_them_focused() -> None:
         await pilot.pause()
         assert "questão 2 de 3" in header_lines(app)[1]
         assert isinstance(app.focused, AlternativaList)
+
+
+async def test_the_prova_opens_with_the_answers_the_ava_already_holds() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        prova = replace(make_prova(), respostas={2: 22})
+        app.push_screen(app.open(prova=prova), app.record)
+        await pilot.pause()
+        assert UNANSWERED_LABEL in header_parts(app)
+        await pilot.press("2")
+        await pilot.pause()
+        assert ANSWERED_LABEL in header_parts(app)
+
+
+async def test_an_answer_the_ava_did_not_save_is_not_marked() -> None:
+    app = ProvaHost(source=RefusingProvaSource())
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await pilot.pause()
+        assert UNANSWERED_LABEL in header_parts(app)
+        await walk_to_summary(pilot)
+        assert "0 de 3 respondidas" in header_parts(app)
+
+
+async def test_the_clock_counts_from_when_the_ava_started_the_attempt() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        started = datetime.now() - timedelta(minutes=5)
+        prova = replace(make_prova(), iniciada_em=started)
+        app.push_screen(app.open(prova=prova), app.record)
+        await pilot.pause()
+        assert any(part.startswith("tempo 05:") for part in header_parts(app))
+
+
+async def test_the_summary_says_the_prova_was_not_handed_in() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        hint = cast(Content, app.screen.query_one(Hint).visual).plain
+        assert "A prova não foi entregue." in hint

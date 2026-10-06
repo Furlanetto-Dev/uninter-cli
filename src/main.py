@@ -14,14 +14,15 @@ from api.gabaritos.service import GabaritoService
 from api.materias.repository import MateriaRepository
 from api.materias.service import MateriaSyncService
 from api.mock import fixture
-from api.mock.provas import MockedProvas
 from api.mock.seed import MockedMateria
+from api.provas.service import ProvaService
 from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
 from cli.figures import Figures, painter
 from config import Config
 from crawler.atividades.gabarito import GabaritoRequest
+from crawler.atividades.prova import AvaProvas
 from crawler.atividades.request import AtividadeRequest
 from crawler.credenciais import Credenciais
 from crawler.figures.request import FigureRequest
@@ -52,7 +53,9 @@ async def stored(
 
 async def run(settings: Settings) -> bool:
     log = RequestLog()
-    transport = FakeAva(fixture.payload, fixture.figure, httpx.AsyncHTTPTransport())
+    transport = FakeAva(
+        fixture.MockedAva().payload, fixture.figure, httpx.AsyncHTTPTransport()
+    )
     async with ava_client(transport, log) as http, db_session() as session:
         credenciais_db = CredencialRepository(session)
         credenciais = await stored(from_env(settings), credenciais_db)
@@ -80,9 +83,10 @@ async def run(settings: Settings) -> bool:
             repository=materias_db,
             capturas=capturas_db,
         )
+        atividades_request = AtividadeRequest(ava)
         atividades_service = AtividadeSyncService(
             session=session,
-            request=AtividadeRequest(ava),
+            request=atividades_request,
             repository=atividades_db,
             materias=materias_db,
             capturas=capturas_db,
@@ -100,7 +104,7 @@ async def run(settings: Settings) -> bool:
             materias_service,
             atividades_service,
             trabalhos_service,
-            MockedProvas(ava),
+            ProvaService(AvaProvas(ava), atividades_request),
             materias_db,
             atividades_db,
             trabalhos_db,

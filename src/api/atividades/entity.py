@@ -4,7 +4,7 @@ from sqlmodel import Field, SQLModel
 
 AWAITING_START = "Aguardando início"
 FINISHED = "Finalizada"
-# The AVA has no AvaliacaoUsuario row until a prova is started, and sends 0 instead.
+# The AVA has no AvaliacaoUsuario row until the attempt is created, and sends 0 instead.
 NOT_STARTED = 0
 
 
@@ -28,6 +28,9 @@ class Atividade(SQLModel, table=True):
     tentativa_total: int
     inicio: datetime | None = None
     fim: datetime | None = None
+    avaliacao_cid: str | None = None
+    avaliacao_vinculada_cid: str | None = None
+    iniciada_em: datetime | None = None
 
     @property
     def realizada(self) -> bool:
@@ -38,12 +41,20 @@ class Atividade(SQLModel, table=True):
         return self.status == AWAITING_START
 
     @property
+    def tentativa_criada(self) -> bool:
+        return self.avaliacao_usuario_id != NOT_STARTED
+
+    @property
+    def iniciada(self) -> bool:
+        return self.aguardando_inicio and self.iniciada_em is not None
+
+    @property
     def finalizada(self) -> bool:
         return self.status == FINISHED
 
     @property
     def tem_gabarito(self) -> bool:
-        return self.finalizada and self.avaliacao_usuario_id != NOT_STARTED
+        return self.finalizada and self.tentativa_criada
 
     @property
     def pode_tentar_novamente(self) -> bool:

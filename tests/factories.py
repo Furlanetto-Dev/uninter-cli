@@ -33,6 +33,7 @@ def make_atividade(
     tentativa_total: int = 2,
     inicio: datetime | None = None,
     fim: datetime | None = None,
+    iniciada_em: datetime | None = None,
 ) -> Atividade:
     return Atividade(
         id=atividade_id,
@@ -54,6 +55,7 @@ def make_atividade(
         tentativa_total=tentativa_total,
         inicio=inicio,
         fim=fim,
+        iniciada_em=iniciada_em,
     )
 
 

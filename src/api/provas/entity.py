@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 
 LETTERS = "abcdefghijklmnopqrstuvwxyz"
 
@@ -31,3 +32,4 @@ class Prova:
     atividade_id: int
     questoes: tuple[Questao, ...]
     respostas: Mapping[int, int] = field(default_factory=dict[int, int])
+    iniciada_em: datetime | None = None

@@ -3,7 +3,7 @@ from api.gabaritos.entity import Gabarito
 from crawler.session import AvaSession
 
 from .dto import QuestoesDTO
-from .prova import AVALIACAO_URL
+from .prova import avaliacao_url
 
 
 class GabaritoRequest:
@@ -11,9 +11,7 @@ class GabaritoRequest:
         self._ava = ava
 
     async def fetch(self, atividade: Atividade) -> Gabarito | None:
-        response = await self._ava.get(
-            AVALIACAO_URL.format(avaliacao_usuario_id=atividade.avaliacao_usuario_id)
-        )
+        response = await self._ava.get(avaliacao_url(atividade))
         if response.json is None:
             return None
         return QuestoesDTO.model_validate(response.json).to_gabarito(atividade.id)
