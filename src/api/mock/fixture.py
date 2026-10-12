@@ -1,3 +1,5 @@
+import re
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
@@ -9,12 +11,16 @@ from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 
 MATERIA_ID = -1
 OFERTA = -1
+INSCRICAO = -1
 NOME = "Matéria Mockada"
 PERIODO = "M Fase I 2026 - Regular"
 FINISHED = "Finalizada"
 CATEGORIA = "Avaliação"
 ATIVIDADES_PATH = "/bqs/AvaliacaoUsuario/"
 CREATE_PATH = "/bqs/AvaliacaoUsuario/0/tentativa/"
+PENDENCIAS_PATH = f"/bqs/PendenciaUsuario/{INSCRICAO}/Total"
+ATTEMPT_ACTION = re.compile(r"/bqs/AvaliacaoUsuario/(-\d+)/(Finalizar/\d+|Get)$")
+GET_ACTION = "Get"
 TRABALHOS_PATH = "/interacao/TrabalhoEtapa/"
 PROVA_PATH = "/bqs/AvaliacaoUsuarioHistorico/"
 PROVA_SUFFIX = "/Avaliacao"
@@ -49,6 +55,7 @@ def materia() -> Materia:
         oferta_flexivel=False,
         oferta_atual=OFERTA,
         oferta_aproveitamento=None,
+        inscricao_id=INSCRICAO,
         mockada=True,
     )
 
@@ -573,42 +580,6 @@ def _contribuicao(avaliacao: Avaliacao) -> float | None:
     return None if nota is None else nota * avaliacao.peso / FULL_NOTA
 
 
-def atividades(criadas: set[int], iniciadas: dict[int, datetime]) -> dict[str, object]:
-    moment = _now()
-    return {
-        "avaliacaoUsuarios": [
-            {
-                "id": _usuario_id(position) if position in criadas else NO_ATTEMPT,
-                "idAvaliacao": _avaliacao_id(position),
-                "cIdAvaliacao": _avaliacao_cid(position),
-                "cIdAvaliacaoVinculada": _vinculada_cid(position),
-                "horarioInicio": _moment(iniciadas[position])
-                if position in iniciadas
-                else None,
-                "status": avaliacao.status,
-                "nota": _nota(avaliacao),
-                "notaMedia": _contribuicao(avaliacao),
-                "tentativa": avaliacao.tentativa,
-                "tentativaTotal": avaliacao.tentativa_total,
-                "dataInicio": _moment(moment + avaliacao.inicio),
-                "dataFim": _moment(moment + avaliacao.fim),
-                "avaliacao": {
-                    "id": _avaliacao_id(position),
-                    "nome": avaliacao.nome,
-                    "nomeAvaliacaoTipo": avaliacao.tipo,
-                    "nomeAvaliacaoTipoCategoria": CATEGORIA,
-                    "pesoMedia": avaliacao.peso,
-                    "avaliacaoPresencial": avaliacao.presencial,
-                    "periodo": PERIODO,
-                    "orientacao": avaliacao.orientacao,
-                    "tempoTotal": avaliacao.tempo_total,
-                },
-            }
-            for position, avaliacao in enumerate(AVALIACOES)
-        ]
-    }
-
-
 def trabalhos() -> dict[str, object]:
     moment = _now()
     etapas = [
@@ -714,17 +685,27 @@ def _alternativa_corrigida(
     }
 
 
-def gabarito(position: int, avaliacao: Avaliacao) -> dict[str, object]:
+def _escolhida_de(
+    questao: Questao, escolhidas: Mapping[int, int]
+) -> Alternativa | None:
+    chosen = escolhidas.get(questao.id)
+    return next((a for a in questao.alternativas if a.id == chosen), None)
+
+
+def gabarito(
+    position: int, avaliacao: Avaliacao, escolhidas: Mapping[int, int] | None = None
+) -> dict[str, object]:
     questoes_da_prova = prova(_avaliacao_id(position), {}).questoes
     corrigidas: list[dict[str, object]] = []
     for questao, correcao in zip(questoes_da_prova, CORRECOES, strict=True):
         acertou = _acertou(avaliacao, questao.ordem)
         correta = _correta(questao, correcao)
-        escolhida = (
-            _escolhida(questao, correta, acertou)
-            if _respondeu(avaliacao, questao.ordem)
-            else None
-        )
+        if escolhidas is not None:
+            escolhida = _escolhida_de(questao, escolhidas)
+        elif _respondeu(avaliacao, questao.ordem):
+            escolhida = _escolhida(questao, correta, acertou)
+        else:
+            escolhida = None
         corrigidas.append(
             {
                 "id": _historico_id(position, questao.ordem),
@@ -788,6 +769,21 @@ def _integer(text: str) -> int | None:
     return int(text) if text.lstrip("-").isdigit() else None
 
 
+def _graded(avaliacao: Avaliacao, escolhidas: Mapping[int, int]) -> Avaliacao:
+    erros: list[int] = []
+    em_branco: list[int] = []
+    questoes_da_prova = prova(0, {}).questoes
+    for questao, correcao in zip(questoes_da_prova, CORRECOES, strict=True):
+        chosen = escolhidas.get(questao.id)
+        if chosen is None:
+            em_branco.append(questao.ordem)
+        elif chosen != _correta(questao, correcao).id:
+            erros.append(questao.ordem)
+    return avaliacao._replace(
+        status=FINISHED, erros=tuple(erros), em_branco=tuple(em_branco)
+    )
+
+
 class MockedAva:
     def __init__(self) -> None:
         started_at = _now() - STARTED_AGO
@@ -802,14 +798,59 @@ class MockedAva:
             if avaliacao.iniciada
         }
         self._respostas: dict[int, dict[int, int]] = {}
+        self._avaliacoes = list(AVALIACOES)
+        self._entregues: set[int] = set()
+
+    def _row(self, position: int, moment: datetime) -> dict[str, object]:
+        avaliacao = self._avaliacoes[position]
+        return {
+            "id": _usuario_id(position) if position in self._criadas else NO_ATTEMPT,
+            "idAvaliacao": _avaliacao_id(position),
+            "cIdAvaliacao": _avaliacao_cid(position),
+            "cIdAvaliacaoVinculada": _vinculada_cid(position),
+            "horarioInicio": _moment(self._iniciadas[position])
+            if position in self._iniciadas
+            else None,
+            "status": avaliacao.status,
+            "nota": _nota(avaliacao),
+            "notaMedia": _contribuicao(avaliacao),
+            "tentativa": avaliacao.tentativa,
+            "tentativaTotal": avaliacao.tentativa_total,
+            "dataInicio": _moment(moment + avaliacao.inicio),
+            "dataFim": _moment(moment + avaliacao.fim),
+            "avaliacao": {
+                "id": _avaliacao_id(position),
+                "nome": avaliacao.nome,
+                "nomeAvaliacaoTipo": avaliacao.tipo,
+                "nomeAvaliacaoTipoCategoria": CATEGORIA,
+                "pesoMedia": avaliacao.peso,
+                "avaliacaoPresencial": avaliacao.presencial,
+                "periodo": PERIODO,
+                "orientacao": avaliacao.orientacao,
+                "tempoTotal": avaliacao.tempo_total,
+            },
+        }
+
+    def _atividades(self) -> dict[str, object]:
+        moment = _now()
+        return {
+            "avaliacaoUsuarios": [
+                self._row(position, moment) for position in range(len(AVALIACOES))
+            ]
+        }
 
     def payload(self, url: str, body: str) -> dict[str, object] | None:
         if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
-            return atividades(self._criadas, self._iniciadas)
+            return self._atividades()
         if f"{TRABALHOS_PATH}{OFERTA}/" in url:
             return trabalhos()
         if CREATE_PATH in url:
             return self._create(url)
+        if PENDENCIAS_PATH in url:
+            return self._pendencias()
+        action = ATTEMPT_ACTION.search(urlsplit(url).path)
+        if action is not None:
+            return self._attempt(int(action.group(1)), action.group(2))
         asked = asked_prova(url)
         if asked is not None:
             return self._prova_ou_gabarito(asked)
@@ -833,9 +874,12 @@ class MockedAva:
         position = _position_of_usuario(usuario_id)
         if position is None or position not in self._criadas:
             return None
-        avaliacao = AVALIACOES[position]
+        avaliacao = self._avaliacoes[position]
         if avaliacao.status == FINISHED:
-            return gabarito(position, avaliacao)
+            escolhidas = self._respostas.get(position, {})
+            return gabarito(
+                position, avaliacao, escolhidas if position in self._entregues else None
+            )
         iniciada_em = self._iniciadas.setdefault(position, _now())
         return questoes(position, iniciada_em, self._respostas.get(position, {}))
 
@@ -849,3 +893,25 @@ class MockedAva:
             return None
         self._respostas.setdefault(position, {})[questao_id] = alternativa_id
         return dict(ACCEPTED)
+
+    def _attempt(self, usuario_id: int, action: str) -> dict[str, object] | None:
+        position = _position_of_usuario(usuario_id)
+        if position is None or position not in self._criadas:
+            return None
+        if action == GET_ACTION:
+            return {"avaliacaoUsuario": self._row(position, _now()), **ACCEPTED}
+        escolhidas = self._respostas.get(position, {})
+        self._avaliacoes[position] = _graded(self._avaliacoes[position], escolhidas)
+        self._entregues.add(position)
+        return dict(ACCEPTED)
+
+    def _pendencias(self) -> dict[str, object]:
+        awaiting = sum(1 for a in self._avaliacoes if a.status == AWAITING_START)
+        return {
+            "pendenciaUsuarioTotal": {
+                "idUsuarioSalaVirtualOferta": INSCRICAO,
+                "totalAvaliacao": awaiting,
+                "totalTrabalho": 0,
+            },
+            **ACCEPTED,
+        }

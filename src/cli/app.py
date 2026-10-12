@@ -57,6 +57,7 @@ class UninterApp(App[None]):
         "pages/prova/page.tcss",
         "pages/trabalho/page.tcss",
         "pages/inicio/page.tcss",
+        "pages/entrega/page.tcss",
         "pages/reset/page.tcss",
         "pages/requisicoes/page.tcss",
         "pages/login/page.tcss",

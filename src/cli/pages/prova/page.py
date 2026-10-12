@@ -1,13 +1,17 @@
+import asyncio
 from collections.abc import Callable
+from contextlib import suppress
 from datetime import datetime
+from typing import NamedTuple
 
 from api.atividades.entity import Atividade
 from api.capturas import lookup
+from api.materias.entity import Materia
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 from api.provas.service import ProvaAnswers
 from crawler.atividades.prova import ProvaFailed
-from textual import work
-from textual.app import ComposeResult
+from textual import getters, work
+from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
@@ -36,13 +40,26 @@ from cli.components.pane import DetailPane
 from cli.components.questoes import QuestaoList, html_summary, preview
 from cli.components.table import QuestaoTable
 from cli.figures import Figures
-from cli.format import format_elapsed
+from cli.format import format_elapsed, format_number
+from cli.pages.entrega.page import ConfirmHandIn
 from cli.lib.html_to_textual import Block, Prose, html_to_blocks
 
 QUESTAO_LABEL = "Questão {ordem}"
-SUMMARY_TITLE = "prova finalizada"
-NOT_SUBMITTED = "[$text-warning]Respostas salvas no AVA. A prova não foi entregue.[/]"
+SUMMARY_TITLE = "resumo"
+HANDED_IN_TITLE = "prova entregue"
+NOT_SUBMITTED = (
+    "[$text-warning]Respostas salvas no AVA. A prova não foi entregue.[/]"
+    " [dim]⏎ para entregar[/dim]"
+)
+HANDED_IN = (
+    "[$text-success]Prova entregue · nota {nota} · contribuição {contribuicao}[/]"
+)
+HANDED_IN_WITHOUT_NOTA = (
+    "[$text-success]Prova entregue.[/]"
+    " [dim]A nota chega com a próxima sincronização.[/dim]"
+)
 ANSWER_NOT_SAVED = "Resposta não salva no AVA: {reason}"
+HAND_IN_FAILED = "Prova não entregue: {reason}"
 NO_ANSWER = "—"
 ANSWERED_LABEL = "respondida"
 UNANSWERED_LABEL = "não respondida"
@@ -51,6 +68,16 @@ PICK_KEYS = LETTERS[:8]
 JUMP_KEYS = "1234567890"
 TICK = 1.0
 FALLBACK_COLUMNS = 60
+SEND_AFTER = 0.5
+RETRY_AFTER = 1.0
+RETRIES = 3
+ANSWER_PREFIX = "answer-"
+ANSWER_GROUP = ANSWER_PREFIX + "{questao_id}"
+
+
+class AnswerPacing(NamedTuple):
+    send_after: float = SEND_AFTER
+    retry_after: float = RETRY_AFTER
 
 
 def focus_later(widget: Widget) -> Callable[[], None]:
@@ -62,6 +89,7 @@ def focus_later(widget: Widget) -> Callable[[], None]:
 
 class ProvaPage(Screen[None]):
     AUTO_FOCUS = "#prova-questoes"
+    running_app: getters.app[App[object]] = getters.app(App)
     BINDINGS = [
         Binding("escape", "leave", "voltar"),
         Binding("ctrl+left", "step_questao(-1)", "questão anterior"),
@@ -74,20 +102,25 @@ class ProvaPage(Screen[None]):
     def __init__(
         self,
         atividade: Atividade,
-        materia_nome: str,
+        materia: Materia,
         prova: Prova,
         source: ProvaAnswers,
         figures: Figures,
+        pacing: AnswerPacing = AnswerPacing(),
     ) -> None:
         super().__init__()
         self._atividade = atividade
-        self._materia_nome = materia_nome
+        self._materia = materia
         self._prova = prova
         self._source = source
         self._figures = figures
+        self._pacing = pacing
         self._respostas: dict[int, int] = dict(prova.respostas)
+        self._saved: dict[int, int] = dict(prova.respostas)
         self._blocks: dict[int, list[Block]] = {}
         self._page = 0
+        self._handed_in = False
+        self._resultado: Atividade | None = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -145,7 +178,7 @@ class ProvaPage(Screen[None]):
     async def show(self) -> None:
         alternativas = self.query_one(AlternativaList)
         alternativas.display = not self.finished
-        self.query_one(Hint).show_or(NOT_SUBMITTED if self.finished else None)
+        self.query_one(Hint).show_or(self.summary_hint() if self.finished else None)
         if self.finished:
             await self.fill_blocks([Prose(self.summary())])
         else:
@@ -231,13 +264,13 @@ class ProvaPage(Screen[None]):
 
     def tick(self) -> None:
         self.query_one(DetailHeader).show(
-            self._atividade.nome, self._materia_nome, self.state()
+            self._atividade.nome, self._materia.nome, self.state()
         )
 
     def state(self) -> list[str]:
         if self.finished:
             return [
-                SUMMARY_TITLE,
+                HANDED_IN_TITLE if self._handed_in else SUMMARY_TITLE,
                 f"{len(self._respostas)} de {len(self.questoes)} respondidas",
                 f"tempo {self.clock()}",
             ]
@@ -252,6 +285,17 @@ class ProvaPage(Screen[None]):
         if started_at is None:
             return NO_ANSWER
         return format_elapsed(datetime.now() - started_at)
+
+    def summary_hint(self) -> str:
+        if not self._handed_in:
+            return NOT_SUBMITTED
+        resultado = self._resultado
+        if resultado is None or resultado.nota is None:
+            return HANDED_IN_WITHOUT_NOTA
+        return HANDED_IN.format(
+            nota=format_number(resultado.nota),
+            contribuicao=format_number(resultado.contribuicao),
+        )
 
     def summary(self) -> str:
         lines = [
@@ -296,15 +340,52 @@ class ProvaPage(Screen[None]):
         return None
 
     async def answer(self, alternativa: Alternativa) -> None:
-        questao = self.questao
-        try:
-            await self._source.answer(self._atividade, questao.id, alternativa.id)
-        except ProvaFailed as failure:
-            self.notify(ANSWER_NOT_SAVED.format(reason=failure), severity="error")
+        if self._handed_in:
             return
+        questao = self.questao
         self._respostas[questao.id] = alternativa.id
-        self.fill_alternativas(self.query_one(AlternativaList), questao)
+        await self.refresh_answers()
+        self.running_app.run_worker(
+            self.save_answer(questao.id, alternativa.id),
+            group=ANSWER_GROUP.format(questao_id=questao.id),
+            exclusive=True,
+        )
+
+    async def save_answer(self, questao_id: int, alternativa_id: int) -> None:
+        await asyncio.sleep(self._pacing.send_after)
+        try:
+            await self.send_retrying(questao_id, alternativa_id)
+        except ProvaFailed as failure:
+            self.running_app.notify(
+                ANSWER_NOT_SAVED.format(reason=failure), severity="error"
+            )
+            await self.restore_saved(questao_id)
+        else:
+            self._saved[questao_id] = alternativa_id
+
+    async def send_retrying(self, questao_id: int, alternativa_id: int) -> None:
+        for _ in range(RETRIES):
+            with suppress(ProvaFailed):
+                await self._source.answer(self._atividade, questao_id, alternativa_id)
+                return
+            await asyncio.sleep(self._pacing.retry_after)
+        await self._source.answer(self._atividade, questao_id, alternativa_id)
+
+    async def restore_saved(self, questao_id: int) -> None:
+        saved = self._saved.get(questao_id)
+        if saved is None:
+            self._respostas.pop(questao_id, None)
+        else:
+            self._respostas[questao_id] = saved
+        if self.is_attached:
+            await self.refresh_answers()
+
+    async def refresh_answers(self) -> None:
         self.fill_questoes()
+        if self.finished:
+            await self.fill_blocks([Prose(self.summary())])
+        else:
+            self.fill_alternativas(self.query_one(AlternativaList), self.questao)
         self.tick()
 
     async def on_questao_list_moved(self, event: QuestaoList.Moved) -> None:
@@ -314,9 +395,39 @@ class ProvaPage(Screen[None]):
 
     def on_questao_list_entered(self, event: QuestaoList.Entered) -> None:
         if self.finished:
+            if not self._handed_in:
+                self.confirm_hand_in()
             return
         tables = self.navigable_tables()
         tables[0].focus() if tables else self.focus_alternativas()
+
+    @work
+    async def confirm_hand_in(self) -> None:
+        await self.pending_saves_finished()
+        confirmation = ConfirmHandIn(
+            self._atividade.nome,
+            self._materia.nome,
+            len(self._respostas),
+            len(self.questoes),
+        )
+        if not await self.running_app.push_screen_wait(confirmation):
+            return
+        try:
+            resultado = await self._source.hand_in(self._atividade, self._materia)
+        except ProvaFailed as failure:
+            self.notify(HAND_IN_FAILED.format(reason=failure), severity="error")
+            return
+        self._handed_in = True
+        self._resultado = resultado
+        await self.show()
+
+    async def pending_saves_finished(self) -> None:
+        saves = [
+            worker.wait()
+            for worker in self.running_app.workers
+            if worker.group.startswith(ANSWER_PREFIX)
+        ]
+        await asyncio.gather(*saves, return_exceptions=True)
 
     def on_alternativa_list_back(self, event: AlternativaList.Back) -> None:
         self.focus_questoes()

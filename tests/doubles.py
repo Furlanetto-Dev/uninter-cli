@@ -1,9 +1,11 @@
+import asyncio
 from collections.abc import Sequence
 from io import BytesIO
 
 from PIL import Image as PILImage
 from rich.console import RenderableType
 from rich.text import Text
+from textual.app import App
 from textual.widget import Widget
 from textual.widgets import Static
 
@@ -64,3 +66,7 @@ def make_figures(
     images: dict[str, bytes] | None = None, painter: Painter | None = None
 ) -> Figures:
     return Figures(FakeFigureSource(images), painter or LinkPainter())
+
+
+async def workers_finished(app: App[None]) -> None:
+    await asyncio.gather(*(worker.wait() for worker in app.workers))

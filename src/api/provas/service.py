@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import NamedTuple, Protocol
 
 from api.atividades.entity import Atividade
@@ -22,6 +23,10 @@ class ProvaAnswers(Protocol):
     ) -> None: ...
 
     async def raw(self, atividade: Atividade) -> AvaResponse | None: ...
+
+    async def hand_in(
+        self, atividade: Atividade, materia: Materia
+    ) -> Atividade | None: ...
 
 
 class ProvaService:
@@ -50,3 +55,12 @@ class ProvaService:
 
     async def raw(self, atividade: Atividade) -> AvaResponse | None:
         return await self._source.raw(atividade)
+
+    async def hand_in(self, atividade: Atividade, materia: Materia) -> Atividade | None:
+        await self._source.hand_in(atividade)
+        with suppress(ProvaFailed):
+            await self._source.count_pendencias(materia)
+        try:
+            return await self._source.result(atividade)
+        except ProvaFailed:
+            return None

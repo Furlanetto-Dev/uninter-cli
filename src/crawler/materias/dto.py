@@ -15,6 +15,7 @@ class MateriaDTO(AvaDTO):
     oferta_aproveitamento: int | None = Field(
         default=None, alias="idSalaVirtualOfertaAproveitamento"
     )
+    inscricao_id: int | None = Field(default=None, alias="idUsuarioSalaVirtualOferta")
 
     def to_materia(self) -> Materia:
         return Materia(
@@ -26,6 +27,7 @@ class MateriaDTO(AvaDTO):
             oferta_flexivel=self.oferta_flexivel,
             oferta_atual=self.oferta_atual,
             oferta_aproveitamento=self.oferta_aproveitamento,
+            inscricao_id=self.inscricao_id,
         )
 
 

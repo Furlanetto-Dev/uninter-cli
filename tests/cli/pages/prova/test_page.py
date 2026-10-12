@@ -1,3 +1,4 @@
+import asyncio
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import cast
@@ -9,38 +10,44 @@ from doubles import (
     FakeFigureSource,
     make_figures,
     make_png,
+    workers_finished,
 )
-from factories import make_alternativa, make_atividade, make_questao
+from factories import make_alternativa, make_atividade, make_materia, make_questao
 from textual.app import App
 from textual.content import Content
 from textual.pilot import Pilot
 from textual.reactive import reactive
 from textual.widgets import Static
 
-from api.atividades.entity import Atividade
+from api.atividades.entity import FINISHED, Atividade
+from api.materias.entity import Materia
 from api.provas.entity import Prova, Questao
 from cli.components.header import DetailHeader
 from cli.components.hint import Hint
 from cli.figures import Figures, LinkPainter
 from cli.pixels import FigureView, PixelPainter
 from cli.components.questoes import QuestaoList
+from cli.pages.entrega.page import ConfirmHandIn
 from cli.pages.prova.components.questoes import AlternativaList
 from cli.pages.prova.page import (
     ANSWERED_LABEL,
     NO_ANSWER,
     SUMMARY_TITLE,
     UNANSWERED_LABEL,
+    AnswerPacing,
     ProvaPage,
 )
 from crawler.atividades.prova import ProvaFailed
 from crawler.session import AvaResponse
 
-MATERIA = "Engenharia de Software"
+MATERIA = make_materia(nome="Engenharia de Software")
 IMAGEM = (
     "https://univirtus.uninter.com/ava/repositorio/"
     "SistemaRepositorioPublico/?id=JcbQ9M+/abc=="
 )
 PNG = b"\x89PNG\r\n\x1a\n"
+INSTANT = AnswerPacing(send_after=0, retry_after=0)
+DEBOUNCED = AnswerPacing(send_after=0.2, retry_after=0)
 
 
 def make_prova(enunciado: str | None = None, alternativa: str | None = None) -> Prova:
@@ -63,9 +70,17 @@ def make_prova(enunciado: str | None = None, alternativa: str | None = None) -> 
     return Prova(atividade_id=10, questoes=questoes)
 
 
+def make_resultado() -> Atividade:
+    return make_atividade(
+        nome="Prova Objetiva", status=FINISHED, nota=90.0, contribuicao=13.5
+    )
+
+
 class FakeProvaSource:
-    def __init__(self) -> None:
+    def __init__(self, resultado: Atividade | None = None) -> None:
         self.answered: list[tuple[int, int]] = []
+        self.handed_in: list[str] = []
+        self._resultado = resultado or make_resultado()
 
     async def fetch(self, atividade: Atividade) -> Prova:
         return make_prova()
@@ -78,12 +93,51 @@ class FakeProvaSource:
     async def raw(self, atividade: Atividade) -> AvaResponse | None:
         return None
 
+    async def hand_in(self, atividade: Atividade, materia: Materia) -> Atividade | None:
+        self.handed_in.append(atividade.nome)
+        return self._resultado
 
-class RefusingProvaSource(FakeProvaSource):
+
+class RefusingHandIn(FakeProvaSource):
+    async def hand_in(self, atividade: Atividade, materia: Materia) -> Atividade | None:
+        raise ProvaFailed("o AVA recusou")
+
+
+class ResultlessHandIn(FakeProvaSource):
+    async def hand_in(self, atividade: Atividade, materia: Materia) -> Atividade | None:
+        await super().hand_in(atividade, materia)
+        return None
+
+
+class FlakyProvaSource(FakeProvaSource):
+    def __init__(self, failures: int) -> None:
+        super().__init__()
+        self.attempts = 0
+        self._failures = failures
+
     async def answer(
         self, atividade: Atividade, questao_id: int, alternativa_id: int
     ) -> None:
-        raise ProvaFailed("o AVA recusou")
+        self.attempts += 1
+        if self.attempts <= self._failures:
+            raise ProvaFailed("o AVA recusou")
+        await super().answer(atividade, questao_id, alternativa_id)
+
+
+def refusing_source() -> FlakyProvaSource:
+    return FlakyProvaSource(failures=99)
+
+
+class SlowProvaSource(FakeProvaSource):
+    def __init__(self) -> None:
+        super().__init__()
+        self.reply = asyncio.Event()
+
+    async def answer(
+        self, atividade: Atividade, questao_id: int, alternativa_id: int
+    ) -> None:
+        await self.reply.wait()
+        await super().answer(atividade, questao_id, alternativa_id)
 
 
 class ProvaHost(App[None]):
@@ -93,9 +147,11 @@ class ProvaHost(App[None]):
         self,
         figures: Figures | None = None,
         source: FakeProvaSource | None = None,
+        pacing: AnswerPacing = INSTANT,
     ) -> None:
         super().__init__()
         self.source = source or FakeProvaSource()
+        self.pacing = pacing
         self.figures = figures or make_figures()
         self.left = False
         self.opened: list[str] = []
@@ -112,6 +168,7 @@ class ProvaHost(App[None]):
             prova or make_prova(enunciado, alternativa),
             self.source,
             self.figures,
+            self.pacing,
         )
 
     def action_open_image(self, url: str) -> None:
@@ -136,6 +193,11 @@ async def walk_to_summary(pilot: Pilot[None]) -> None:
         await pilot.pause()
 
 
+async def sent(app: ProvaHost, pilot: Pilot[None]) -> None:
+    await workers_finished(app)
+    await pilot.pause()
+
+
 def questao_of(page: ProvaPage) -> Questao:
     return page.questao
 
@@ -156,7 +218,7 @@ async def test_picking_a_letter_answers_and_tells_the_ava() -> None:
         app.push_screen(page, app.record)
         await pilot.pause()
         await pilot.press("b")
-        await pilot.pause()
+        await sent(app, pilot)
         assert app.source.answered == [(1, 12)]
         assert ANSWERED_LABEL in header_parts(app)
 
@@ -177,9 +239,9 @@ async def test_answering_again_replaces_the_previous_answer() -> None:
         app.push_screen(app.open(), app.record)
         await pilot.pause()
         await pilot.press("a")
-        await pilot.pause()
+        await sent(app, pilot)
         await pilot.press("b")
-        await pilot.pause()
+        await sent(app, pilot)
         assert app.source.answered == [(1, 11), (1, 12)]
 
 
@@ -511,15 +573,96 @@ async def test_the_prova_opens_with_the_answers_the_ava_already_holds() -> None:
 
 
 async def test_an_answer_the_ava_did_not_save_is_not_marked() -> None:
-    app = ProvaHost(source=RefusingProvaSource())
+    app = ProvaHost(source=refusing_source())
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await sent(app, pilot)
+        assert UNANSWERED_LABEL in header_parts(app)
+        await walk_to_summary(pilot)
+        assert "0 de 3 respondidas" in header_parts(app)
+
+
+async def test_a_refused_answer_falls_back_to_the_one_the_ava_holds() -> None:
+    app = ProvaHost(source=refusing_source())
+    async with app.run_test(size=(120, 40)) as pilot:
+        prova = replace(make_prova(), respostas={1: 11})
+        app.push_screen(app.open(prova=prova), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await sent(app, pilot)
+        await walk_to_summary(pilot)
+        summary = app.screen.query_one("#prova-blocks").query_one(Static)
+        text = cast(Content, summary.visual).plain
+        assert "a)" in text
+        assert "b)" not in text
+
+
+async def test_an_answer_is_tried_four_times_before_giving_up() -> None:
+    source = refusing_source()
+    app = ProvaHost(source=source)
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await sent(app, pilot)
+        assert source.attempts == 4
+
+
+async def test_an_answer_the_ava_refused_at_first_is_saved_on_a_retry() -> None:
+    source = FlakyProvaSource(failures=2)
+    app = ProvaHost(source=source)
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await sent(app, pilot)
+        assert source.answered == [(1, 12)]
+        assert ANSWERED_LABEL in header_parts(app)
+
+
+async def test_the_answer_is_marked_and_the_prova_moves_on_before_the_ava_replies() -> (
+    None
+):
+    source = SlowProvaSource()
+    app = ProvaHost(source=source)
     async with app.run_test(size=(120, 40)) as pilot:
         app.push_screen(app.open(), app.record)
         await pilot.pause()
         await pilot.press("b")
         await pilot.pause()
-        assert UNANSWERED_LABEL in header_parts(app)
-        await walk_to_summary(pilot)
-        assert "0 de 3 respondidas" in header_parts(app)
+        assert ANSWERED_LABEL in header_parts(app)
+        await pilot.press("2")
+        await pilot.pause()
+        assert "questão 2 de 3" in header_lines(app)[1]
+        assert source.answered == []
+        source.reply.set()
+        await sent(app, pilot)
+        assert source.answered == [(1, 12)]
+
+
+async def test_switching_answers_quickly_sends_only_the_last() -> None:
+    app = ProvaHost(pacing=DEBOUNCED)
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("a")
+        await pilot.press("b")
+        await sent(app, pilot)
+        assert app.source.answered == [(1, 12)]
+
+
+async def test_leaving_right_after_answering_still_saves_the_answer() -> None:
+    app = ProvaHost(pacing=DEBOUNCED)
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await pilot.press("escape")
+        await sent(app, pilot)
+        assert app.left is True
+        assert app.source.answered == [(1, 12)]
 
 
 async def test_the_clock_counts_from_when_the_ava_started_the_attempt() -> None:
@@ -540,3 +683,121 @@ async def test_the_summary_says_the_prova_was_not_handed_in() -> None:
         await walk_to_summary(pilot)
         hint = cast(Content, app.screen.query_one(Hint).visual).plain
         assert "A prova não foi entregue." in hint
+
+
+def hint_text(app: ProvaHost) -> str:
+    return cast(Content, app.screen.query_one(Hint).visual).plain
+
+
+async def answer_hand_in(pilot: Pilot[None], *keys: str) -> None:
+    await pilot.press("enter")
+    await pilot.pause()
+    for key in keys:
+        await pilot.press(key)
+    await pilot.pause()
+
+
+async def test_enter_on_the_summary_asks_before_handing_in() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        await pilot.press("enter")
+        await pilot.pause()
+        assert isinstance(app.screen, ConfirmHandIn)
+
+
+async def test_saying_no_keeps_the_prova_open() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        await answer_hand_in(pilot, "enter")
+        await sent(app, pilot)
+        assert app.source.handed_in == []
+        assert "A prova não foi entregue." in hint_text(app)
+
+
+async def test_handing_in_shows_the_nota_the_ava_returned() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        await answer_hand_in(pilot, "right", "enter")
+        await sent(app, pilot)
+        assert app.source.handed_in == ["Prova Objetiva"]
+        assert "nota 90 · contribuição 13,5" in hint_text(app)
+
+
+async def test_a_handed_in_prova_takes_no_more_answers() -> None:
+    app = ProvaHost()
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        await answer_hand_in(pilot, "right", "enter")
+        await sent(app, pilot)
+        await pilot.press("1")
+        await pilot.press("a")
+        await sent(app, pilot)
+        assert app.source.answered == []
+
+
+async def test_a_hand_in_without_a_result_still_counts() -> None:
+    app = ProvaHost(source=ResultlessHandIn())
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        await answer_hand_in(pilot, "right", "enter")
+        await sent(app, pilot)
+        assert "Prova entregue." in hint_text(app)
+        assert "A nota chega com a próxima sincronização." in hint_text(app)
+
+
+async def test_a_refused_hand_in_keeps_taking_answers() -> None:
+    app = ProvaHost(source=RefusingHandIn())
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await walk_to_summary(pilot)
+        await answer_hand_in(pilot, "right", "enter")
+        await sent(app, pilot)
+        assert "A prova não foi entregue." in hint_text(app)
+        await pilot.press("1")
+        await pilot.press("a")
+        await sent(app, pilot)
+        assert app.source.answered == [(1, 11)]
+
+
+class SlowSaveThenHandIn(SlowProvaSource):
+    def __init__(self) -> None:
+        super().__init__()
+        self.saved_before_hand_in: list[tuple[int, int]] | None = None
+
+    async def hand_in(self, atividade: Atividade, materia: Materia) -> Atividade | None:
+        self.saved_before_hand_in = list(self.answered)
+        return await super().hand_in(atividade, materia)
+
+
+async def test_handing_in_waits_for_the_answers_still_being_saved() -> None:
+    source = SlowSaveThenHandIn()
+    app = ProvaHost(source=source)
+    async with app.run_test(size=(120, 40)) as pilot:
+        app.push_screen(app.open(), app.record)
+        await pilot.pause()
+        await pilot.press("b")
+        await walk_to_summary(pilot)
+        await pilot.press("enter")
+        await pilot.pause()
+        assert not isinstance(app.screen, ConfirmHandIn)
+        source.reply.set()
+        await pilot.pause()
+        await pilot.pause()
+        assert isinstance(app.screen, ConfirmHandIn)
+        await pilot.press("right", "enter")
+        await sent(app, pilot)
+        assert source.saved_before_hand_in == [(1, 12)]

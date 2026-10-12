@@ -86,6 +86,10 @@ class AtividadeDTO(AvaDTO):
         )
 
 
+class ResultadoDTO(AvaDTO):
+    atividade: AtividadeDTO | None = Field(default=None, alias="avaliacaoUsuario")
+
+
 class AtividadesDTO(AvaDTO):
     atividades: list[AtividadeDTO] = Field(
         default_factory=list[AtividadeDTO], alias="avaliacaoUsuarios"

@@ -7,10 +7,11 @@ from urllib.parse import quote
 import httpx
 
 from api.atividades.entity import Atividade
+from api.materias.entity import Materia
 from api.provas.entity import Prova
 from crawler.session import AvaResponse, AvaSession, AvaUnreachable, LoginRejected
 
-from .dto import QuestoesDTO, ReplyDTO
+from .dto import QuestoesDTO, ReplyDTO, ResultadoDTO
 
 # One endpoint serves the questões of an attempt and its correction: asking for it
 # on an attempt that has not started is what starts it and spends a tentativa.
@@ -22,9 +23,13 @@ CREATE_URL = (
     "&idAvaliacaoVinculada={vinculada}&cIdAvaliacao={avaliacao}&cache={cache}"
 )
 ANSWER_URL = "/bqs/AvaliacaoUsuarioHistorico/"
+HAND_IN_URL = "/bqs/AvaliacaoUsuario/{avaliacao_usuario_id}/Finalizar/{tentativa}"
+PENDENCIAS_URL = "/bqs/PendenciaUsuario/{inscricao_id}/Total"
+RESULT_URL = "/bqs/AvaliacaoUsuario/{avaliacao_usuario_id}/Get"
 NO_ATTEMPT = "a prova ainda não tem tentativa no AVA"
 NO_CID = "o AVA não enviou o identificador desta prova"
 NO_QUESTOES = "o AVA não devolveu as questões"
+NO_RESULT = "o AVA não devolveu o resultado"
 REFUSED = "o AVA recusou: {exception}"
 
 
@@ -79,6 +84,12 @@ class ProvaSource(Protocol):
 
     async def raw(self, atividade: Atividade) -> AvaResponse | None: ...
 
+    async def hand_in(self, atividade: Atividade) -> None: ...
+
+    async def count_pendencias(self, materia: Materia) -> None: ...
+
+    async def result(self, atividade: Atividade) -> Atividade: ...
+
 
 class AvaProvas:
     def __init__(self, ava: AvaSession) -> None:
@@ -117,3 +128,31 @@ class AvaProvas:
 
     async def raw(self, atividade: Atividade) -> AvaResponse | None:
         return self._responses.get(atividade.id)
+
+    async def hand_in(self, atividade: Atividade) -> None:
+        url = HAND_IN_URL.format(
+            avaliacao_usuario_id=atividade.avaliacao_usuario_id,
+            tentativa=atividade.tentativa,
+        )
+        with failing_as_prova():
+            ensure_accepted(await self._ava.get(url))
+
+    async def count_pendencias(self, materia: Materia) -> None:
+        if materia.inscricao_id is None:
+            return
+        with failing_as_prova():
+            await self._ava.get(
+                PENDENCIAS_URL.format(inscricao_id=materia.inscricao_id)
+            )
+
+    async def result(self, atividade: Atividade) -> Atividade:
+        url = RESULT_URL.format(avaliacao_usuario_id=atividade.avaliacao_usuario_id)
+        with failing_as_prova():
+            response = await self._ava.get(url)
+            body = response.json
+            if not isinstance(body, dict):
+                raise ProvaFailed(NO_RESULT)
+            resultado = ResultadoDTO.model_validate(body).atividade
+            if resultado is None:
+                raise ProvaFailed(NO_RESULT)
+            return resultado.to_atividade(atividade.materia_id, atividade.posicao)

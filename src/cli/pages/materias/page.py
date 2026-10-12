@@ -332,7 +332,7 @@ class MateriasPage(Screen[None]):
             await self.uninter.push_screen_wait(
                 ProvaPage(
                     opened.atividade,
-                    materia.nome,
+                    materia,
                     opened.prova,
                     self._provas,
                     self._figures,

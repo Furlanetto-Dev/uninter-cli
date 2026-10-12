@@ -1,18 +1,19 @@
-from doubles import make_figures
-from factories import make_alternativa, make_atividade, make_questao
+from doubles import make_figures, workers_finished
+from factories import make_alternativa, make_atividade, make_materia, make_questao
 from textual.app import App
 from textual.pilot import Pilot
 from textual.reactive import reactive
 
 from api.atividades.entity import Atividade
+from api.materias.entity import Materia
 from api.provas.entity import Prova
 from cli.components.questoes import QuestaoList
 from cli.pages.prova.components.questoes import AlternativaList
 from cli.components.table import QuestaoTable
-from cli.pages.prova.page import ProvaPage
+from cli.pages.prova.page import AnswerPacing, ProvaPage
 from crawler.session import AvaResponse
 
-MATERIA = "Banco de Dados"
+MATERIA = make_materia(nome="Banco de Dados")
 COM_TABELA = (
     "<p>Considere a tabela:</p>"
     "<table>"
@@ -57,6 +58,9 @@ class FakeProvaSource:
     async def raw(self, atividade: Atividade) -> AvaResponse | None:
         return None
 
+    async def hand_in(self, atividade: Atividade, materia: Materia) -> Atividade | None:
+        return None
+
 
 class TableHost(App[None]):
     debug_mode: reactive[bool] = reactive(False)
@@ -72,6 +76,7 @@ class TableHost(App[None]):
             make_prova(),
             self.source,
             make_figures(),
+            AnswerPacing(send_after=0, retry_after=0),
         )
 
     def record(self, _: None) -> None:
@@ -174,6 +179,7 @@ async def test_a_letter_still_answers_while_the_table_has_focus() -> None:
         await pilot.pause()
         assert isinstance(app.focused, QuestaoTable)
         await pilot.press("b")
+        await workers_finished(app)
         await pilot.pause()
         assert app.source.answered == [(1, 12)]
         assert isinstance(app.focused, QuestaoTable)
