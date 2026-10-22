@@ -2,7 +2,7 @@ from collections.abc import Callable, Generator, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 
-from api.capturas.entity import ATIVIDADES, TRABALHOS
+from api.capturas.entity import ATIVIDADES, AULAS, TRABALHOS
 from api.materias.aggregate import MateriaAggregate, Situacao, aggregate_materias
 from api.materias.entity import Materia
 from rich.table import Table
@@ -35,6 +35,8 @@ def index_by_id(materias: list[Materia]) -> dict[str, Materia]:
 def synced_at(materia: Materia, collection: str) -> datetime | None:
     if collection == TRABALHOS:
         return materia.trabalhos_sincronizados_em
+    if collection == AULAS:
+        return materia.aulas_sincronizadas_em
     return materia.atividades_sincronizadas_em
 
 

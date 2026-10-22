@@ -19,15 +19,17 @@ class MateriaRepository:
             stored.id: (
                 stored.atividades_sincronizadas_em,
                 stored.trabalhos_sincronizados_em,
+                stored.aulas_sincronizadas_em,
             )
             for stored in await self.list_all()
         }
         for materia in materias:
-            atividades_synced_at, trabalhos_synced_at = sync_stamps.get(
-                materia.id, (None, None)
+            atividades_synced_at, trabalhos_synced_at, aulas_synced_at = (
+                sync_stamps.get(materia.id, (None, None, None))
             )
             materia.atividades_sincronizadas_em = atividades_synced_at
             materia.trabalhos_sincronizados_em = trabalhos_synced_at
+            materia.aulas_sincronizadas_em = aulas_synced_at
             await self._session.merge(materia)
 
     async def mark_atividades_synced(self, materia: Materia) -> None:
@@ -36,4 +38,8 @@ class MateriaRepository:
 
     async def mark_trabalhos_synced(self, materia: Materia) -> None:
         materia.trabalhos_sincronizados_em = datetime.now()
+        await self._session.merge(materia)
+
+    async def mark_aulas_synced(self, materia: Materia) -> None:
+        materia.aulas_sincronizadas_em = datetime.now()
         await self._session.merge(materia)

@@ -7,6 +7,7 @@ from crawler.dto import AvaDTO
 class MateriaDTO(AvaDTO):
     id: int
     nome: str
+    cid: str | None = Field(default=None, alias="cId")
     periodo: str | None = Field(default=None, alias="modulo")
     vigente: bool = False
     concluida: bool = Field(default=False, alias="statusConcluido")
@@ -21,6 +22,7 @@ class MateriaDTO(AvaDTO):
         return Materia(
             id=self.id,
             nome=self.nome,
+            cid=self.cid,
             periodo=self.periodo,
             vigente=self.vigente,
             concluida=self.concluida,

@@ -6,6 +6,7 @@ from sqlmodel import Field, SQLModel
 class Materia(SQLModel, table=True):
     id: int = Field(primary_key=True)
     nome: str
+    cid: str | None = None
     periodo: str | None = None
     vigente: bool = False
     concluida: bool = False
@@ -16,6 +17,7 @@ class Materia(SQLModel, table=True):
     mockada: bool = False
     atividades_sincronizadas_em: datetime | None = None
     trabalhos_sincronizados_em: datetime | None = None
+    aulas_sincronizadas_em: datetime | None = None
 
     @property
     def oferta(self) -> int:

@@ -1,11 +1,16 @@
 from datetime import datetime
+
+import httpx
 from typing import TYPE_CHECKING
 
 from api.atividades.entity import Atividade
 from api.atividades.media import Media
 from api.atividades.repository import AtividadeRepository
 from api.capturas import lookup
-from api.capturas.entity import ATIVIDADES, MATERIAS, TRABALHOS, Captura
+from api.aulas.arquivos import Arquivos
+from api.aulas.entity import Aula, Material
+from api.aulas.repository import AulaRepository
+from api.capturas.entity import ATIVIDADES, AULAS, MATERIAS, TRABALHOS, Captura
 from api.capturas.repository import CapturaRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
@@ -42,6 +47,7 @@ from cli.pages.gabarito.page import GabaritoPage
 from cli.pages.inicio.page import ConfirmStart
 from cli.pages.prova.page import ProvaPage
 from cli.pages.trabalho.page import TrabalhoPage
+from .components.aulas import NO_AULAS, AtividadeContent, AulaContent, AulaTree
 from .components.list import MateriaList, synced_at
 from .components.media import MediaBar
 from .components.table import NO_TRABALHOS, TrabalhoTable
@@ -59,6 +65,10 @@ PRESENCIAL_TOAST = "Avaliação presencial: ainda não dá para iniciar pelo app
 PROVA_UNAVAILABLE = "Não foi possível abrir a prova: {reason}"
 ATIVIDADES_HINT = "atividades-hint"
 TRABALHOS_HINT = "trabalhos-hint"
+AULAS_HINT = "aulas-hint"
+FETCHED_ON_OPEN = (TRABALHOS, AULAS)
+NOTHING_TO_OPEN = "Este material não tem link."
+DOWNLOAD_FAILED = "Não foi possível baixar {arquivo}."
 
 NO_MATERIAS = (
     "[$text-warning]Nenhuma matéria no banco.[/]\n\n"
@@ -96,9 +106,11 @@ class MateriasPage(Screen[None]):
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
+        aulas_db: AulaRepository,
         capturas_db: CapturaRepository,
         gabaritos: GabaritoSource,
         figures: Figures,
+        arquivos: Arquivos,
     ) -> None:
         super().__init__()
         self._uninter = uninter
@@ -106,6 +118,8 @@ class MateriasPage(Screen[None]):
         self._materias_db = materias_db
         self._atividades_db = atividades_db
         self._trabalhos_db = trabalhos_db
+        self._aulas_db = aulas_db
+        self._arquivos = arquivos
         self._capturas_db = capturas_db
         self._gabaritos = gabaritos
         self._figures = figures
@@ -137,6 +151,9 @@ class MateriasPage(Screen[None]):
                     with TabPane("2 Trabalhos", id=TRABALHOS):
                         yield Hint(id=TRABALHOS_HINT)
                         yield TrabalhoTable()
+                    with TabPane("3 Aulas", id=AULAS):
+                        yield Hint(id=AULAS_HINT)
+                        yield AulaTree()
                 yield DebugPanel()
         yield Footer()
 
@@ -230,6 +247,7 @@ class MateriasPage(Screen[None]):
             self.hint(TRABALHOS_HINT).show_or(
                 NO_MATERIAS, self.query_one(TrabalhoTable)
             )
+            self.hint(AULAS_HINT).show_or(NO_MATERIAS, self.query_one(AulaTree))
             self.query_one(MediaBar).hide()
             return
         materia_list.focus()
@@ -246,6 +264,7 @@ class MateriasPage(Screen[None]):
         )
         await self._show_atividades(materia, now)
         await self._show_trabalhos(materia, now)
+        await self._show_aulas(materia)
         self.refresh_loading()
         if self.uninter.debug_mode:
             await self.show_debug(materia)
@@ -276,6 +295,63 @@ class MateriasPage(Screen[None]):
             message = None if trabalhos else NO_TRABALHOS
         table.show(trabalhos, now)
         self.hint(TRABALHOS_HINT).show_or(message, table)
+
+    async def _show_aulas(self, materia: Materia) -> None:
+        tree = self.query_one(AulaTree)
+        roteiro: list[AulaContent] = []
+        message: str | None = NEVER_SYNCED
+        if materia.aulas_sincronizadas_em is not None:
+            roteiro = await self._roteiro(materia)
+            message = None if roteiro else NO_AULAS
+        tree.show(roteiro, self._on_disk(materia, roteiro))
+        self.hint(AULAS_HINT).show_or(message, tree)
+
+    async def _roteiro(self, materia: Materia) -> list[AulaContent]:
+        roteiro: list[AulaContent] = []
+        for aula in await self._aulas_db.list_all(materia):
+            atividades = [
+                AtividadeContent(
+                    atividade, await self._aulas_db.list_materiais(atividade)
+                )
+                for atividade in await self._aulas_db.list_atividades(aula)
+            ]
+            roteiro.append(AulaContent(aula, atividades))
+        return roteiro
+
+    def _on_disk(self, materia: Materia, roteiro: list[AulaContent]) -> set[int]:
+        return {
+            material.id
+            for content in roteiro
+            for atividade in content.atividades
+            for material in atividade.materiais
+            if self._arquivos.on_disk(materia, content.aula, material)
+        }
+
+    def on_aula_tree_open(self, event: AulaTree.Open) -> None:
+        materia = self.materia_list.highlighted_materia
+        if materia is None:
+            return
+        material = event.material
+        if material.baixavel:
+            self.open_arquivo(materia, event.aula, material)
+        elif material.url is not None:
+            self.uninter.open_url(material.url)
+        else:
+            self.notify(NOTHING_TO_OPEN, severity="warning")
+
+    @work
+    async def open_arquivo(
+        self, materia: Materia, aula: Aula, material: Material
+    ) -> None:
+        try:
+            path = await self._arquivos.fetch(materia, aula, material)
+        except httpx.HTTPError:
+            self.notify(
+                DOWNLOAD_FAILED.format(arquivo=material.arquivo), severity="error"
+            )
+            return
+        self.uninter.open_url(path.as_uri())
+        await self._show_aulas(materia)
 
     def selection_within(self, materia: Materia) -> int | None:
         selected = self.selected_atividade
@@ -359,30 +435,33 @@ class MateriasPage(Screen[None]):
         if self.focused is None:
             self.action_focus_pane()
         materia = self.materia_list.highlighted_materia
-        if materia is not None and self.active_collection == TRABALHOS:
-            self.fetch_missing_trabalhos(materia)
+        if materia is not None and self.active_collection in FETCHED_ON_OPEN:
+            self.fetch_missing(materia, self.active_collection)
         self.materia_list.show_collection(self.active_collection)
         self.refresh_loading()
         if self.uninter.debug_mode:
             await self.show_debug(materia)
 
-    def fetch_missing_trabalhos(self, materia: Materia) -> None:
-        if materia.trabalhos_sincronizados_em is None:
-            self.uninter.fetch(materia.id, TRABALHOS)
+    def fetch_missing(self, materia: Materia, collection: str) -> None:
+        if synced_at(materia, collection) is None:
+            self.uninter.fetch(materia.id, collection)
 
     def refresh_loading(self) -> None:
-        pane = self.query_one(f"#{TRABALHOS}", TabPane)
         materia = self.materia_list.highlighted_materia
-        loading = materia is not None and self.uninter.is_fetching(
-            materia.id, TRABALHOS
-        )
-        pane.set_class(loading, LOADING)
-        pane.loading = loading
+        for collection in FETCHED_ON_OPEN:
+            pane = self.query_one(f"#{collection}", TabPane)
+            loading = materia is not None and self.uninter.is_fetching(
+                materia.id, collection
+            )
+            pane.set_class(loading, LOADING)
+            pane.loading = loading
 
     def action_focus_pane(self) -> None:
         collection = self.active_collection
         if collection == TRABALHOS:
             self.focus_trabalhos()
+        elif collection == AULAS:
+            self.focus_aulas()
         elif collection == ATIVIDADES:
             self.focus_atividades()
         else:
@@ -404,6 +483,14 @@ class MateriasPage(Screen[None]):
             self.action_focus_materias()
             return
         table.focus()
+
+    def focus_aulas(self) -> None:
+        tree = self.query_one(AulaTree)
+        if not tree.display or not tree.has_aulas:
+            self.action_focus_materias()
+            return
+        tree.select_first()
+        tree.focus()
 
     def on_copyable_copy(self, event: Copyable.Copy) -> None:
         self.uninter.copy_to_clipboard(event.json)

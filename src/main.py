@@ -4,6 +4,9 @@ import httpx
 
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
+from api.aulas.arquivos import Arquivos
+from api.aulas.repository import AulaRepository
+from api.aulas.service import AulaSyncService
 from api.capturas.repository import CapturaRepository
 from api.credenciais.repository import CredencialRepository
 from api.db import DATABASE_PATH, db_session
@@ -24,6 +27,12 @@ from config import Config
 from crawler.atividades.gabarito import GabaritoRequest
 from crawler.atividades.prova import AvaProvas
 from crawler.atividades.request import AtividadeRequest
+from crawler.aulas.request import (
+    ArquivoRequest,
+    AulaAtividadeRequest,
+    AulaRequest,
+    MaterialRequest,
+)
 from crawler.credenciais import Credenciais
 from crawler.figures.request import FigureRequest
 from crawler.history import RequestLog
@@ -63,6 +72,7 @@ async def run(settings: Settings) -> bool:
         materias_db = MateriaRepository(session)
         atividades_db = AtividadeRepository(session)
         trabalhos_db = TrabalhoRepository(session)
+        aulas_db = AulaRepository(session)
         capturas_db = CapturaRepository(session)
         gabaritos_service = GabaritoService(
             session=session,
@@ -100,17 +110,29 @@ async def run(settings: Settings) -> bool:
             materias=materias_db,
             capturas=capturas_db,
         )
+        aulas_service = AulaSyncService(
+            session=session,
+            aulas=AulaRequest(ava),
+            atividades=AulaAtividadeRequest(ava),
+            materiais=MaterialRequest(ava),
+            repository=aulas_db,
+            materias=materias_db,
+            capturas=capturas_db,
+        )
         app = UninterApp(
             materias_service,
             atividades_service,
             trabalhos_service,
+            aulas_service,
             ProvaService(AvaProvas(ava), atividades_request),
             materias_db,
             atividades_db,
             trabalhos_db,
+            aulas_db,
             capturas_db,
             gabaritos_service,
             figures,
+            Arquivos(settings.aulas_dir, ArquivoRequest(http)),
             MockedMateria(session),
             Config.load(),
             ava,

@@ -5,6 +5,7 @@ from sqlmodel import Field, SQLModel
 MATERIAS = "materias"
 ATIVIDADES = "atividades"
 TRABALHOS = "trabalhos"
+AULAS = "aulas"
 
 
 class Captura(SQLModel, table=True):

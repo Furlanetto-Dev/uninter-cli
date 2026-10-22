@@ -9,7 +9,10 @@ from api.atividades.entity import AWAITING_START
 from api.materias.entity import Materia
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 
+from . import aulas
+
 MATERIA_ID = -1
+MATERIA_CID = "mockada"
 OFERTA = -1
 INSCRICAO = -1
 NOME = "Matéria Mockada"
@@ -49,6 +52,7 @@ def materia() -> Materia:
     return Materia(
         id=MATERIA_ID,
         nome=NOME,
+        cid=MATERIA_CID,
         periodo=PERIODO,
         vigente=True,
         concluida=False,
@@ -742,7 +746,7 @@ def figure(url: str) -> bytes | None:
     prefix, _, name = url.partition(FIGURES_URL)
     path = FIGURES_ROOT / name
     if prefix or not name or "/" in name or not path.is_file():
-        return None
+        return aulas.arquivo(url)
     return path.read_bytes()
 
 
@@ -840,6 +844,9 @@ class MockedAva:
         }
 
     def payload(self, url: str, body: str) -> dict[str, object] | None:
+        aula = aulas.payload(url, OFERTA)
+        if aula is not None:
+            return aula
         if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
             return self._atividades()
         if f"{TRABALHOS_PATH}{OFERTA}/" in url:

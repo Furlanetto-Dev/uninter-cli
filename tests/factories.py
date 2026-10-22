@@ -131,6 +131,7 @@ def make_materia(
     mockada: bool = False,
     atividades_sincronizadas_em: datetime | None = None,
     trabalhos_sincronizados_em: datetime | None = None,
+    aulas_sincronizadas_em: datetime | None = None,
 ) -> Materia:
     return Materia(
         id=materia_id,
@@ -145,6 +146,7 @@ def make_materia(
         mockada=mockada,
         atividades_sincronizadas_em=atividades_sincronizadas_em,
         trabalhos_sincronizados_em=trabalhos_sincronizados_em,
+        aulas_sincronizadas_em=aulas_sincronizadas_em,
     )
 
 

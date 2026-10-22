@@ -5,7 +5,10 @@ from typing import NamedTuple
 
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
-from api.capturas.entity import ATIVIDADES, TRABALHOS
+from api.aulas.arquivos import Arquivos
+from api.aulas.repository import AulaRepository
+from api.aulas.service import AulaSyncService
+from api.capturas.entity import ATIVIDADES, AULAS, TRABALHOS
 from api.capturas.repository import CapturaRepository
 from api.credenciais.repository import CredencialRepository
 from api.materias.entity import Materia
@@ -77,13 +80,16 @@ class UninterApp(App[None]):
         materias_service: MateriaSyncService,
         atividades_service: AtividadeSyncService,
         trabalhos_service: TrabalhoSyncService,
+        aulas_service: AulaSyncService,
         provas: ProvaService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
         trabalhos_db: TrabalhoRepository,
+        aulas_db: AulaRepository,
         capturas_db: CapturaRepository,
         gabaritos: GabaritoSource,
         figures: Figures,
+        arquivos: Arquivos,
         mocked: MockedMateria,
         config: Config,
         ava: AvaSession,
@@ -101,6 +107,7 @@ class UninterApp(App[None]):
         self._materias_service = materias_service
         self._atividades_service = atividades_service
         self._trabalhos_service = trabalhos_service
+        self._aulas_service = aulas_service
         self._materias_db = materias_db
         self._page = MateriasPage(
             self,
@@ -108,9 +115,11 @@ class UninterApp(App[None]):
             materias_db,
             atividades_db,
             trabalhos_db,
+            aulas_db,
             capturas_db,
             gabaritos,
             figures,
+            arquivos,
         )
         self._queue: deque[SyncItem] = deque()
         self._in_flight: SyncItem | None = None
@@ -321,6 +330,8 @@ class UninterApp(App[None]):
     def _sync_for(self, collection: str) -> Callable[[Materia], Awaitable[object]]:
         if collection == TRABALHOS:
             return self._trabalhos_service.sync
+        if collection == AULAS:
+            return self._aulas_service.sync
         return self._atividades_service.sync
 
     async def _run_sync(self, item: SyncItem) -> None:

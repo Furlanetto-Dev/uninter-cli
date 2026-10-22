@@ -4,11 +4,13 @@ import pytest
 from factories import make_materia
 from textual.app import App, ComposeResult
 
-from api.capturas.entity import ATIVIDADES, TRABALHOS
+from api.capturas.entity import ATIVIDADES, AULAS, TRABALHOS
 from api.materias.entity import Materia
 from cli.pages.materias.components.list import MateriaList, index_by_id, synced_at
 
 SYNCED = datetime(2026, 9, 14, 12, 0, 0)
+TRABALHOS_SYNCED = datetime(2026, 9, 15, 12, 0, 0)
+AULAS_SYNCED = datetime(2026, 9, 16, 12, 0, 0)
 
 
 class ListHost(App[None]):
@@ -33,12 +35,16 @@ def test_materias_are_indexed_by_their_id_as_text() -> None:
 
 @pytest.mark.parametrize(
     ("collection", "expected"),
-    [(ATIVIDADES, SYNCED), (TRABALHOS, None)],
+    [(ATIVIDADES, SYNCED), (TRABALHOS, TRABALHOS_SYNCED), (AULAS, AULAS_SYNCED)],
 )
 def test_each_collection_reads_its_own_timestamp(
     collection: str, expected: datetime | None
 ) -> None:
-    materia = make_materia(atividades_sincronizadas_em=SYNCED)
+    materia = make_materia(
+        atividades_sincronizadas_em=SYNCED,
+        trabalhos_sincronizados_em=TRABALHOS_SYNCED,
+        aulas_sincronizadas_em=AULAS_SYNCED,
+    )
     assert synced_at(materia, collection) == expected
 
 
