@@ -38,7 +38,7 @@ A module under `cli/components/` **may not import `api`**. If a widget needs to 
 
 The split is **what survives a screen push**. The sync queue and the workers keep running while a prova is open, so they are the app's. The layout, the focus and whatever is highlighted die with the screen, so they are the page's.
 
-- The app talks to the page through named methods (`fetch`, `is_fetching`, `fetch_pending`), never by sharing the queue's types — `app.py` imports the page, so the page importing `app.py` at runtime is a cycle. For typing only:
+- The app talks to the page through named methods (`fetch`, `is_fetching`, `sync_materias`), never by sharing the queue's types — `app.py` imports the page, so the page importing `app.py` at runtime is a cycle. For typing only:
 
 ```python
 if TYPE_CHECKING:

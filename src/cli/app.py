@@ -3,6 +3,8 @@ from collections import deque
 from collections.abc import Awaitable, Callable
 from typing import NamedTuple
 
+import httpx
+
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.aulas.arquivos import Arquivos
@@ -49,6 +51,21 @@ NO_TURMA = (
     "O AVA não respondeu quando o app abriu, então ele não sabe a sua turma. "
     "Reabra o app quando o AVA voltar."
 )
+AVA_ERROR_TITLE = "Erro do AVA"
+AVA_ERROR = "O AVA respondeu {status} à lista de matérias."
+NEW_MATERIA = "Matéria nova: {nome}"
+NEW_MATERIAS = "{count} matérias novas"
+
+
+def new_materias(listed: list[Materia], known: list[Materia]) -> list[Materia]:
+    known_ids = {materia.id for materia in known}
+    return [materia for materia in listed if materia.id not in known_ids]
+
+
+def announcement(novas: list[Materia]) -> str:
+    if len(novas) == 1:
+        return NEW_MATERIA.format(nome=novas[0].nome)
+    return NEW_MATERIAS.format(count=len(novas))
 
 
 class SyncItem(NamedTuple):
@@ -148,23 +165,14 @@ class UninterApp(App[None]):
         self.push_screen(
             LoginPage(
                 self, self._ava, self._turmas, self._credenciais, self._credenciais_db
-            ),
-            self.after_login,
+            )
         )
 
     async def start(self) -> None:
         if self._ava.student is None:
             self.ask_to_log_in()
         else:
-            await self.fetch_pending()
-
-    def after_login(self, entered: None) -> None:
-        self._after_login()
-
-    @work
-    async def _after_login(self) -> None:
-        await self._page.reload_materias()
-        await self.fetch_pending()
+            self.sync_materias()
 
     def action_log_out(self) -> None:
         self._log_out()
@@ -239,13 +247,6 @@ class UninterApp(App[None]):
             self.reset_requested = True
             self.exit()
 
-    async def fetch_pending(self) -> None:
-        materias = await self._materias_db.list_all()
-        if [materia for materia in materias if not materia.mockada]:
-            self.enqueue_pending(materias)
-        else:
-            self.sync_materias()
-
     def fetch(self, materia_id: int, collection: str) -> None:
         self.enqueue(SyncItem(materia_id, collection), to_front=True)
 
@@ -317,26 +318,34 @@ class UninterApp(App[None]):
     async def _run_materias_sync(self) -> None:
         materia_list = self._page.materia_list
         self.syncing = True
-        materia_list.loading = True
+        materia_list.loading = materia_list.empty
         try:
-            materias = await self._materias_service.sync()
-            await self._page.reload_materias()
-            self.enqueue_pending(materias)
-            self.notify(
-                f"{len(materias)} matérias sincronizadas",
-                title=self._materias_service.student or "",
-            )
+            known = await self._materias_db.list_all()
+            listed = await self._materias_service.sync()
+            await self._page.redraw_materias()
+            self.enqueue_pending(await self._materias_db.list_all())
+            self.announce(new_materias(listed, known))
         except LoginRejected as rejection:
             self.notify(str(rejection), title="Login recusado", severity="error")
             await self._page.reload_materias()
-        except AvaUnreachable:
+        except (AvaUnreachable, httpx.TransportError):
             self.notify(OFFLINE, title=UNREACHABLE, severity="warning")
+        except httpx.HTTPStatusError as error:
+            self.notify(
+                AVA_ERROR.format(status=error.response.status_code),
+                title=AVA_ERROR_TITLE,
+                severity="error",
+            )
         except NotLoggedIn:
             self.notify(NO_TURMA, title=UNREACHABLE, severity="warning")
         finally:
             self._materias_requested = False
             materia_list.loading = False
             self.syncing = False
+
+    def announce(self, novas: list[Materia]) -> None:
+        if novas:
+            self.notify(announcement(novas), title=self._materias_service.student or "")
 
     def _sync_for(self, collection: str) -> Callable[[Materia], Awaitable[object]]:
         if collection == TRABALHOS:

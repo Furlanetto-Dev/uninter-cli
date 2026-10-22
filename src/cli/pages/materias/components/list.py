@@ -182,6 +182,10 @@ class MateriaList(Sidebar):
         return self._materias.get(option_id) if option_id else None
 
     @property
+    def empty(self) -> bool:
+        return not self._materias
+
+    @property
     def highlighted_materia(self) -> Materia | None:
         if self.highlighted is None:
             return None

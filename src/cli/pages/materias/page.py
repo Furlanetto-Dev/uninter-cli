@@ -23,7 +23,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.reactive import reactive
-from textual.screen import Screen
+from textual.screen import ModalScreen, Screen
 from textual.widget import Widget
 from textual.widgets import Header, OptionList, TabbedContent, TabPane, Tabs
 
@@ -124,10 +124,19 @@ class MateriasPage(Screen[None]):
         self._gabaritos = gabaritos
         self._figures = figures
         self._debug_source = MATERIAS
+        self._left_home = False
 
     @property
     def uninter(self) -> "UninterApp":
         return self._uninter
+
+    def on_screen_suspend(self) -> None:
+        self._left_home = not isinstance(self.uninter.screen, ModalScreen)
+
+    def on_screen_resume(self) -> None:
+        if self._left_home:
+            self._left_home = False
+            self.uninter.sync_materias()
 
     @property
     def materia_list(self) -> MateriaList:
@@ -252,6 +261,12 @@ class MateriasPage(Screen[None]):
             return
         materia_list.focus()
         await self.show_materia(materia_list.highlighted_materia)
+
+    async def redraw_materias(self) -> None:
+        if self.materia_list.empty:
+            await self.reload_materias()
+            return
+        self.materia_list.show(await self._materias_db.list_all())
 
     async def show_materia(self, materia: Materia | None) -> None:
         if materia is None:
@@ -509,6 +524,7 @@ class MateriasPage(Screen[None]):
         materia = self.materia_list.highlighted_materia
         if materia is not None:
             self.refresh_materia(materia)
+        self.uninter.sync_materias()
 
     def refresh_materia(self, materia: Materia) -> None:
         self.uninter.fetch(materia.id, self.active_collection)
