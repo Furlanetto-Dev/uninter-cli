@@ -1,11 +1,12 @@
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from io import BytesIO
 
 from PIL import Image as PILImage
 from rich.console import RenderableType
 from rich.text import Text
 from textual.app import App
+from textual.pilot import Pilot
 from textual.widget import Widget
 from textual.widgets import Static
 
@@ -13,6 +14,7 @@ from cli.figures import Figures, LinkPainter, Painter, figure_link
 from cli.lib.html_to_textual import Figure
 
 DRAWING = "▣ figura"
+PATIENCE = 300
 
 
 def make_png(width: int = 40, height: int = 20) -> bytes:
@@ -70,3 +72,11 @@ def make_figures(
 
 async def workers_finished(app: App[None]) -> None:
     await asyncio.gather(*(worker.wait() for worker in app.workers))
+
+
+async def until(pilot: Pilot[None], condition: Callable[[], bool]) -> None:
+    for _ in range(PATIENCE):
+        if condition():
+            return
+        await pilot.pause(0.01)
+    raise AssertionError("the screen never got there")

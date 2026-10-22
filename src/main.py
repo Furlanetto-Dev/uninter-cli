@@ -40,13 +40,14 @@ from crawler.materias.request import MateriaRequest
 from crawler.mock import FakeAva
 from crawler.session import AvaSession, ava_client
 from crawler.trabalhos.request import EntregaRequest, EtiquetaRequest, TrabalhoRequest
+from crawler.turmas.request import TurmaRequest
 from settings import Settings
 
 
 def from_env(settings: Settings) -> Credenciais:
-    if settings.ru is None or settings.password is None or settings.course_id is None:
+    if settings.ru is None or settings.password is None:
         return Credenciais()
-    return Credenciais(settings.ru, settings.password, settings.course_id)
+    return Credenciais(settings.ru, settings.password)
 
 
 async def stored(
@@ -55,9 +56,9 @@ async def stored(
     if credenciais.filled:
         return credenciais
     remembered = await credenciais_db.find()
-    if remembered is not None:
-        credenciais.fill(remembered.ru, remembered.password, remembered.course_id)
-    return credenciais
+    if remembered is None:
+        return credenciais
+    return Credenciais(remembered.ru, remembered.password, remembered.course_id)
 
 
 async def run(settings: Settings) -> bool:
@@ -136,6 +137,7 @@ async def run(settings: Settings) -> bool:
             MockedMateria(session),
             Config.load(),
             ava,
+            TurmaRequest(ava),
             credenciais,
             credenciais_db,
             log,

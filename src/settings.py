@@ -15,7 +15,6 @@ class Settings(BaseSettings):
 
     ru: str | None = None
     password: str | None = None
-    course_id: int | None = None
     aulas_dir: Path = Path.home() / "Uninter"
 
     @field_validator("aulas_dir")

@@ -1,6 +1,8 @@
 from api.credenciais.repository import CredencialRepository
+from api.turmas.entity import Turma
 from crawler.credenciais import Credenciais
 from crawler.session import AvaSession, AvaUnreachable, LoginRejected
+from crawler.turmas.request import TurmaRequest
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -10,57 +12,48 @@ from textual.widgets import Button, Checkbox, Header, Input, Label, Static
 
 from cli.components.footer import Footer
 from cli.components.loading import Loading
-from cli.pages.curso.page import ExplainCursoId
+from cli.pages.turmas.page import ChooseTurma
 
 TITLE = "Entrar no AVA"
 RU_LABEL = "RU"
 SENHA_LABEL = "Senha"
-CURSO_LABEL = "CursoId"
 REMEMBER = "Lembrar de mim"
 SUBMIT = "Entrar"
 SIGNING_IN = "entrando no AVA"
-INCOMPLETE = "[$text-error]Preencha RU, senha e CursoId.[/]"
-EXPLAIN = "o que é isso"
-HELP_KEY = "question_mark"
+INCOMPLETE = "[$text-error]Preencha RU e senha.[/]"
+NO_TURMA = "[$text-error]Nenhum curso em andamento neste RU.[/]"
+NO_CHOICE = "[$text-warning]Escolha uma turma para entrar.[/]"
 BOX_ID = "login-box"
 RU_ID = "login-ru"
 SENHA_ID = "login-senha"
-CURSO_ID = "login-curso"
 REMEMBER_ID = "login-remember"
 SUBMIT_ID = "login-submit"
 MESSAGE_ID = "login-message"
 LOADING_ID = "login-loading"
 
 
-class CursoIdInput(Input):
-    def __init__(self, id: str) -> None:
-        super().__init__(type="integer", id=id)
-
-    def check_consume_key(self, key: str, character: str | None = None) -> bool:
-        # Textual drops a screen binding whose key the focused widget claims, and
-        # Input claims every printable one. Disowning "?" is what lets it through.
-        if key == HELP_KEY:
-            return False
-        return super().check_consume_key(key, character)
+def only_turma(turmas: list[Turma]) -> Turma | None:
+    return turmas[0] if len(turmas) == 1 else None
 
 
 class LoginPage(Screen[None]):
     BINDINGS = [
         Binding("escape", "app.quit", "sair"),
         Binding("enter", "submit", "entrar", show=False),
-        Binding(HELP_KEY, "explain_curso", EXPLAIN, key_display="?", priority=True),
     ]
 
     def __init__(
         self,
         host: App[None],
         ava: AvaSession,
+        turmas: TurmaRequest,
         credenciais: Credenciais,
         credenciais_db: CredencialRepository,
     ) -> None:
         super().__init__()
         self._host = host
         self._ava = ava
+        self._turmas = turmas
         self._credenciais = credenciais
         self._credenciais_db = credenciais_db
 
@@ -73,8 +66,6 @@ class LoginPage(Screen[None]):
             yield Input(id=RU_ID)
             yield Label(SENHA_LABEL)
             yield Input(password=True, id=SENHA_ID)
-            yield Label(CURSO_LABEL)
-            yield CursoIdInput(CURSO_ID)
             yield Checkbox(REMEMBER, value=True, id=REMEMBER_ID)
             yield Static(id=MESSAGE_ID)
             yield Button(SUBMIT, id=SUBMIT_ID)
@@ -83,15 +74,11 @@ class LoginPage(Screen[None]):
     async def on_mount(self) -> None:
         stored = await self._credenciais_db.find()
         if self._credenciais.filled:
-            self.fill_form(
-                self._credenciais.ru,
-                str(self._credenciais.course_id),
-                stored is not None,
-            )
+            self.fill_form(self._credenciais.ru, stored is not None)
             self.attempt()
             return
         if stored is not None:
-            self.fill_form(stored.ru, str(stored.course_id), True)
+            self.fill_form(stored.ru, True)
         self.show_form()
 
     def show_form(self) -> None:
@@ -103,21 +90,12 @@ class LoginPage(Screen[None]):
         self.query_one(f"#{BOX_ID}", Vertical).display = False
         self.query_one(f"#{LOADING_ID}", Loading).display = True
 
-    def fill_form(self, ru: str, course_id: str, remembered: bool) -> None:
+    def fill_form(self, ru: str, remembered: bool) -> None:
         self.field(RU_ID).value = ru
-        self.field(CURSO_ID).value = course_id
         self.query_one(f"#{REMEMBER_ID}", Checkbox).value = remembered
 
     def field(self, id: str) -> Input:
         return self.query_one(f"#{id}", Input)
-
-    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if action == "explain_curso":
-            return self.focused is self.field(CURSO_ID)
-        return True
-
-    def action_explain_curso(self) -> None:
-        self._host.push_screen(ExplainCursoId())
 
     def message(self, text: str) -> None:
         self.query_one(f"#{MESSAGE_ID}", Static).update(text)
@@ -131,11 +109,10 @@ class LoginPage(Screen[None]):
     def action_submit(self) -> None:
         ru = self.field(RU_ID).value.strip()
         password = self.field(SENHA_ID).value
-        course_id = self.field(CURSO_ID).value.strip()
-        if not (ru and password and course_id):
+        if not (ru and password):
             self.message(INCOMPLETE)
             return
-        self._credenciais.fill(ru, password, int(course_id))
+        self._credenciais.fill(ru, password)
         self._ava.forget()
         self.attempt()
 
@@ -144,6 +121,7 @@ class LoginPage(Screen[None]):
         self.show_loading()
         try:
             await self._ava.log_in()
+            turmas = await self._turmas.fetch()
         except LoginRejected as rejection:
             self.refuse(str(rejection))
             return
@@ -153,12 +131,30 @@ class LoginPage(Screen[None]):
             # credentials the AVA never saw are credentials nobody verified.
             self.dismiss()
             return
+        if not turmas:
+            self.back_to_form(NO_TURMA)
+            return
+        turma = (
+            self._credenciais.remembered_turma(turmas)
+            or only_turma(turmas)
+            or await self.ask_for_turma(turmas)
+        )
+        if turma is None:
+            self.back_to_form(NO_CHOICE)
+            return
+        self._credenciais.choose(turma)
         await self.remember()
         self.dismiss()
 
-    def refuse(self, reason: str) -> None:
+    async def ask_for_turma(self, turmas: list[Turma]) -> Turma | None:
+        return await self._host.push_screen_wait(ChooseTurma(turmas))
+
+    def back_to_form(self, message: str) -> None:
         self.show_form()
-        self.message(f"[$text-error]{reason}[/]")
+        self.message(message)
+
+    def refuse(self, reason: str) -> None:
+        self.back_to_form(f"[$text-error]{reason}[/]")
         self.field(SENHA_ID).value = ""
         self.field(SENHA_ID).focus()
 

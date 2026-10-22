@@ -1,11 +1,17 @@
-ExplainCursoId {
+ChooseTurma {
     align: center middle;
 
-    #curso-help {
+    #turma-choice {
         width: 72;
         height: auto;
         padding: 1 2;
         border: round $accent;
         background: $surface;
+    }
+
+    #turma-choice TurmaList {
+        height: auto;
+        max-height: 16;
+        margin-top: 1;
     }
 }

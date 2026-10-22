@@ -1,23 +1,19 @@
-curl --request POST \
-  --url https://univirtus.uninter.com/ava/autenticacao/autenticar/false/Post \
-  --header 'accept: application/json, text/javascript, */*; q=0.01' \
-  --header 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
-  --header 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
-  --header 'macaddress: ' \
-  --header 'origin: https://univirtus.uninter.com' \
-  --header 'pc: ' \
-  --header 'priority: u=1, i' \
-  --header 'referer: https://univirtus.uninter.com/ava/web/' \
-  --header 'sec-ch-ua: "Not;A=Brand";v="8", "Chromium";v="150", "Brave";v="150"' \
-  --header 'sec-ch-ua-mobile: ?0' \
-  --header 'sec-ch-ua-platform: "Linux"' \
-  --header 'sec-fetch-dest: empty' \
-  --header 'sec-fetch-mode: cors' \
-  --header 'sec-fetch-site: same-origin' \
-  --header 'sec-gpc: 1' \
-  --header 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36' \
-  --header 'x-requested-with: XMLHttpRequest' \
-  --cookie $UNINTER_TIME=$UNINTER_TOKEN \
-  --data login=$UNINTER_RU \
-  --data senha=$UNINTER_SENHA \
-  --data recaptcha=
+curl --url 'https://univirtus.uninter.com/ava/autenticacao/autenticar/false/Post' \
+  -H 'accept: application/json, text/javascript, */*; q=0.01' \
+  -H 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
+  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+  -H 'macaddress;' \
+  -H 'origin: https://univirtus.uninter.com' \
+  -H 'pc;' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://univirtus.uninter.com/ava/web/' \
+  -H 'sec-ch-ua: "Brave";v="155", "Chromium";v="155", "Not(A:Brand";v="24"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'sec-gpc: 1' \
+  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36' \
+  -H 'x-requested-with: XMLHttpRequest' \
+  --data-raw 'login=$UNINTER_RU&senha=$UNINTER_PASSWORD&recaptcha='

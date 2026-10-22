@@ -1,3 +1,6 @@
+from api.turmas.entity import Turma
+
+
 class NotLoggedIn(Exception):
     pass
 
@@ -21,11 +24,7 @@ class Credenciais:
 
     @property
     def filled(self) -> bool:
-        return (
-            self._ru is not None
-            and self._password is not None
-            and self._course_id is not None
-        )
+        return self._ru is not None and self._password is not None
 
     @property
     def ru(self) -> str:
@@ -39,10 +38,17 @@ class Credenciais:
     def course_id(self) -> int:
         return _required(self._course_id)
 
-    def fill(self, ru: str, password: str, course_id: int) -> None:
+    def fill(self, ru: str, password: str) -> None:
         self._ru = ru
         self._password = password
-        self._course_id = course_id
+
+    def remembered_turma(self, turmas: list[Turma]) -> Turma | None:
+        return next(
+            (turma for turma in turmas if turma.curso_id == self._course_id), None
+        )
+
+    def choose(self, turma: Turma) -> None:
+        self._course_id = turma.curso_id
 
     def clear(self) -> None:
         self._ru = None

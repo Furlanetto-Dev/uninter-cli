@@ -20,9 +20,10 @@ from api.trabalhos.repository import TrabalhoRepository
 from api.gabaritos.service import GabaritoSource
 from api.trabalhos.service import TrabalhoSyncService
 from config import Config
-from crawler.credenciais import Credenciais
+from crawler.credenciais import Credenciais, NotLoggedIn
 from crawler.history import RequestLog
 from crawler.session import AvaSession, AvaUnreachable, LoginRejected
+from crawler.turmas.request import TurmaRequest
 from textual import work
 from textual.app import App
 from textual.binding import Binding
@@ -44,6 +45,10 @@ PAUSE_BETWEEN_MATERIAS = 1.0
 TALL_TERMINAL_ROWS = 40
 UNREACHABLE = "AVA fora de alcance"
 OFFLINE = "Sem resposta do AVA. O que está no banco continua aqui."
+NO_TURMA = (
+    "O AVA não respondeu quando o app abriu, então ele não sabe a sua turma. "
+    "Reabra o app quando o AVA voltar."
+)
 
 
 class SyncItem(NamedTuple):
@@ -64,7 +69,7 @@ class UninterApp(App[None]):
         "pages/reset/page.tcss",
         "pages/requisicoes/page.tcss",
         "pages/login/page.tcss",
-        "pages/curso/page.tcss",
+        "pages/turmas/page.tcss",
     ]
     TITLE = "Uninter"
     COMMANDS = App.COMMANDS | {AppCommands}
@@ -93,6 +98,7 @@ class UninterApp(App[None]):
         mocked: MockedMateria,
         config: Config,
         ava: AvaSession,
+        turmas: TurmaRequest,
         credenciais: Credenciais,
         credenciais_db: CredencialRepository,
         log: RequestLog,
@@ -102,6 +108,7 @@ class UninterApp(App[None]):
         self._mocked = mocked
         self._config = config
         self._ava = ava
+        self._turmas = turmas
         self._credenciais = credenciais
         self._credenciais_db = credenciais_db
         self._materias_service = materias_service
@@ -139,7 +146,9 @@ class UninterApp(App[None]):
 
     def ask_to_log_in(self) -> None:
         self.push_screen(
-            LoginPage(self, self._ava, self._credenciais, self._credenciais_db),
+            LoginPage(
+                self, self._ava, self._turmas, self._credenciais, self._credenciais_db
+            ),
             self.after_login,
         )
 
@@ -322,6 +331,8 @@ class UninterApp(App[None]):
             await self._page.reload_materias()
         except AvaUnreachable:
             self.notify(OFFLINE, title=UNREACHABLE, severity="warning")
+        except NotLoggedIn:
+            self.notify(NO_TURMA, title=UNREACHABLE, severity="warning")
         finally:
             self._materias_requested = False
             materia_list.loading = False
