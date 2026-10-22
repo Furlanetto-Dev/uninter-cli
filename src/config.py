@@ -8,6 +8,7 @@ CONFIG_PATH: Path = APP_ROOT / "config.json"
 
 class Config(BaseModel):
     dev_mode: bool = False
+    logo_shown: int = 0
 
     _path: Path = PrivateAttr(default=CONFIG_PATH)
 

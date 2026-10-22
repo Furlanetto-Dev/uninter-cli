@@ -1,0 +1,16 @@
+AberturaPage {
+    align: center middle;
+    background: $background;
+
+    #abertura {
+        width: auto;
+        height: auto;
+        align-horizontal: center;
+    }
+
+    #abertura-tagline {
+        width: 100%;
+        text-align: center;
+        color: $text-muted;
+    }
+}

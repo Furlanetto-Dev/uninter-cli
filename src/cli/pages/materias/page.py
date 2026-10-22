@@ -148,7 +148,7 @@ class MateriasPage(Screen[None]):
         self._left_home = not isinstance(self.uninter.screen, ModalScreen)
 
     def on_screen_resume(self) -> None:
-        if self._left_home:
+        if self._left_home and self.is_active:
             self._left_home = False
             self.uninter.sync_materias()
 

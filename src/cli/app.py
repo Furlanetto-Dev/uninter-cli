@@ -40,6 +40,7 @@ from cli.figures import Figures
 from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
 from cli.pages.requisicoes.page import HISTORY_BINDINGS, RequisicoesPage
 from cli.components.loading import Loading
+from cli.pages.abertura.page import AberturaPage, is_logo_due
 from cli.pages.materias.components.list import synced_at
 from cli.pages.login.page import LoginPage
 from cli.pages.materias.page import MateriasPage
@@ -91,6 +92,7 @@ class UninterApp(App[None]):
         "pages/requisicoes/page.tcss",
         "pages/login/page.tcss",
         "pages/turmas/page.tcss",
+        "pages/abertura/page.tcss",
     ]
     TITLE = "Uninter"
     COMMANDS = App.COMMANDS | {AppCommands}
@@ -177,6 +179,20 @@ class UninterApp(App[None]):
         )
 
     async def start(self) -> None:
+        if is_logo_due(self._config.logo_shown):
+            self.show_logo()
+        else:
+            self.log_in_or_sync()
+
+    def show_logo(self) -> None:
+        self._config.logo_shown += 1
+        self._config.save()
+        self.push_screen(AberturaPage(), self.after_logo)
+
+    def after_logo(self, left: None) -> None:
+        self.log_in_or_sync()
+
+    def log_in_or_sync(self) -> None:
         if self._ava.student is None:
             self.ask_to_log_in()
         else:

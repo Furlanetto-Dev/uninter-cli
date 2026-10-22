@@ -28,6 +28,7 @@ from api.provas.service import ProvaService
 from api.trabalhos.repository import TrabalhoRepository
 from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
+from cli.pages.abertura.page import TIMES_TO_SHOW, AberturaPage
 from cli.pages.materias.components.list import MateriaList
 from cli.pages.materias.components.table import TrabalhoTable
 from cli.pages.materias.page import MateriasPage
@@ -129,9 +130,11 @@ async def seed_engenharia(session: AsyncSession) -> None:
 
 
 @asynccontextmanager
-async def opened_app(
-    tmp_path: Path, ava: ScriptedAva
+async def launched_app(
+    tmp_path: Path, ava: ScriptedAva, logo_shown: int = TIMES_TO_SHOW
 ) -> AsyncGenerator[tuple[UninterApp, Pilot[None]], None]:
+    config = Config.load(tmp_path / "config.json")
+    config.logo_shown = logo_shown
     log = RequestLog()
     transport = httpx.MockTransport(ava.answer)
     async with (
@@ -200,17 +203,25 @@ async def opened_app(
             make_figures(),
             Arquivos(tmp_path / "arquivos", ArquivoRequest(http)),
             MockedMateria(session),
-            Config.load(tmp_path / "config.json"),
+            config,
             session_ava,
             TurmaRequest(session_ava),
             credenciais,
             CredencialRepository(session),
             log,
         )
-        async with app.run_test(size=SIZE) as pilot:
-            await until(pilot, lambda: ava.listings == 1)
-            await workers_finished(app)
+        async with app.run_test(size=SIZE, notifications=True) as pilot:
             yield app, pilot
+
+
+@asynccontextmanager
+async def opened_app(
+    tmp_path: Path, ava: ScriptedAva
+) -> AsyncGenerator[tuple[UninterApp, Pilot[None]], None]:
+    async with launched_app(tmp_path, ava) as (app, pilot):
+        await until(pilot, lambda: ava.listings == 1)
+        await workers_finished(app)
+        yield app, pilot
 
 
 def painted(widget: OptionList) -> str:
@@ -237,6 +248,19 @@ async def test_opening_the_app_sends_the_listing_once(tmp_path: Path) -> None:
         await workers_finished(app)
 
         assert ava.listings == 1
+
+
+async def test_skipping_the_logo_on_a_first_launch_shows_no_warning(
+    tmp_path: Path,
+) -> None:
+    ava = ScriptedAva(ENGENHARIA)
+    async with launched_app(tmp_path, ava, logo_shown=0) as (app, pilot):
+        await until(pilot, lambda: isinstance(app.screen, AberturaPage))
+        await pilot.press("space")
+        await until(pilot, lambda: ava.listings == 1)
+        await workers_finished(app)
+
+        assert not app.screen.query("Toast")
 
 
 async def test_coming_back_from_a_page_sends_the_listing_again(
