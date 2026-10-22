@@ -1,0 +1,22 @@
+curl --url 'https://univirtus.uninter.com/ava/pap/AgendamentoUsuario/5625844/Cancelar' \
+  -X 'PUT' \
+  -H 'accept: */*' \
+  -H 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
+  -H 'content-type: application/x-www-form-urlencoded; charset=UTF-8' \
+  -b '$UNINTER_TIME=$UNINTER_TOKEN' \
+  -H 'macaddress;' \
+  -H 'origin: https://univirtus.uninter.com' \
+  -H 'pc: undefined' \
+  -H 'priority: u=0, i' \
+  -H 'referer: https://univirtus.uninter.com/ava/web/' \
+  -H 'sec-ch-ua: "Brave";v="155", "Chromium";v="155", "Not(A:Brand";v="24"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'sec-gpc: 1' \
+  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36' \
+  -H 'x-requested-with: XMLHttpRequest' \
+  -H 'x-time: $UNINTER_TIME' \
+  --data-raw 'idAgendamentoUsuario=5625844'

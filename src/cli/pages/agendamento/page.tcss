@@ -1,0 +1,38 @@
+ChooseHorario {
+    align: center middle;
+
+    #agendamento {
+        width: 76;
+        height: auto;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+
+    #agendamento.-loading {
+        min-height: 9;
+    }
+
+    #agendamento-agenda {
+        height: auto;
+        margin-top: 1;
+    }
+
+    #agendamento-horarios {
+        width: 1fr;
+        height: auto;
+        margin-left: 4;
+    }
+
+    HorarioList {
+        height: auto;
+        max-height: 8;
+        border: none;
+        padding: 0;
+        background: transparent;
+    }
+
+    #agendamento-mensagem {
+        margin-top: 1;
+    }
+}

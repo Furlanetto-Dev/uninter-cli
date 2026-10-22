@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 SECONDS_PER_HOUR = 3600
 SECONDS_PER_MINUTE = 60
+WEEKDAYS = ("seg", "ter", "qua", "qui", "sex", "sáb", "dom")
 
 
 def format_number(value: float | None) -> str:
@@ -46,3 +47,15 @@ def format_elapsed(elapsed: timedelta) -> str:
     if hours:
         return f"{hours}:{minutes:02d}:{seconds:02d}"
     return f"{minutes:02d}:{seconds:02d}"
+
+
+def format_day(day: date) -> str:
+    return f"{WEEKDAYS[day.weekday()]} {day:%d/%m}"
+
+
+def format_hours(inicio: datetime, fim: datetime) -> str:
+    return f"{inicio:%H:%M}–{fim:%H:%M}"
+
+
+def format_when(inicio: datetime, fim: datetime) -> str:
+    return f"{format_day(inicio)}, {format_hours(inicio, fim)}"

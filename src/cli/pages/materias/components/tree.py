@@ -1,10 +1,13 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
+from api.agendamentos.entity import Agendamento, is_schedulable, live_agendamentos
 from api.atividades.entity import Atividade
 from api.atividades.media import FULL_WEIGHT, Media
 from rich.text import Text
 from textual import events
+from textual.binding import Binding, BindingType
 from textual.message import Message
 from textual.timer import Timer
 from textual.widgets import Static, Tree
@@ -41,6 +44,10 @@ PRESENCIAL_TAG = " presencial"
 PRESENCIAL_STYLE = "magenta"
 INICIADA = "Iniciada"
 INICIADA_STYLE = "yellow"
+AGENDADA = "Agendada"
+AGENDADA_STYLE = PRESENCIAL_STYLE
+SCHEDULE = "agendar"
+CANCEL_AGENDAMENTO = "cancelar agendamento"
 EXPANDED_BY_DEFAULT = {APOL: True, PROVAS: True, OUTRAS: False}
 FIXED_WIDTH = (
     LEAF_INDENT
@@ -54,6 +61,9 @@ FIXED_WIDTH = (
 )
 
 
+Agendamentos = Mapping[int, Agendamento]
+
+
 class Widths(NamedTuple):
     nome: int
     status: int
@@ -63,9 +73,25 @@ def _nome_width(atividade: Atividade) -> int:
     return len(atividade.nome) + (len(PRESENCIAL_TAG) if atividade.presencial else 0)
 
 
-def widths_for(atividades: list[Atividade], available: int) -> Widths:
+def agendada(agendamento: Agendamento) -> str:
+    return f"{AGENDADA} {agendamento.inicio:%d/%m %H:%M}"
+
+
+def situacao_text(atividade: Atividade, agendamento: Agendamento | None) -> str:
+    return atividade.status if agendamento is None else agendada(agendamento)
+
+
+def widths_for(
+    atividades: list[Atividade], available: int, agendamentos: Agendamentos
+) -> Widths:
     longest = max((_nome_width(atividade) for atividade in atividades), default=0)
-    status = max((len(atividade.status) for atividade in atividades), default=0)
+    status = max(
+        (
+            len(situacao_text(atividade, agendamentos.get(atividade.id)))
+            for atividade in atividades
+        ),
+        default=0,
+    )
     status = max(status, len(COLUMNS[1]))
     room = available - FIXED_WIDTH - status
     nome = max(min(longest, room, NOME_MAX), NOME_MIN, len(COLUMNS[0]))
@@ -116,10 +142,15 @@ def _nome(atividade: Atividade, width: int) -> Text:
 
 
 def _situacao(
-    atividade: Atividade, width: int, elapsed: timedelta | None
+    atividade: Atividade,
+    width: int,
+    elapsed: timedelta | None,
+    agendamento: Agendamento | None,
 ) -> tuple[str, str]:
     if elapsed is not None:
         return _fit(INICIADA, width), INICIADA_STYLE
+    if agendamento is not None:
+        return _fit(agendada(agendamento), width), AGENDADA_STYLE
     return _fit(atividade.status, width), "green" if atividade.realizada else "dim"
 
 
@@ -136,11 +167,12 @@ def leaf_label(
     now: datetime,
     widths: Widths,
     elapsed: timedelta | None = None,
+    agendamento: Agendamento | None = None,
 ) -> Text:
     return Text.assemble(
         _nome(atividade, widths.nome),
         GAP,
-        _situacao(atividade, widths.status, elapsed),
+        _situacao(atividade, widths.status, elapsed, agendamento),
         GAP,
         _elapsed_text(elapsed),
         GAP,
@@ -184,8 +216,15 @@ class AtividadeHeader(Static):
         self.update(header_text(widths))
 
 
+ATIVIDADE_BINDINGS: list[BindingType] = [
+    *STEP_BINDINGS,
+    Binding("a", "schedule", SCHEDULE),
+    Binding("x", "cancel_agendamento", CANCEL_AGENDAMENTO),
+]
+
+
 class AtividadeTree(Steps, Tree[Atividade]):
-    BINDINGS = STEP_BINDINGS
+    BINDINGS = ATIVIDADE_BINDINGS
     STEP_LEFT = "screen.focus_materias"
     STEP_RIGHT = "screen.focus_debug"
     BACK_TO = "screen.focus_materias"
@@ -215,12 +254,27 @@ class AtividadeTree(Steps, Tree[Atividade]):
             super().__init__()
             self.atividade = atividade
 
+    class Schedule(Message):
+        def __init__(
+            self, atividade: Atividade, agendamento: Agendamento | None
+        ) -> None:
+            super().__init__()
+            self.atividade = atividade
+            self.agendamento = agendamento
+
+    class CancelAgendamento(Message):
+        def __init__(self, atividade: Atividade, agendamento: Agendamento) -> None:
+            super().__init__()
+            self.atividade = atividade
+            self.agendamento = agendamento
+
     def __init__(self) -> None:
         super().__init__("atividades")
         self.show_root = False
         self.guide_depth = LEAF_INDENT
-        self.widths = widths_for([], 0)
+        self.widths = widths_for([], 0, {})
         self._atividades: list[Atividade] = []
+        self._agendamentos: Agendamentos = {}
         self._materia_id: int | None = None
         self._now = datetime.now()
         self._leaves: dict[int, TreeNode[Atividade]] = {}
@@ -230,6 +284,7 @@ class AtividadeTree(Steps, Tree[Atividade]):
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted[Atividade]) -> None:
         event.stop()
+        self.refresh_bindings()
         self.post_message(self.Selected(event.node.data))
 
     def on_tree_node_selected(self, event: Tree.NodeSelected[Atividade]) -> None:
@@ -241,8 +296,45 @@ class AtividadeTree(Steps, Tree[Atividade]):
             self.post_message(self.Open(atividade))
         elif atividade.iniciada:
             self.post_message(self.Resume(atividade))
+        elif atividade.presencial:
+            if is_schedulable(atividade, self._now):
+                self.post_message(
+                    self.Schedule(atividade, self.agendamento_of(atividade))
+                )
         elif not is_overdue(atividade.fim, self._now):
             self.post_message(self.Start(atividade))
+
+    def agendamento_of(self, atividade: Atividade) -> Agendamento | None:
+        return self._agendamentos.get(atividade.id)
+
+    def can_schedule(self, atividade: Atividade) -> bool:
+        return (
+            is_schedulable(atividade, self._now)
+            and self.agendamento_of(atividade) is None
+        )
+
+    def can_cancel_agendamento(self, atividade: Atividade) -> bool:
+        agendamento = self.agendamento_of(atividade)
+        return agendamento is not None and agendamento.pode_cancelar
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        atividade = self.selected
+        if action == "schedule":
+            return atividade is not None and self.can_schedule(atividade)
+        if action == "cancel_agendamento":
+            return atividade is not None and self.can_cancel_agendamento(atividade)
+        return True
+
+    def action_schedule(self) -> None:
+        atividade = self.selected
+        if atividade is not None and self.can_schedule(atividade):
+            self.post_message(self.Schedule(atividade, None))
+
+    def action_cancel_agendamento(self) -> None:
+        atividade = self.selected
+        agendamento = self.agendamento_of(atividade) if atividade else None
+        if atividade is not None and agendamento is not None:
+            self.post_message(self.CancelAgendamento(atividade, agendamento))
 
     def on_tree_node_expanded(self, event: Tree.NodeExpanded[Atividade]) -> None:
         self._remember(event.node, True)
@@ -260,8 +352,10 @@ class AtividadeTree(Steps, Tree[Atividade]):
         atividades: list[Atividade],
         now: datetime,
         selected_id: int | None,
+        agendamentos: list[Agendamento],
     ) -> None:
         self._atividades = atividades
+        self._agendamentos = live_agendamentos(agendamentos, atividades, now)
         self._now = now
         materia_id = atividades[0].materia_id if atividades else None
         if materia_id != self._materia_id:
@@ -270,9 +364,10 @@ class AtividadeTree(Steps, Tree[Atividade]):
         self._rebuild()
         self.select(selected_id)
         self._follow_clock()
+        self.refresh_bindings()
 
     def on_resize(self, event: events.Resize) -> None:
-        if widths_for(self._atividades, self.size.width) == self.widths:
+        if self._fitted_widths() == self.widths:
             return
         cursor = self.cursor_node
         group = next(
@@ -287,8 +382,11 @@ class AtividadeTree(Steps, Tree[Atividade]):
             self._rebuild_lines()
             self.move_cursor(self._groups.get(group) if group else None)
 
+    def _fitted_widths(self) -> Widths:
+        return widths_for(self._atividades, self.size.width, self._agendamentos)
+
     def _rebuild(self) -> None:
-        self.widths = widths_for(self._atividades, self.size.width)
+        self.widths = self._fitted_widths()
         self.clear()
         self._leaves = {}
         self._groups = {}
@@ -300,7 +398,11 @@ class AtividadeTree(Steps, Tree[Atividade]):
             self._groups[group.title] = node
             for atividade in group.atividades:
                 label = leaf_label(
-                    atividade, self._now, self.widths, self._elapsed(atividade)
+                    atividade,
+                    self._now,
+                    self.widths,
+                    self._elapsed(atividade),
+                    self.agendamento_of(atividade),
                 )
                 self._leaves[atividade.id] = node.add_leaf(label, data=atividade)
         self.post_message(self.Refit(self.widths))

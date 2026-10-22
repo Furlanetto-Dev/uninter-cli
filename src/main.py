@@ -2,6 +2,8 @@ import asyncio
 
 import httpx
 
+from api.agendamentos.repository import AgendamentoRepository
+from api.agendamentos.service import AgendamentoService
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.aulas.arquivos import Arquivos
@@ -24,6 +26,7 @@ from api.trabalhos.service import TrabalhoSyncService
 from cli.app import UninterApp
 from cli.figures import Figures, painter
 from config import Config
+from crawler.agendamentos.request import AgendamentoRequest
 from crawler.atividades.gabarito import GabaritoRequest
 from crawler.atividades.prova import AvaProvas
 from crawler.atividades.request import AtividadeRequest
@@ -75,6 +78,8 @@ async def run(settings: Settings) -> bool:
         trabalhos_db = TrabalhoRepository(session)
         aulas_db = AulaRepository(session)
         capturas_db = CapturaRepository(session)
+        agendamentos_db = AgendamentoRepository(session)
+        agendamentos_service = AgendamentoService(AgendamentoRequest(ava))
         gabaritos_service = GabaritoService(
             session=session,
             request=GabaritoRequest(ava),
@@ -101,6 +106,8 @@ async def run(settings: Settings) -> bool:
             repository=atividades_db,
             materias=materias_db,
             capturas=capturas_db,
+            agendamentos=agendamentos_service,
+            agendamentos_db=agendamentos_db,
         )
         trabalhos_service = TrabalhoSyncService(
             session=session,
@@ -126,8 +133,10 @@ async def run(settings: Settings) -> bool:
             trabalhos_service,
             aulas_service,
             ProvaService(AvaProvas(ava), atividades_request),
+            agendamentos_service,
             materias_db,
             atividades_db,
+            agendamentos_db,
             trabalhos_db,
             aulas_db,
             capturas_db,

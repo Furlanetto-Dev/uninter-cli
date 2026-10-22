@@ -1,11 +1,14 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 
 from cli.format import (
+    format_day,
     format_deadline,
     format_elapsed,
+    format_hours,
     format_number,
+    format_when,
     humanize_age,
     is_overdue,
     short_periodo,
@@ -104,3 +107,26 @@ def test_humanize_age_of_a_moment_ahead_of_the_clock(moment: datetime) -> None:
 )
 def test_format_elapsed(seconds: int, expected: str) -> None:
     assert format_elapsed(timedelta(seconds=seconds)) == expected
+
+
+@pytest.mark.parametrize(
+    ("day", "expected"),
+    [
+        (date(2026, 10, 25), "dom 25/10"),
+        (date(2026, 10, 26), "seg 26/10"),
+        (date(2026, 10, 29), "qui 29/10"),
+        (date(2026, 10, 31), "sáb 31/10"),
+    ],
+)
+def test_format_day(day: date, expected: str) -> None:
+    assert format_day(day) == expected
+
+
+def test_format_hours() -> None:
+    inicio = datetime(2026, 10, 29, 15, 0)
+    assert format_hours(inicio, inicio + timedelta(hours=1)) == "15:00–16:00"
+
+
+def test_format_when() -> None:
+    inicio = datetime(2026, 10, 29, 8, 0)
+    assert format_when(inicio, inicio + timedelta(hours=1)) == "qui 29/10, 08:00–09:00"

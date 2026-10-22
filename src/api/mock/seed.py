@@ -2,6 +2,7 @@ from sqlalchemy.sql import Delete
 from sqlmodel import col, delete
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.agendamentos.entity import Agendamento
 from api.atividades.entity import Atividade
 from api.aulas.entity import Aula, AulaAtividade, Material
 from api.capturas.entity import Captura
@@ -19,6 +20,7 @@ def mocked_rows() -> list[Delete]:
             delete(table).where(column == fixture.MATERIA_ID)
             for table, column in (
                 (Aula, col(Aula.materia_id)),
+                (Agendamento, col(Agendamento.materia_id)),
                 (Atividade, col(Atividade.materia_id)),
                 (Trabalho, col(Trabalho.materia_id)),
                 (Captura, col(Captura.materia_id)),

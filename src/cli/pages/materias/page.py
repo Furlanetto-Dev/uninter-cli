@@ -1,8 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 
 import httpx
 from typing import TYPE_CHECKING
 
+from api.agendamentos.entity import Agendamento
+from api.agendamentos.repository import AgendamentoRepository
+from api.agendamentos.service import AgendamentoService
 from api.atividades.entity import Atividade
 from api.atividades.media import Media
 from api.atividades.repository import AtividadeRepository
@@ -17,7 +20,9 @@ from api.materias.repository import MateriaRepository
 from api.trabalhos.entity import Trabalho
 from api.trabalhos.repository import TrabalhoRepository
 from api.provas.service import ProvaService
+from crawler.agendamentos.request import AgendamentoFailed
 from crawler.atividades.prova import ProvaFailed
+from rich.markup import escape
 from textual import work
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -41,8 +46,10 @@ from cli.components.header import DetailHeader
 from cli.components.hint import NEVER_SYNCED, Hint
 from cli.components.pane import DetailPane
 from cli.figures import Figures
-from cli.format import humanize_age, short_periodo
+from cli.format import format_when, humanize_age, short_periodo
 from api.gabaritos.service import GabaritoSource
+from cli.pages.agendamento.page import ChooseHorario
+from cli.pages.cancelamento.page import ConfirmCancel
 from cli.pages.gabarito.page import GabaritoPage
 from cli.pages.inicio.page import ConfirmStart
 from cli.pages.prova.page import ProvaPage
@@ -61,8 +68,11 @@ CLIENT_ERROR = 400
 NOT_IN_LIST = "matéria não está na última lista do AVA"
 MATERIA_LABEL = "Materia"
 PANE = "pane"
-PRESENCIAL_TOAST = "Avaliação presencial: ainda não dá para iniciar pelo app."
 PROVA_UNAVAILABLE = "Não foi possível abrir a prova: {reason}"
+BOOKED = "Prova agendada para {when}."
+SCHEDULED = "Agendada para {when}, {laboratorio} · {polo}."
+CANCELLED = "Agendamento cancelado."
+CANCEL_FAILED = "Não foi possível cancelar o agendamento: {reason}"
 ATIVIDADES_HINT = "atividades-hint"
 TRABALHOS_HINT = "trabalhos-hint"
 AULAS_HINT = "aulas-hint"
@@ -103,8 +113,10 @@ class MateriasPage(Screen[None]):
         self,
         uninter: "UninterApp",
         provas: ProvaService,
+        agendamentos: AgendamentoService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
+        agendamentos_db: AgendamentoRepository,
         trabalhos_db: TrabalhoRepository,
         aulas_db: AulaRepository,
         capturas_db: CapturaRepository,
@@ -115,8 +127,10 @@ class MateriasPage(Screen[None]):
         super().__init__()
         self._uninter = uninter
         self._provas = provas
+        self._agendamentos = agendamentos
         self._materias_db = materias_db
         self._atividades_db = atividades_db
+        self._agendamentos_db = agendamentos_db
         self._trabalhos_db = trabalhos_db
         self._aulas_db = aulas_db
         self._arquivos = arquivos
@@ -289,17 +303,26 @@ class MateriasPage(Screen[None]):
         header = self.query_one(AtividadeHeader)
         media_bar = self.query_one(MediaBar)
         atividades: list[Atividade] = []
+        agendamentos: list[Agendamento] = []
         message: str | None = NEVER_SYNCED
         if materia.atividades_sincronizadas_em is not None:
             atividades = await self._atividades_db.list_all(materia)
+            agendamentos = await self.agendamentos_for(materia, atividades)
             message = None if atividades else NO_ATIVIDADES
-        table.show(atividades, now, self.selection_within(materia))
+        table.show(atividades, now, self.selection_within(materia), agendamentos)
         self.hint(ATIVIDADES_HINT).show_or(message, table, header)
         if atividades:
             media_bar.show(Media.from_atividades(atividades))
         else:
             media_bar.hide()
         self.set_reactive(MateriasPage.selected_atividade, table.selected)
+
+    async def agendamentos_for(
+        self, materia: Materia, atividades: list[Atividade]
+    ) -> list[Agendamento]:
+        if not any(atividade.presencial for atividade in atividades):
+            return []
+        return await self._agendamentos_db.list_all(materia)
 
     async def _show_trabalhos(self, materia: Materia, now: datetime) -> None:
         table = self.query_one(TrabalhoTable)
@@ -393,9 +416,6 @@ class MateriasPage(Screen[None]):
         atividade = event.atividade
         if not atividade.aguardando_inicio:
             return
-        if atividade.presencial:
-            self.notify(PRESENCIAL_TOAST, severity="warning")
-            return
         materia = self.materia_list.highlighted_materia
         if materia is not None:
             self.confirm_start(atividade, materia)
@@ -404,6 +424,58 @@ class MateriasPage(Screen[None]):
         materia = self.materia_list.highlighted_materia
         if materia is not None:
             self.resume_prova(event.atividade, materia)
+
+    def on_atividade_tree_schedule(self, event: AtividadeTree.Schedule) -> None:
+        materia = self.materia_list.highlighted_materia
+        if materia is None:
+            return
+        agendamento = event.agendamento
+        if agendamento is None:
+            self.choose_horario(event.atividade, materia)
+            return
+        self.notify(
+            SCHEDULED.format(
+                when=format_when(agendamento.inicio, agendamento.fim),
+                laboratorio=escape(agendamento.laboratorio),
+                polo=escape(agendamento.polo),
+            )
+        )
+
+    def on_atividade_tree_cancel_agendamento(
+        self, event: AtividadeTree.CancelAgendamento
+    ) -> None:
+        materia = self.materia_list.highlighted_materia
+        if materia is not None:
+            self.confirm_cancel(event.atividade, event.agendamento, materia)
+
+    @work
+    async def choose_horario(self, atividade: Atividade, materia: Materia) -> None:
+        horario = await self.uninter.push_screen_wait(
+            ChooseHorario(atividade, materia, self._agendamentos, date.today())
+        )
+        if horario is None:
+            return
+        self.notify(BOOKED.format(when=format_when(horario.inicio, horario.fim)))
+        self.uninter.fetch(materia.id, ATIVIDADES)
+
+    @work
+    async def confirm_cancel(
+        self, atividade: Atividade, agendamento: Agendamento, materia: Materia
+    ) -> None:
+        confirmed = await self.uninter.push_screen_wait(
+            ConfirmCancel(atividade.nome, materia.nome, agendamento)
+        )
+        if not confirmed:
+            return
+        try:
+            await self._agendamentos.cancel(agendamento)
+        except AgendamentoFailed as failure:
+            self.notify(
+                CANCEL_FAILED.format(reason=escape(str(failure))), severity="error"
+            )
+            return
+        self.notify(CANCELLED)
+        self.uninter.fetch(materia.id, ATIVIDADES)
 
     @work
     async def confirm_start(self, atividade: Atividade, materia: Materia) -> None:

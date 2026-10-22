@@ -9,6 +9,8 @@ from textual.command import CommandPalette
 from textual.pilot import Pilot
 from textual.widgets import OptionList
 
+from api.agendamentos.repository import AgendamentoRepository
+from api.agendamentos.service import AgendamentoService
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.aulas.arquivos import Arquivos
@@ -31,6 +33,7 @@ from cli.pages.materias.components.table import TrabalhoTable
 from cli.pages.materias.page import MateriasPage
 from cli.pages.trabalho.page import TrabalhoPage
 from config import Config
+from crawler.agendamentos.request import AgendamentoRequest
 from crawler.atividades.gabarito import GabaritoRequest
 from crawler.atividades.prova import AvaProvas
 from crawler.atividades.request import AtividadeRequest
@@ -143,6 +146,8 @@ async def opened_app(
         trabalhos_db = TrabalhoRepository(session)
         aulas_db = AulaRepository(session)
         capturas_db = CapturaRepository(session)
+        agendamentos_db = AgendamentoRepository(session)
+        agendamentos_service = AgendamentoService(AgendamentoRequest(session_ava))
         atividades_request = AtividadeRequest(session_ava)
         app = UninterApp(
             MateriaSyncService(
@@ -158,6 +163,8 @@ async def opened_app(
                 repository=atividades_db,
                 materias=materias_db,
                 capturas=capturas_db,
+                agendamentos=agendamentos_service,
+                agendamentos_db=agendamentos_db,
             ),
             TrabalhoSyncService(
                 session=session,
@@ -178,8 +185,10 @@ async def opened_app(
                 capturas=capturas_db,
             ),
             ProvaService(AvaProvas(session_ava), atividades_request),
+            agendamentos_service,
             materias_db,
             atividades_db,
+            agendamentos_db,
             trabalhos_db,
             aulas_db,
             capturas_db,
@@ -258,10 +267,11 @@ async def test_r_sends_the_listing_next_to_the_highlighted_materia(
     tmp_path: Path,
 ) -> None:
     ava = ScriptedAva(ENGENHARIA)
-    async with opened_app(tmp_path, ava) as (_, pilot):
+    async with opened_app(tmp_path, ava) as (app, pilot):
         await pilot.press("r")
         await until(pilot, lambda: ATIVIDADES_PATH in ava.paths)
         await until(pilot, lambda: ava.listings == 2)
+        await workers_finished(app)
 
         assert ava.listings == 2
 

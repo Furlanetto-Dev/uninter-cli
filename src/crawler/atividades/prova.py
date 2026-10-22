@@ -9,9 +9,10 @@ import httpx
 from api.atividades.entity import Atividade
 from api.materias.entity import Materia
 from api.provas.entity import Prova
+from crawler.dto import ReplyDTO
 from crawler.session import AvaResponse, AvaSession, AvaUnreachable, LoginRejected
 
-from .dto import QuestoesDTO, ReplyDTO, ResultadoDTO
+from .dto import QuestoesDTO, ResultadoDTO
 
 # One endpoint serves the questões of an attempt and its correction: asking for it
 # on an attempt that has not started is what starts it and spends a tentativa.

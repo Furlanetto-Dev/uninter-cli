@@ -96,10 +96,6 @@ class AtividadesDTO(AvaDTO):
     )
 
 
-class ReplyDTO(AvaDTO):
-    exception: object | None = None
-
-
 class AtributoDTO(AvaDTO):
     nome: AvaText = Field(default=NOTHING, alias="nomeAtributo")
     valor: AvaText = NOTHING

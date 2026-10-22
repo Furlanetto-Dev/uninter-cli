@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from api.agendamentos.entity import Agendamento
 from api.atividades.entity import Atividade
 from api.aulas.entity import Aula, AulaAtividade, Material
 from api.capturas.entity import Captura
@@ -21,6 +22,7 @@ DATABASE_PATH: Path = APP_ROOT / "uninter.db"
 MAPPED_TABLES: tuple[type[SQLModel], ...] = (
     Materia,
     Atividade,
+    Agendamento,
     Trabalho,
     TrabalhoEntrega,
     TrabalhoEtiqueta,

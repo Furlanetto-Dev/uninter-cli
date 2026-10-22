@@ -5,6 +5,8 @@ from typing import NamedTuple
 
 import httpx
 
+from api.agendamentos.repository import AgendamentoRepository
+from api.agendamentos.service import AgendamentoService
 from api.atividades.repository import AtividadeRepository
 from api.atividades.service import AtividadeSyncService
 from api.aulas.arquivos import Arquivos
@@ -83,6 +85,8 @@ class UninterApp(App[None]):
         "pages/trabalho/page.tcss",
         "pages/inicio/page.tcss",
         "pages/entrega/page.tcss",
+        "pages/agendamento/page.tcss",
+        "pages/cancelamento/page.tcss",
         "pages/reset/page.tcss",
         "pages/requisicoes/page.tcss",
         "pages/login/page.tcss",
@@ -104,8 +108,10 @@ class UninterApp(App[None]):
         trabalhos_service: TrabalhoSyncService,
         aulas_service: AulaSyncService,
         provas: ProvaService,
+        agendamentos: AgendamentoService,
         materias_db: MateriaRepository,
         atividades_db: AtividadeRepository,
+        agendamentos_db: AgendamentoRepository,
         trabalhos_db: TrabalhoRepository,
         aulas_db: AulaRepository,
         capturas_db: CapturaRepository,
@@ -136,8 +142,10 @@ class UninterApp(App[None]):
         self._page = MateriasPage(
             self,
             provas,
+            agendamentos,
             materias_db,
             atividades_db,
+            agendamentos_db,
             trabalhos_db,
             aulas_db,
             capturas_db,

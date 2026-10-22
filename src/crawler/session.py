@@ -6,7 +6,7 @@ import httpx
 
 from api.capturas.entity import Captura
 
-from .credenciais import Credenciais
+from .credenciais import Credenciais, NotLoggedIn
 from .dto import LoginDTO
 from .history import RequestLog, hooks
 
@@ -26,6 +26,11 @@ class LoginRejected(Exception):
 
 class AvaUnreachable(Exception):
     pass
+
+
+class Student(NamedTuple):
+    usuario_id: int | None
+    polo_id: int | None
 
 
 class AvaResponse(NamedTuple):
@@ -75,6 +80,7 @@ class AvaSession:
         self._log = log
         self._stamp: str | None = None
         self._student: str | None = None
+        self._logged: Student | None = None
         self._logging_in = asyncio.Lock()
 
     @property
@@ -84,7 +90,14 @@ class AvaSession:
     def forget(self) -> None:
         self._stamp = None
         self._student = None
+        self._logged = None
         self._http.cookies.clear()
+
+    async def logged_student(self) -> Student:
+        await self._session_headers()
+        if self._logged is None:
+            raise NotLoggedIn
+        return self._logged
 
     async def get(self, url: str) -> AvaResponse:
         try:
@@ -112,11 +125,19 @@ class AvaSession:
         response.raise_for_status()
         return response.content
 
+    async def post(self, url: str, data: dict[str, str]) -> AvaResponse:
+        return await self._send_form("POST", url, data)
+
     async def put(self, url: str, data: dict[str, str]) -> AvaResponse:
+        return await self._send_form("PUT", url, data)
+
+    async def _send_form(
+        self, method: str, url: str, data: dict[str, str]
+    ) -> AvaResponse:
         headers = await self._session_headers()
         headers["content-type"] = FORM_CONTENT_TYPE
         try:
-            response = await self._http.put(url, data=data, headers=headers)
+            response = await self._http.request(method, url, data=data, headers=headers)
         except httpx.TransportError as error:
             self._note(error)
             raise
@@ -156,5 +177,6 @@ class AvaSession:
         if dto.usuario is None:
             raise LoginRejected(dto.mensagem or "RU ou senha inválidos")
         self._student = dto.usuario.nome
+        self._logged = Student(dto.usuario.id, dto.usuario.polo_id)
         self._stamp = dto.usuario.time
         return dto.usuario.time

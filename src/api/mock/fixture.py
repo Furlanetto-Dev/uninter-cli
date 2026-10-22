@@ -10,6 +10,7 @@ from api.materias.entity import Materia
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 
 from . import aulas
+from .agendamentos import MockedAgendamentos
 
 MATERIA_ID = -1
 MATERIA_CID = "mockada"
@@ -804,6 +805,13 @@ class MockedAva:
         self._respostas: dict[int, dict[int, int]] = {}
         self._avaliacoes = list(AVALIACOES)
         self._entregues: set[int] = set()
+        self._agendamentos = MockedAgendamentos(
+            OFERTA,
+            {
+                _avaliacao_id(position): avaliacao.nome
+                for position, avaliacao in enumerate(AVALIACOES)
+            },
+        )
 
     def _row(self, position: int, moment: datetime) -> dict[str, object]:
         avaliacao = self._avaliacoes[position]
@@ -847,6 +855,9 @@ class MockedAva:
         aula = aulas.payload(url, OFERTA)
         if aula is not None:
             return aula
+        agendamento = self._agendamentos.payload(url, body)
+        if agendamento is not None:
+            return agendamento
         if ATIVIDADES_PATH in url and f"idSalaVirtual={MATERIA_ID}&" in url:
             return self._atividades()
         if f"{TRABALHOS_PATH}{OFERTA}/" in url:

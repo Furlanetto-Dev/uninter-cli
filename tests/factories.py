@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from api.agendamentos.entity import Agendamento
 from api.atividades.entity import AWAITING_START, Atividade
 from api.gabaritos.entity import (
     Gabarito,
@@ -203,3 +204,28 @@ def make_gabarito(
     questoes: tuple[QuestaoGabaritada, ...] = (),
 ) -> Gabarito:
     return Gabarito(atividade_id=atividade_id, tentativa=tentativa, questoes=questoes)
+
+
+def make_agendamento(
+    *,
+    agendamento_id: int = 5_625_844,
+    materia_id: int = 1,
+    atividade_id: int | None = 10,
+    situacao: str = "Agendado",
+    inicio: datetime = datetime(2026, 10, 29, 15, 0),
+    fim: datetime = datetime(2026, 10, 29, 16, 0),
+    laboratorio: str = "Laboratório de Informática",
+    polo: str = "PAP SÃO JOSE DO RIO PRETO - SP",
+    pode_cancelar: bool = True,
+) -> Agendamento:
+    return Agendamento(
+        id=agendamento_id,
+        materia_id=materia_id,
+        atividade_id=atividade_id,
+        situacao=situacao,
+        inicio=inicio,
+        fim=fim,
+        laboratorio=laboratorio,
+        polo=polo,
+        pode_cancelar=pode_cancelar,
+    )
