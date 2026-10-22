@@ -25,116 +25,117 @@
 
 # Uninter CLI
 
-Uninter's AVA in your terminal: matérias, atividades, médias, trabalhos, provas and aulas,
-mirrored on your own machine so that looking something up is instant.
+O AVA da Uninter no seu terminal: matérias, atividades, médias, trabalhos, provas e aulas,
+espelhados na sua própria máquina para que qualquer consulta seja instantânea.
 
-> Unofficial. Not affiliated with or endorsed by Uninter; the name and the globe are Uninter's.
+> Projeto não oficial, sem vínculo com a Uninter nem endosso dela; o nome e o globo pertencem à
+> Uninter.
 
-## Why
+## Por quê
 
-The AVA (Univirtus) is a slow SPA: seeing a grade means logging in, waiting for it to load and
-navigating matéria by matéria. This app fetches that data when you ask, stores it in a local
-SQLite database and shows it in a terminal, where lookup is immediate and does not depend on an
-open session.
+O AVA (Univirtus) é uma SPA lenta: ver uma nota exige fazer login, esperar carregar e navegar
+matéria por matéria. Este app busca esses dados quando você pede, guarda num banco SQLite local e
+mostra no terminal, onde a consulta é imediata e não depende de uma sessão aberta.
 
-It is for personal use, by a single student. There is no server and no multi-user support, and
-nothing leaves your machine except the requests the app makes to the AVA on your behalf.
+É para uso pessoal, de um único aluno. Não há servidor nem suporte a vários usuários, e nada sai da
+sua máquina além das requisições que o app faz ao AVA em seu nome.
 
-## What it does
+## O que ele faz
 
-- **Matérias** in four groups — obrigatórias da fase, prazo estendido, pendentes ou futuras,
-  concluídas — with current work first.
-- **Atividades** of each matéria, grouped, with their deadlines and the média coloured by the
-  AVA's own approval bands.
-- **Trabalhos**, with entrega, nota, situação and prazo; `⏎` opens one on its own page.
-- **Provas**: start one, answer its questões and hand it in without leaving the terminal.
-- **Gabaritos**: `⏎` on a finished prova opens its gabarito, kept per tentativa.
-- **Aulas**: the Roteiro de Estudo of a matéria as a tree of aulas, atividades and materiais.
-  `⏎` opens a rota or a video in the browser, and downloads an arquivo once into
-  `UNINTER_AULAS_DIR`, one folder per matéria and aula, before opening it from disk.
-- **Figures** in a questão are drawn in place when the terminal speaks the kitty graphics
-  protocol, and become clickable links when it does not.
-- **Background sync**: a queue fetches whatever is missing, one matéria at a time, and the
-  matéria you ask for jumps the queue. The matérias listing is sent again every time you come
-  back to the list, and a new matéria is announced. When the AVA does not answer, what is stored
-  stays readable.
-- **Debug mode** shows the AVA's raw payload next to what was stored, with a history of every
-  request the app made.
-- **Dev mode** seeds a mocked matéria served by a fake AVA, so every flow can be exercised without
-  touching a real prova.
+- **Matérias** em quatro grupos — obrigatórias da fase, prazo estendido, pendentes ou futuras,
+  concluídas —, com o que está em andamento primeiro.
+- **Atividades** de cada matéria, agrupadas, com os prazos e a média colorida pelas faixas de
+  aprovação do próprio AVA.
+- **Trabalhos**, com entrega, nota, situação e prazo; `⏎` abre um trabalho em página própria.
+- **Provas**: inicie uma, responda as questões e entregue sem sair do terminal.
+- **Gabaritos**: `⏎` numa prova finalizada abre o gabarito, guardado por tentativa.
+- **Aulas**: o Roteiro de Estudo de uma matéria como uma árvore de aulas, atividades e materiais.
+  `⏎` abre uma rota ou um vídeo no navegador, e baixa um arquivo uma única vez para
+  `UNINTER_AULAS_DIR`, uma pasta por matéria e aula, antes de abri-lo do disco.
+- **Figuras** de uma questão são desenhadas no lugar quando o terminal suporta o protocolo gráfico
+  do kitty, e viram links clicáveis quando não suporta.
+- **Sincronização em segundo plano**: uma fila busca o que falta, uma matéria por vez, e a matéria
+  que você pede passa na frente. A lista de matérias é buscada de novo toda vez que você volta para
+  ela, e uma matéria nova é anunciada. Quando o AVA não responde, o que já está guardado continua
+  legível.
+- **Modo debug** mostra o payload cru do AVA ao lado do que foi guardado, com o histórico de todas as
+  requisições que o app fez.
+- **Modo dev** cria uma matéria simulada servida por um AVA falso, para exercitar todos os fluxos sem
+  tocar numa prova de verdade.
 
-## Getting started
+## Começando
 
-Requires Python 3.12 and [PDM](https://pdm-project.org).
+Requer Python 3.12 e [PDM](https://pdm-project.org).
 
 ```bash
 pdm install
 pdm run start
 ```
 
-The first three times it opens, the app shows the logo above for a few seconds; any key skips it.
+Nas três primeiras vezes que abre, o app mostra a logo acima por alguns segundos; qualquer tecla
+pula.
 
-On the first run the login page asks for your RU and senha, then takes the curso from your turma,
-asking which one only if you have several. Tick *Lembrar de mim* and the credentials are kept in
-the local database, in plain text, until you log out from the command palette. To skip the login
-page altogether, copy `.env.example` to `.env` and fill in your RU and senha; every variable is
-documented there.
+Na primeira vez, a página de login pede seu RU e sua senha e depois pega o curso da sua turma,
+perguntando qual só se você tiver mais de uma. Marque *Lembrar de mim* e as credenciais ficam
+guardadas no banco local, em texto puro, até você sair pela paleta de comandos. Para pular o login
+de vez, copie `.env.example` para `.env` e preencha seu RU e sua senha; todas as variáveis estão
+documentadas lá.
 
-## Using it
+## Usando
 
-The footer always lists the keys that work on the current screen. The essentials:
+O rodapé sempre lista as teclas que funcionam na tela atual. O essencial:
 
-| Key | Where | What |
+| Tecla | Onde | O quê |
 | --- | --- | --- |
-| `⏎` | matérias | fetch the highlighted matéria from the AVA |
-| `r` | matérias | fetch the open tab again, and the matérias listing |
-| `1` `2` `3` | matérias | atividades, trabalhos or aulas tab |
-| `→` `←` | matérias | move between the list and the detail pane |
-| `⏎` | atividades | start a prova, or open the gabarito of a finished one |
-| `⏎` | aulas | open a rota or a video, or download and open an arquivo |
-| `a` … `h` | prova | pick an alternativa |
-| `1` … `0` | prova, gabarito | jump to a questão |
-| `ctrl+←` `ctrl+→` | prova | previous or next questão |
-| `j` `k` | gabarito | previous or next questão |
-| `esc` | everywhere | back |
-| `ctrl+p` | everywhere | command palette |
+| `⏎` | matérias | busca no AVA a matéria destacada |
+| `r` | matérias | busca de novo a aba aberta e a lista de matérias |
+| `1` `2` `3` | matérias | aba de atividades, trabalhos ou aulas |
+| `→` `←` | matérias | alterna entre a lista e o painel de detalhes |
+| `⏎` | atividades | inicia uma prova, ou abre o gabarito de uma finalizada |
+| `⏎` | aulas | abre uma rota ou um vídeo, ou baixa e abre um arquivo |
+| `a` … `h` | prova | escolhe uma alternativa |
+| `1` … `0` | prova, gabarito | pula para uma questão |
+| `ctrl+←` `ctrl+→` | prova | questão anterior ou próxima |
+| `j` `k` | gabarito | questão anterior ou próxima |
+| `esc` | em todo lugar | voltar |
+| `ctrl+p` | em todo lugar | paleta de comandos |
 
-The command palette holds the rest: **Reload matérias**, **Invalidate cache** (deletes the local
-database and restarts), **Enable debug mode** (`j` then focuses its panel and `ctrl+l` opens the
-request history), **Enable dev mode** and **Logout**.
+A paleta de comandos guarda o resto: **Reload matérias**, **Invalidate cache** (apaga o banco local
+e reinicia), **Enable debug mode** (aí `j` foca o painel e `ctrl+l` abre o histórico de
+requisições), **Enable dev mode** e **Logout**.
 
-## Files it keeps
+## Arquivos que ele guarda
 
-These live at the repository root and are gitignored:
+Ficam na raiz do repositório e estão no `.gitignore`:
 
-| File | What |
+| Arquivo | O quê |
 | --- | --- |
-| `.env` | optional credentials and settings; see `.env.example` |
-| `uninter.db` | the local SQLite mirror of the AVA |
-| `config.json` | what the app remembers between runs: `dev_mode`, and `logo_shown`, how many times the logo was shown |
+| `.env` | credenciais e configurações opcionais; veja `.env.example` |
+| `uninter.db` | o espelho local do AVA, em SQLite |
+| `config.json` | o que o app lembra entre execuções: `dev_mode`, e `logo_shown`, quantas vezes a logo já apareceu |
 
-The arquivos you download from the aulas go to `UNINTER_AULAS_DIR`, `~/Uninter` by default.
+Os arquivos que você baixa das aulas vão para `UNINTER_AULAS_DIR`, `~/Uninter` por padrão.
 
-## Development
+## Desenvolvimento
 
 ```bash
-pdm run test                                                   # pytest + pytest-asyncio
-uvx ruff check src tests && uvx ruff format --check src tests
-uvx pyright                                                    # strict; not installed in the venv
+pdm run test                                                          # pytest + pytest-asyncio
+pdm run ruff check src tests && pdm run ruff format --check src tests
+uvx pyright                                                           # strict; não está no venv
 ```
 
 ```text
 src/
-  main.py             composition root
-  crawler/            talks to the AVA: session, requests, DTOs
-  api/                what is ours: entities, repositories and services over SQLite
-  cli/                the Textual interface: app, pages, components
-tests/cli/            mirrors src/cli/; only the interface is tested
-specs/                one decision per file: pending/, done/, rejected/
-uninter-endpoints/    captured AVA requests the crawler is built from
-.claude/skills/       how a page, a test and a spec are written here
+  main.py             onde o app é montado
+  crawler/            fala com o AVA: sessão, requisições, DTOs
+  api/                o que é nosso: entidades, repositórios e serviços sobre o SQLite
+  cli/                a interface em Textual: app, páginas, componentes
+tests/cli/            espelha src/cli/; só a interface é testada
+specs/                uma decisão por arquivo: pending/, done/, rejected/
+uninter-endpoints/    requisições do AVA capturadas, a base do crawler
+.claude/skills/       como se escreve aqui uma página, um teste e uma spec
 ```
 
-Code is written in English while the domain stays in Portuguese — matéria, atividade, trabalho,
-prova, gabarito, RU, AVA — and so does every word on screen. [CONTEXT.md](CONTEXT.md) has the
-project in one paragraph, and `specs/done/` has every decision behind it.
+O código é escrito em inglês e o domínio fica em português — matéria, atividade, trabalho, prova,
+gabarito, RU, AVA —, assim como todo texto da tela. O [CONTEXT.md](CONTEXT.md) resume o projeto em
+um parágrafo, e `specs/done/` tem todas as decisões por trás dele.
