@@ -14,6 +14,8 @@ dependencies = [
     "aiosqlite>=0.22.1",
     "beautifulsoup4>=4.15.0",
     "textual-image>=0.14",
+    "mcp>=2.3,<3",
+    "uvicorn==0.54.0",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -26,12 +28,14 @@ distribution = false
 [tool.pdm.scripts]
 start = {cmd = "python src/main.py", help = "Abre a CLI interativa de avaliações"}
 test = {cmd = "pytest", help = "Roda a suíte de testes"}
+mcp = {cmd = "python src/mcp_stdio.py", help = "Serve o MCP do app por stdio, para quando o app está fechado"}
 
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "tests"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = "-n auto"
 
 
 [tool.pyright]
@@ -45,4 +49,5 @@ venv = ".venv"
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-xdist>=3.8.0",
 ]

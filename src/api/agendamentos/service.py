@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from api.atividades.entity import Atividade
 from api.materias.entity import Materia
-from crawler.agendamentos.request import AgendamentoRequest
+from crawler.agendamentos.request import AgendamentoRequest, failing_as_agendamento
 
 from .entity import Agendamento, Horario, is_schedulable
 
@@ -41,6 +41,12 @@ class AgendamentoService:
 
     async def cancel(self, agendamento: Agendamento) -> None:
         await self._request.cancel(agendamento)
+
+    async def fetch(
+        self, materia: Materia, atividades: list[Atividade]
+    ) -> list[Agendamento]:
+        with failing_as_agendamento():
+            return await self._request.fetch(materia, atividades)
 
     async def fetch_if_schedulable(
         self, materia: Materia, atividades: list[Atividade]
