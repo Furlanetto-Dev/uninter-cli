@@ -16,6 +16,7 @@ from api.figures.entity import Figure
 from api.gabaritos.entity import GabaritoAlternativa, GabaritoQuestao
 from api.materias.entity import Materia
 from api.trabalhos.entity import Trabalho, TrabalhoEntrega, TrabalhoEtiqueta
+from api.transcricoes.entity import Transcricao
 from settings import APP_ROOT
 
 DATABASE_PATH: Path = APP_ROOT / "uninter.db"
@@ -29,6 +30,7 @@ MAPPED_TABLES: tuple[type[SQLModel], ...] = (
     Aula,
     AulaAtividade,
     Material,
+    Transcricao,
     GabaritoQuestao,
     GabaritoAlternativa,
     Captura,
@@ -58,18 +60,27 @@ async def _recreated(engine: AsyncEngine, path: Path) -> AsyncEngine:
 
 
 @asynccontextmanager
-async def db_session(
-    path: Path = DATABASE_PATH,
-) -> AsyncGenerator[AsyncSession, None]:
+async def db_engine(path: Path = DATABASE_PATH) -> AsyncGenerator[AsyncEngine, None]:
     engine = _engine(path)
     if await schema_is_behind(engine):
         engine = await _recreated(engine, path)
     try:
         async with engine.begin() as connection:
             await connection.run_sync(SQLModel.metadata.create_all)
-        # Under async, the default expire_on_commit turns every attribute access
-        # after a commit into implicit IO, which raises MissingGreenlet.
-        async with AsyncSession(engine, expire_on_commit=False) as session:
-            yield session
+        yield engine
     finally:
         await engine.dispose()
+
+
+def open_session(engine: AsyncEngine) -> AsyncSession:
+    # Under async, the default expire_on_commit turns every attribute access
+    # after a commit into implicit IO, which raises MissingGreenlet.
+    return AsyncSession(engine, expire_on_commit=False)
+
+
+@asynccontextmanager
+async def db_session(
+    path: Path = DATABASE_PATH,
+) -> AsyncGenerator[AsyncSession, None]:
+    async with db_engine(path) as engine, open_session(engine) as session:
+        yield session

@@ -8,12 +8,14 @@ from api.aulas.entity import Aula, AulaAtividade, Material
 from api.capturas.entity import Captura
 from api.materias.entity import Materia
 from api.trabalhos.entity import Trabalho
+from api.transcricoes.entity import Transcricao
 
 from . import fixture
 
 
 def mocked_rows() -> list[Delete]:
     return [
+        delete(Transcricao).where(col(Transcricao.material_id) < 0),
         delete(Material).where(col(Material.atividade_id) < 0),
         delete(AulaAtividade).where(col(AulaAtividade.aula_id) < 0),
         *(
