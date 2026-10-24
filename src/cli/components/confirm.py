@@ -61,6 +61,8 @@ class Confirm(ModalScreen[bool]):
     def __init__(self, prompt: str) -> None:
         super().__init__()
         self._prompt = prompt
+        self.closed_with_escape = False
+        self._withdrawn = False
 
     def compose(self) -> ComposeResult:
         with Vertical(id=self.BOX_ID):
@@ -73,7 +75,18 @@ class Confirm(ModalScreen[bool]):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == YES_ID)
 
+    def withdraw(self) -> None:
+        if self.is_active:
+            self.dismiss(False)
+        else:
+            self._withdrawn = True
+
+    def on_screen_resume(self) -> None:
+        if self._withdrawn:
+            self.dismiss(False)
+
     def action_cancel(self) -> None:
+        self.closed_with_escape = True
         self.dismiss(False)
 
     def action_focus_next(self) -> None:

@@ -37,10 +37,13 @@ from textual.widget import Widget
 from cli.commands.palette import AppCommands
 from cli.components.footer import key_display
 from cli.figures import Figures
+from cli.lib.claude.opener import ClaudeTerminal, PasteCommand, Summoned
+from cli.mcp_host import AppHost
 from cli.components.debug.panel import DEBUG_BINDINGS, DebugPanel
 from cli.pages.requisicoes.page import HISTORY_BINDINGS, RequisicoesPage
 from cli.components.loading import Loading
 from cli.pages.abertura.page import AberturaPage, is_logo_due
+from cli.pages.claude.page import ClaudeCommand
 from cli.pages.materias.components.list import synced_at
 from cli.pages.login.page import LoginPage
 from cli.pages.materias.page import MateriasPage
@@ -58,6 +61,13 @@ AVA_ERROR_TITLE = "Erro do AVA"
 AVA_ERROR = "O AVA respondeu {status} à lista de matérias."
 NEW_MATERIA = "Matéria nova: {nome}"
 NEW_MATERIAS = "{count} matérias novas"
+MCP_DOWN = "MCP fora do ar"
+SUMMON_CLAUDE = "claude"
+SUMMON_WARNINGS = {
+    Summoned.NOT_INSTALLED: "Claude Code não está no PATH",
+    Summoned.MCP_DOWN: "MCP fora do ar: o Claude não foi aberto",
+    Summoned.ALREADY_OPEN: "O Claude já está aberto em outra janela",
+}
 
 
 def new_materias(listed: list[Materia], known: list[Materia]) -> list[Materia]:
@@ -77,7 +87,11 @@ class SyncItem(NamedTuple):
 
 
 class UninterApp(App[None]):
-    BINDINGS = [*DEBUG_BINDINGS, *HISTORY_BINDINGS]
+    BINDINGS = [
+        *DEBUG_BINDINGS,
+        *HISTORY_BINDINGS,
+        Binding("i", "summon_claude", SUMMON_CLAUDE),
+    ]
     CSS_PATH = [
         "app.tcss",
         "pages/materias/page.tcss",
@@ -88,11 +102,13 @@ class UninterApp(App[None]):
         "pages/entrega/page.tcss",
         "pages/agendamento/page.tcss",
         "pages/cancelamento/page.tcss",
+        "pages/agendar/page.tcss",
         "pages/reset/page.tcss",
         "pages/requisicoes/page.tcss",
         "pages/login/page.tcss",
         "pages/turmas/page.tcss",
         "pages/abertura/page.tcss",
+        "pages/claude/page.tcss",
     ]
     TITLE = "Uninter"
     COMMANDS = App.COMMANDS | {AppCommands}
@@ -127,8 +143,15 @@ class UninterApp(App[None]):
         credenciais: Credenciais,
         credenciais_db: CredencialRepository,
         log: RequestLog,
+        claude: ClaudeTerminal,
+        mcp_url: str | None = None,
+        mcp_failure: str | None = None,
     ) -> None:
         super().__init__()
+        self._mcp_url = mcp_url
+        self._mcp_failure = mcp_failure
+        self.host = AppHost(self, self.fetch_atividades)
+        self._claude = claude
         self._history = log
         self._mocked = mocked
         self._config = config
@@ -178,7 +201,13 @@ class UninterApp(App[None]):
             )
         )
 
+    @property
+    def mcp_url(self) -> str | None:
+        return self._mcp_url
+
     async def start(self) -> None:
+        if self._mcp_failure is not None:
+            self.notify(self._mcp_failure, title=MCP_DOWN, severity="warning")
         if is_logo_due(self._config.logo_shown):
             self.show_logo()
         else:
@@ -207,6 +236,14 @@ class UninterApp(App[None]):
         self._credenciais.clear()
         self._ava.forget()
         self.ask_to_log_in()
+
+    @work(exclusive=True, group=SUMMON_CLAUDE)
+    async def action_summon_claude(self) -> None:
+        summoned = await self._claude.summon(self.mcp_url)
+        if isinstance(summoned, PasteCommand):
+            self.push_screen(ClaudeCommand(summoned.line, self.copy_to_clipboard))
+        elif summoned in SUMMON_WARNINGS:
+            self.notify(SUMMON_WARNINGS[summoned], severity="warning")
 
     @property
     def page(self) -> MateriasPage:
@@ -237,6 +274,8 @@ class UninterApp(App[None]):
         return panels[0] if panels else None
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "summon_claude":
+            return not self.at_login
         if action == "focus_debug":
             return self.debug_mode and self.panel is not None
         if action == "request_history":
@@ -270,6 +309,9 @@ class UninterApp(App[None]):
         if confirmed:
             self.reset_requested = True
             self.exit()
+
+    def fetch_atividades(self, materia: Materia) -> None:
+        self.fetch(materia.id, ATIVIDADES)
 
     def fetch(self, materia_id: int, collection: str) -> None:
         self.enqueue(SyncItem(materia_id, collection), to_front=True)

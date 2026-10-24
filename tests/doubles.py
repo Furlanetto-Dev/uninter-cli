@@ -3,6 +3,7 @@ from collections.abc import Callable, Sequence
 from io import BytesIO
 
 from PIL import Image as PILImage
+from pydantic_settings import SettingsConfigDict
 from rich.console import RenderableType
 from rich.text import Text
 from textual.app import App
@@ -11,10 +12,17 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from cli.figures import Figures, LinkPainter, Painter, figure_link
+from cli.lib.claude.opener import Ran
 from cli.lib.html_to_textual import Figure
+from settings import Settings
 
 DRAWING = "▣ figura"
 PATIENCE = 300
+MCP_URL = "http://127.0.0.1:8765/mcp"
+
+
+class SettingsWithoutEnvFile(Settings):
+    model_config = SettingsConfigDict(env_file=None)
 
 
 def make_png(width: int = 40, height: int = 20) -> bytes:
@@ -80,3 +88,35 @@ async def until(pilot: Pilot[None], condition: Callable[[], bool]) -> None:
             return
         await pilot.pause(0.01)
     raise AssertionError("the screen never got there")
+
+
+PANE_ID = "%7"
+
+
+def everything_succeeds(argv: Sequence[str]) -> Ran:
+    return Ran(True, f"{PANE_ID}\n")
+
+
+class ScriptedShell:
+    def __init__(
+        self, answer: Callable[[Sequence[str]], Ran] = everything_succeeds
+    ) -> None:
+        self.answer = answer
+        self.ran: list[list[str]] = []
+        self.spawned: list[list[str]] = []
+
+    async def run(self, argv: Sequence[str]) -> Ran:
+        self.ran.append(list(argv))
+        return self.answer(argv)
+
+    def spawn(self, argv: Sequence[str]) -> bool:
+        self.spawned.append(list(argv))
+        return True
+
+
+def painted_toasts(app: App[None]) -> str:
+    return " ".join(
+        toast.render_line(row).text.strip()
+        for toast in app.screen.query("Toast")
+        for row in range(toast.size.height)
+    )
