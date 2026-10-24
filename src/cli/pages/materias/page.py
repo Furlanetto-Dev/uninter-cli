@@ -17,6 +17,11 @@ from api.capturas.entity import ATIVIDADES, AULAS, MATERIAS, TRABALHOS, Captura
 from api.capturas.repository import CapturaRepository
 from api.materias.entity import Materia
 from api.materias.repository import MateriaRepository
+from api.mcp_server.views import (
+    AtividadeOnScreenView,
+    CurrentScreenView,
+    MateriaOnScreenView,
+)
 from api.trabalhos.entity import Trabalho
 from api.trabalhos.repository import TrabalhoRepository
 from api.provas.service import ProvaService
@@ -73,6 +78,7 @@ BOOKED = "Prova agendada para {when}."
 SCHEDULED = "Agendada para {when}, {laboratorio} · {polo}."
 CANCELLED = "Agendamento cancelado."
 CANCEL_FAILED = "Não foi possível cancelar o agendamento: {reason}"
+PAGE = "materias"
 ATIVIDADES_HINT = "atividades-hint"
 TRABALHOS_HINT = "trabalhos-hint"
 AULAS_HINT = "aulas-hint"
@@ -187,6 +193,26 @@ class MateriasPage(Screen[None]):
         await self.uninter.prepare()
         await self.reload_materias()
         await self.uninter.start()
+
+    def current_screen(self) -> CurrentScreenView:
+        materia = self.materia_list.highlighted_materia
+        atividade = (
+            self.selected_atividade if self.active_collection == ATIVIDADES else None
+        )
+        return CurrentScreenView(
+            page=PAGE,
+            materia=None if materia is None else MateriaOnScreenView.of(materia),
+            tab=self.active_collection,
+            atividade=None
+            if atividade is None
+            else AtividadeOnScreenView.of(atividade),
+        )
+
+    def open_materia(self, materia_id: int, tab: str) -> bool:
+        if not self.materia_list.highlight_materia(materia_id):
+            return False
+        self.query_one(TabbedContent).active = tab
+        return True
 
     @property
     def active_collection(self) -> str:

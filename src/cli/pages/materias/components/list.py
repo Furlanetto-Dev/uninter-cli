@@ -122,6 +122,13 @@ class MateriaList(Sidebar):
         yield
         self._highlight(previous)
 
+    def highlight_materia(self, materia_id: int) -> bool:
+        try:
+            self.highlighted = self.get_option_index(str(materia_id))
+        except OptionDoesNotExist:
+            return False
+        return True
+
     def _highlight(self, materia: Materia | None) -> None:
         target = str(materia.id) if materia is not None else None
         first: int | None = None

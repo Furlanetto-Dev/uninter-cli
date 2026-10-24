@@ -1,0 +1,17 @@
+ClaudeCommand {
+    align: center middle;
+
+    #claude-command {
+        width: 90%;
+        max-width: 110;
+        height: auto;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+
+    #claude-command-line {
+        margin-top: 1;
+        color: $text-accent;
+    }
+}

@@ -7,6 +7,14 @@ from typing import NamedTuple
 from api.atividades.entity import Atividade
 from api.capturas import lookup
 from api.materias.entity import Materia
+from api.mcp_server.views import (
+    AtividadeOnScreenView,
+    CurrentScreenView,
+    MateriaOnScreenView,
+    OpenProvaView,
+    ProvaOnScreenView,
+    QuestaoOnScreenView,
+)
 from api.provas.entity import LETTERS, Alternativa, Prova, Questao
 from api.provas.service import ProvaAnswers
 from crawler.atividades.prova import ProvaFailed
@@ -42,8 +50,14 @@ from cli.components.table import QuestaoTable
 from cli.figures import Figures
 from cli.format import format_elapsed, format_number
 from cli.pages.entrega.page import ConfirmHandIn
+from cli.lib.claude.context import (
+    questao_of_prova,
+    questao_on_screen,
+    resposta_line,
+)
 from cli.lib.html_to_textual import Block, Prose, html_to_blocks
 
+PAGE = "prova"
 QUESTAO_LABEL = "Questão {ordem}"
 SUMMARY_TITLE = "resumo"
 HANDED_IN_TITLE = "prova entregue"
@@ -140,6 +154,42 @@ class ProvaPage(Screen[None]):
         await self.show()
         self.fetch_figures()
         self.set_interval(TICK, self.tick)
+
+    def current_screen(self) -> CurrentScreenView:
+        return CurrentScreenView(
+            page=PAGE,
+            materia=MateriaOnScreenView.of(self._materia),
+            prova=ProvaOnScreenView(
+                atividade=AtividadeOnScreenView.of(self._atividade),
+                questao=None if self.finished else self.questao_on_screen(),
+                respostas=[resposta_line(q, self.chosen(q)) for q in self.questoes],
+                entregue=self._handed_in,
+            ),
+        )
+
+    def open_prova(self) -> OpenProvaView:
+        return OpenProvaView(
+            materia=MateriaOnScreenView.of(self._materia),
+            atividade=AtividadeOnScreenView.of(self._atividade),
+            questao_aberta=None if self.finished else self.questao.ordem,
+            entregue=self._handed_in,
+            questoes=[questao_of_prova(q, self.chosen(q)) for q in self.questoes],
+        )
+
+    async def open_questao(self, numero: int) -> bool:
+        position = numero - 1
+        if not 0 <= position < len(self.questoes):
+            return False
+        self.query_one(QuestaoList).select(position)
+        if position != self._page:
+            self._page = position
+            await self.show()
+        return True
+
+    def questao_on_screen(self) -> QuestaoOnScreenView:
+        return questao_on_screen(
+            self.questao, len(self.questoes), self.chosen(self.questao)
+        )
 
     @property
     def questoes(self) -> tuple[Questao, ...]:
