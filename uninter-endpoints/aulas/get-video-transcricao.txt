@@ -1,0 +1,13 @@
+curl --url 'https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P01_pt_BR.vtt' \
+  -H 'accept: */*' \
+  -H 'origin: https://conteudosdigitais.uninter.com' \
+  -H 'referer: https://conteudosdigitais.uninter.com/' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: cross-site' \
+  -H 'accept-language: en-US,en;q=0.9,pt;q=0.8' \
+  -H 'sec-ch-ua: "Brave";v="153", "Not_A Brand";v="8", "Chromium";v="153"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  -H 'sec-gpc: 1' \
+  -H 'user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36'

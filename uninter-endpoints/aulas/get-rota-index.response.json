@@ -1,0 +1,50 @@
+{
+    "video_completo": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01.mp4",
+    "aula": {
+        "num_aula": "1",
+        "professores": {
+            "0000": {
+                "professor": "$PROFESSOR_NOME",
+                "cpf": "$PROFESSOR_CPF"
+            }
+        },
+        "midia": {
+            "1": {
+                "titulo": "Conversa Inicial",
+                "url": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P01.mp4",
+                "percentual": "",
+                "tempo_total": ""
+            },
+            "2": {
+                "titulo": "Tema 1 - Paradigmas de programação e história da orientação a objetos",
+                "url": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P02.mp4",
+                "percentual": "",
+                "tempo_total": ""
+            },
+            "3": {
+                "titulo": "Tema 2 - História do Java",
+                "url": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P03.mp4",
+                "percentual": "",
+                "tempo_total": ""
+            },
+            "4": {
+                "titulo": "Tema 3 - Organização do Java",
+                "url": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P04.mp4",
+                "percentual": "",
+                "tempo_total": ""
+            },
+            "5": {
+                "titulo": "Tema 4 - Versões do Java e primeiro código",
+                "url": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P05.mp4",
+                "percentual": "",
+                "tempo_total": ""
+            },
+            "6": {
+                "titulo": "Tema 5 - Visão geral sobre o código Java",
+                "url": "https://vod.grupouninter.com.br/2022/JUN/10202201673-A01-P06.mp4",
+                "percentual": "",
+                "tempo_total": ""
+            }
+        }
+    }
+}
