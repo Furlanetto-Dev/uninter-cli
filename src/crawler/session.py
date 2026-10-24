@@ -11,6 +11,7 @@ from .dto import LoginDTO
 from .history import RequestLog, hooks
 
 BASE_URL = "https://univirtus.uninter.com/ava"
+LOGIN_PATH = "/autenticacao/autenticar/false/Post"
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
@@ -65,6 +66,18 @@ def ava_client(
             "user-agent": USER_AGENT,
             "x-requested-with": "XMLHttpRequest",
         },
+    )
+
+
+def public_client(
+    transport: httpx.AsyncBaseTransport | None = None,
+    log: RequestLog | None = None,
+) -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        transport=transport,
+        event_hooks=hooks(log) if log is not None else None,
+        timeout=TIMEOUT_SECONDS,
+        headers={"user-agent": USER_AGENT},
     )
 
 
@@ -161,7 +174,7 @@ class AvaSession:
     async def log_in(self) -> str:
         try:
             response = await self._http.post(
-                "/autenticacao/autenticar/false/Post",
+                LOGIN_PATH,
                 data={
                     "login": self._credenciais.ru,
                     "senha": self._credenciais.password,

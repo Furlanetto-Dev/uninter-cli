@@ -19,6 +19,7 @@ NOISE = ("host", "content-length", "accept-encoding", "connection")
 READABLE_TYPES = ("text/", "application/json", "application/javascript")
 CONTENT_TYPE = "content-type"
 NOT_READABLE = "<{kind}, {size} bytes>"
+PERSONAL_DATA_HOSTS = ("conteudosdigitais.uninter.com",)
 
 
 @dataclass
@@ -48,8 +49,14 @@ class Request:
         return self.status is not None or self.error is not None
 
 
+def carries_personal_data(response: httpx.Response) -> bool:
+    return response.url.host in PERSONAL_DATA_HOSTS
+
+
 def body_of(response: httpx.Response) -> str:
     kind = response.headers.get(CONTENT_TYPE, "")
+    if carries_personal_data(response):
+        return NOT_READABLE.format(kind=kind, size=len(response.content))
     if not kind or kind.startswith(READABLE_TYPES):
         return response.text
     return NOT_READABLE.format(kind=kind, size=len(response.content))
