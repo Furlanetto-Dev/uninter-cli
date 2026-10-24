@@ -10,3 +10,5 @@ config.json
 .venv/
 
 ignore.md
+.claude/worktrees/
+.maestri/
